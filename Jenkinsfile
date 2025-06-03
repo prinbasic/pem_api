@@ -58,9 +58,9 @@ pipeline {
         }
         stage('Install Dependencies & Test') {
             steps {
-                sh '''
-                python3 -m venv venv
-                source venv/bin/activate
+                bat '''
+                python -m venv venv
+                call venv\\Scripts\\activate
                 pip install -r requirements.txt
                 pytest || echo "No tests available"
                 '''
