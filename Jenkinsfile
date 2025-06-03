@@ -9,6 +9,13 @@ pipeline {
                 checkout scm
             }
         }
+        stage('Inject .env from Jenkins Secret File') {
+            steps {
+                withCredentials([file(credentialsId: 'prinenvpem', variable: 'ENV_FILE')]) {
+                    sh 'cp $ENV_FILE .env'
+                }
+            }
+        }
         stage('Build & Test') {
             steps {
                 sh '''
