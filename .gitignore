@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+venv/
+.env
+
+# Docker
+*.dockerignore
+
+# Kubernetes YAML
+*.yaml
+*.yml
+
+# OS & Editor
+.DS_Store
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Jenkinsfile
+*.jenkinsfile
+*.groovy
