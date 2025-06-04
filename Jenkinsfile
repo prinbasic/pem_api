@@ -50,7 +50,7 @@ pipeline {
             slackSend (
             tokenCredentialId: 'slack_channel_secret',  // The ID of the bot token credential in Jenkins
             message: "✅ Build SUCCESSFUL: ${env.JOB_NAME} [${env.BUILD_NUMBER}]",
-            channel: '#orbit',
+            channel: '#jenekin_update',
             color: 'good',  // Optional: Green color for success
             iconEmoji: ':white_check_mark:',  // Optional: Emoji
             username: 'Jenkins'
@@ -60,7 +60,7 @@ pipeline {
             slackSend (
             tokenCredentialId: 'slack_channel_secret',
             message: "❌ Build FAILED: ${env.JOB_NAME} [${env.BUILD_NUMBER}]",
-            channel: '#orbit',
+            channel: '#jenekin_update',
             color: 'danger',  // Optional: Red color for failure
             iconEmoji: ':x:',  // Optional: Emoji
             username: 'Jenkins'
