@@ -48,22 +48,22 @@ pipeline {
     post {
         success {
             slackSend (
-            channel: '#orbit',  // Slack channel where you want to send the message
+            tokenCredentialId: 'slack_bot_token',  // The ID of the bot token credential in Jenkins
             message: "✅ Build SUCCESSFUL: ${env.JOB_NAME} [${env.BUILD_NUMBER}]",
-            tokenCredentialId: 'slack_webhook_url',  // Use the credential ID for Slack webhook
-            username: 'Jenkins',  // Optional: Set the bot's name
-            iconEmoji: ':white_check_mark:',  // Optional: Set the bot's emoji icon
-            color: 'good'  // Optional: Color of the message (green for success)
+            channel: '#orbit',
+            color: 'good',  // Optional: Green color for success
+            iconEmoji: ':white_check_mark:',  // Optional: Emoji
+            username: 'Jenkins'
         )
         }
         failure {
             slackSend (
-            channel: '#orbit',  // Slack channel where you want to send the message
+            tokenCredentialId: 'slack_bot_token',
             message: "❌ Build FAILED: ${env.JOB_NAME} [${env.BUILD_NUMBER}]",
-            tokenCredentialId: 'slack_webhook_url',  // Use the credential ID for Slack webhook
-            username: 'Jenkins',  // Optional: Set the bot's name
-            iconEmoji: ':x:',  // Optional: Set the bot's emoji icon
-            color: 'danger'  // Optional: Color of the message (red for failure)
+            channel: '#orbit',
+            color: 'danger',  // Optional: Red color for failure
+            iconEmoji: ':x:',  // Optional: Emoji
+            username: 'Jenkins'
         )
         }
         always {
