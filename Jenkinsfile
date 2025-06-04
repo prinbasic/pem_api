@@ -6,7 +6,7 @@ pipeline {
     }
 
     environment {
-        BRANCH_NAME = env.BRANCH_NAME
+        BRANCH_NAME = "${env.BRANCH_NAME}"  // Correctly quote the variable
     }
 
     stages {
