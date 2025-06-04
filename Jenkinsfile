@@ -48,14 +48,14 @@ pipeline {
     post {
         success {
             slackSend (
-                tokenCredentialId: credentials('slack_webhook_url'),
+                tokenCredentialId: 'slack_webhook_url',
                 message: "✅ Build SUCCESSFUL: ${env.JOB_NAME} [${env.BUILD_NUMBER}]",
                 channel: '#orbit'
             )
         }
         failure {
             slackSend (
-                tokenCredentialId: credentials('slack_webhook_url'),
+                tokenCredentialId: 'slack_webhook_url',
                 message: "❌ Build FAILED: ${env.JOB_NAME} [${env.BUILD_NUMBER}]",
                 channel: '#orbit'
             )
