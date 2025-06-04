@@ -48,16 +48,16 @@ pipeline {
     post {
         success {
             slackSend (
-                webhookUrl: credentials('slack-webhook-url'),
+                webhookUrl: credentials('slack_webhook_url'),
                 message: "✅ Build SUCCESSFUL: ${env.JOB_NAME} [${env.BUILD_NUMBER}]",
-                channel: '#your-channel-name'
+                channel: 'orbit'
             )
         }
         failure {
             slackSend (
-                webhookUrl: credentials('slack-webhook-url'),
+                webhookUrl: credentials('slack_webhook_url'),
                 message: "❌ Build FAILED: ${env.JOB_NAME} [${env.BUILD_NUMBER}]",
-                channel: '#your-channel-name'
+                channel: 'orbit'
             )
         }
         always {
