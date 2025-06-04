@@ -48,17 +48,23 @@ pipeline {
     post {
         success {
             slackSend (
-                tokenCredentialId: 'slack_webhook_url',  // Use the ID you set for Slack webhook URL
-                message: "✅ Build SUCCESSFUL: ${env.JOB_NAME} [${env.BUILD_NUMBER}]",
-                channel: '#orbit'  // Slack channel to send the message to
-            )
+            channel: '#orbit',  // Slack channel where you want to send the message
+            message: "✅ Build SUCCESSFUL: ${env.JOB_NAME} [${env.BUILD_NUMBER}]",
+            tokenCredentialId: 'slack_webhook_url',  // Use the credential ID for Slack webhook
+            username: 'Jenkins',  // Optional: Set the bot's name
+            iconEmoji: ':white_check_mark:',  // Optional: Set the bot's emoji icon
+            color: 'good'  // Optional: Color of the message (green for success)
+        )
         }
         failure {
             slackSend (
-                tokenCredentialId: 'slack_webhook_url',  // Use the ID you set for Slack webhook URL
-                message: "❌ Build FAILED: ${env.JOB_NAME} [${env.BUILD_NUMBER}]",
-                channel: '#orbit'  // Slack channel to send the message to
-            )
+            channel: '#orbit',  // Slack channel where you want to send the message
+            message: "❌ Build FAILED: ${env.JOB_NAME} [${env.BUILD_NUMBER}]",
+            tokenCredentialId: 'slack_webhook_url',  // Use the credential ID for Slack webhook
+            username: 'Jenkins',  // Optional: Set the bot's name
+            iconEmoji: ':x:',  // Optional: Set the bot's emoji icon
+            color: 'danger'  // Optional: Color of the message (red for failure)
+        )
         }
         always {
             cleanWs()
