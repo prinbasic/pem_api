@@ -1,23 +1,300 @@
+# openapi: 3.0.0
+# info:
+#   title: basic home loan
+#   version: 1.0.0
+#   description: API for CIBIL score initiation, OTP verification, consent polling, and lender offers.
+
+# servers:
+#   - url: http://localhost:8000
+#     description: Local server
+
+# paths:
+#   /cibil/initiate-cibil:
+#     post:
+#       summary: Initiate CIBIL score check
+#       requestBody:
+#         required: true
+#         content:
+#           application/json:
+#             schema:
+#               $ref: '#/components/schemas/CibilRequest'
+#       responses:
+#         '200':
+#           description: CIBIL score initiation response
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/GenericResponse'
+
+#   /cibil/verify-otp:
+#     get:
+#       summary: Verify OTP for CIBIL consent
+#       parameters:
+#         - name: transId
+#           in: query
+#           required: true
+#           schema:
+#             type: string
+#         - name: otp
+#           in: query
+#           required: true
+#           schema:
+#             type: string
+#         - name: pan
+#           in: query
+#           required: true
+#           schema:
+#             type: string
+#       responses:
+#         '200':
+#           description: OTP verification response
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/GenericResponse'
+
+#   /cibil/poll-consent:
+#     get:
+#       summary: Poll for user consent status
+#       requestBody:
+#         required: true
+#         content:
+#           application/json:
+#             schema:
+#               $ref: '#/components/schemas/LoanFormData'
+#       responses:
+#         '200':
+#           description: Consent polling response
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/GenericResponse'
+
+#   /cibil/check-cibil:
+#     post:
+#       summary: Fallback CIBIL check (user opted out)
+#       requestBody:
+#         required: true
+#         content:
+#           application/json:
+#             schema:
+#               $ref: '#/components/schemas/LoanFormData'
+#       responses:
+#         '200':
+#           description: Opt-out response
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/GenericResponse'
+
+#   /cibil/fetch-cibil-score:
+#     post:
+#       summary: Fetch CIBIL score with form data
+#       requestBody:
+#         required: true
+#         content:
+#           application/json:
+#             schema:
+#               $ref: '#/components/schemas/LoanFormData'
+#       responses:
+#         '200':
+#           description: Fetch score response
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/GenericResponse'
+
+#   /cibil/submit-otp:
+#     post:
+#       summary: Submit OTP for verification
+#       requestBody:
+#         required: true
+#         content:
+#           application/json:
+#             schema:
+#               $ref: '#/components/schemas/CibilOTPRequest'
+#       responses:
+#         '200':
+#           description: OTP submission response
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/GenericResponse'
+
+#   /ai/generate_cibil_report:
+#     post:
+#       summary: Generate CIBIL report
+#       description: Generate a CIBIL intelligence report from either an uploaded file or a source URL/raw JSON.
+#       requestBody:
+#         content:
+#           multipart/form-data:
+#             schema:
+#               $ref: '#/components/schemas/Body_generate_cibil_report_generate_cibil_report_post'
+#       responses:
+#         '200':
+#           description: Successful Response
+#           content:
+#             application/json:
+#               schema: {}
+#         '422':
+#           description: Validation Error
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/HTTPValidationError'
+
+# components:
+#   schemas:
+#     CibilRequest:
+#       type: object
+#       properties:
+#         panNumber: { type: string }
+#         mobileNumber: { type: string }
+#         firstName: { type: string }
+#         lastName: { type: string }
+#         emailAddress: { type: string, format: email }
+#         dob: { type: string, format: date }
+#         gender: { type: string }
+#         pinCode: { type: string }
+#         applicationId: { type: string }
+#         loanAmount: { type: integer }
+#         tenureYears: { type: integer, default: 20 }
+#         profession: { type: string }
+#         propertyName: { type: string }
+
+#     LoanFormData:
+#       type: object
+#       properties:
+#         name: { type: string }
+#         email: { type: string, format: email }
+#         pan: { type: string }
+#         dob: { type: string, format: date }
+#         phone: { type: string }
+#         loanAmount: { type: integer }
+#         tenureYears: { type: integer, default: 20 }
+#         profession: { type: string }
+#         location: { type: string }
+#         hasCibil: { type: string }
+#         cibilScore: { type: integer }
+#         proceedScoreCheck: { type: string }
+#         gender: { type: string }
+#         pin: { type: string }
+#         propertyName: { type: string }
+
+#     CibilOTPRequest:
+#       type: object
+#       properties:
+#         transId: { type: string }
+#         otp: { type: string }
+#         pan: { type: string }
+
+#     GenericResponse:
+#       type: object
+#       properties:
+#         message: { type: string }
+#         cibilScore: { type: integer, nullable: true }
+#         transId: { type: string, nullable: true }
+#         status: { type: string, nullable: true }
+#         report: { type: object, nullable: true }
+#         raw: { type: object, nullable: true }
+
+#     Body_generate_cibil_report_generate_cibil_report_post:
+#       type: object
+#       properties:
+#         file: 
+#           anyOf:
+#             - { type: string, format: binary }
+#             - { type: null }
+#         source_url: 
+#           anyOf:
+#             - { type: string }
+#             - { type: null }
+#         fallback_id:
+#           anyOf:
+#             - { type: string }
+#             - { type: null }
+#         prompt:
+#           anyOf:
+#             - { type: string }
+#             - { type: null }
+#         pdf_password:
+#           anyOf:
+#             - { type: string }
+#             - { type: null }
+#         user_id:
+#           anyOf:
+#             - { type: string }
+#             - { type: null }
+
+#     HTTPValidationError:
+#       type: object
+#       properties:
+#         detail:
+#           type: array
+#           items:
+#             $ref: '#/components/schemas/ValidationError'
+
+#     ValidationError:
+#       type: object
+#       properties:
+#         loc:
+#           type: array
+#           items:
+#             anyOf:
+#               - { type: string }
+#               - { type: integer }
+#         msg: { type: string }
+#         type: { type: string }
+#       required:
+#         - loc
+#         - msg
+#         - type
+
+
 openapi: 3.0.0
 info:
-  title: CIBIL Score API
+  title: BASIC HOME LOANS API
   version: 1.0.0
-  description: API for CIBIL score initiation, OTP verification, consent polling, and lender offers.
+  description: This API allows interaction with **CIBIL Score** initiation, **OTP verification**, **consent polling**, **lender offers**, and **CIBIL report generation**.
+  contact:
+    name: Support Team
+    url: https://www.basichomeloans.com/support
+    email: support@basichomeloans.com
+  termsOfService: https://www.basichomeloans.com/terms
+  license:
+    name: MIT License
+    url: https://opensource.org/licenses/MIT
 
 servers:
   - url: http://localhost:8000
     description: Local server
 
 paths:
+  # 1. CIBIL score initiation
   /cibil/initiate-cibil:
     post:
       summary: Initiate CIBIL score check
+      description: This endpoint starts the process for checking the user's CIBIL score, and it requires the user's details.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CibilRequest'
+            example:
+              panNumber: "ABCDE1234F"
+              mobileNumber: "9876543210"
+              firstName: "John"
+              lastName: "Doe"
+              emailAddress: "john.doe@example.com"
+              dob: "1990-01-01"
+              gender: "Male"
+              pinCode: "110001"
+              applicationId: "app-12345"
+              loanAmount: 500000
+              tenureYears: 20
+              profession: "Software Engineer"
+              propertyName: "ABC Residency"
       responses:
         '200':
           description: CIBIL score initiation response
@@ -25,43 +302,85 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericResponse'
-
-  /cibil/verify-otp:
-    get:
-      summary: Verify OTP for CIBIL consent
-      parameters:
-        - name: transId
-          in: query
-          required: true
-          schema:
-            type: string
-        - name: otp
-          in: query
-          required: true
-          schema:
-            type: string
-        - name: pan
-          in: query
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: OTP verification response
+              example:
+                message: "CIBIL score initiation successful"
+                status: "success"
+                cibilScore: 750
+        '400':
+          description: Invalid Request
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericResponse'
+              example:
+                message: "Invalid input data"
+                status: "failure"
 
+  # 2. OTP Verification for CIBIL consent
+  /cibil/verify-otp:
+    get:
+      summary: Verify OTP for CIBIL consent
+      description: This endpoint allows you to verify OTP for CIBIL consent using a transaction ID, OTP, and PAN number.
+      parameters:
+        - name: transId
+          in: query
+          required: true
+          description: The transaction ID for OTP verification
+          schema:
+            type: string
+            example: "txn-12345"
+        - name: otp
+          in: query
+          required: true
+          description: The OTP code sent to the user
+          schema:
+            type: string
+            example: "123456"
+        - name: pan
+          in: query
+          required: true
+          description: The user's PAN number for identity verification
+          schema:
+            type: string
+            example: "ABCDE1234F"
+      responses:
+        '200':
+          description: OTP verification successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericResponse'
+              example:
+                message: "OTP verified successfully"
+                status: "success"
+
+  # 3. Poll for User Consent Status
   /cibil/poll-consent:
     get:
       summary: Poll for user consent status
+      description: This endpoint checks the status of user consent for the CIBIL score check.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/LoanFormData'
+            example:
+              name: "John Doe"
+              email: "john.doe@example.com"
+              pan: "ABCDE1234F"
+              dob: "1990-01-01"
+              phone: "9876543210"
+              loanAmount: 500000
+              tenureYears: 20
+              profession: "Software Engineer"
+              location: "New Delhi"
+              hasCibil: "yes"
+              cibilScore: 750
+              proceedScoreCheck: "yes"
+              gender: "Male"
+              pin: "110001"
+              propertyName: "ABC Residency"
       responses:
         '200':
           description: Consent polling response
@@ -69,10 +388,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericResponse'
+              example:
+                message: "Consent status polled successfully"
+                status: "success"
 
+  # 4. Fallback CIBIL Check (User opted out)
   /cibil/check-cibil:
     post:
-      summary: Fallback CIBIL check (user opted out)
+      summary: Fallback CIBIL check
+      description: This endpoint allows users who have opted out of consent to perform a fallback CIBIL check.
       requestBody:
         required: true
         content:
@@ -86,10 +410,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericResponse'
+              example:
+                message: "CIBIL check completed"
+                status: "success"
 
+  # 5. Fetch CIBIL Score
   /cibil/fetch-cibil-score:
     post:
       summary: Fetch CIBIL score with form data
+      description: This endpoint allows users to fetch their CIBIL score based on form data.
       requestBody:
         required: true
         content:
@@ -103,16 +432,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericResponse'
+              example:
+                message: "CIBIL score fetched successfully"
+                status: "success"
+                cibilScore: 750
 
+  # 6. Submit OTP for Verification
   /cibil/submit-otp:
     post:
-      summary: Submit OTP for verification
+      summary: Submit OTP for CIBIL verification
+      description: This endpoint allows users to submit an OTP for CIBIL verification.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CibilOTPRequest'
+            example:
+              transId: "txn-12345"
+              otp: "123456"
+              pan: "ABCDE1234F"
       responses:
         '200':
           description: OTP submission response
@@ -120,59 +459,208 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericResponse'
+              example:
+                message: "OTP submitted successfully"
+                status: "success"
+
+  # 7. Generate CIBIL Report
+  /ai/generate_cibil_report:
+    post:
+      summary: Generate CIBIL report
+      description: Generate a CIBIL intelligence report from either an uploaded file or a source URL/raw JSON.
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_generate_cibil_report_generate_cibil_report_post'
+            example:
+              file: "path/to/file"
+              source_url: "https://example.com/data"
+              fallback_id: "file123"
+              prompt: "Generate CIBIL report"
+              pdf_password: "password123"
+              user_id: "user-123"
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+              example:
+                message: "CIBIL report generated successfully"
+                status: "success"
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
 
 components:
   schemas:
     CibilRequest:
       type: object
       properties:
-        panNumber: { type: string }
-        mobileNumber: { type: string }
-        firstName: { type: string }
-        lastName: { type: string }
-        emailAddress: { type: string, format: email }
-        dob: { type: string, format: date }
-        gender: { type: string }
-        pinCode: { type: string }
-        applicationId: { type: string }
-        loanAmount: { type: integer }
-        tenureYears: { type: integer, default: 20 }
-        profession: { type: string }
-        propertyName: { type: string }
+        panNumber:
+          type: string
+          description: The PAN number of the user
+          example: "ABCDE1234F"
+        mobileNumber:
+          type: string
+          description: The mobile number of the user
+          example: "9876543210"
+        firstName:
+          type: string
+          description: The user's first name
+          example: "John"
+        lastName:
+          type: string
+          description: The user's last name
+          example: "Doe"
+        emailAddress:
+          type: string
+          format: email
+          description: The email address of the user
+          example: "john.doe@example.com"
+        dob:
+          type: string
+          format: date
+          description: The user's date of birth
+          example: "1990-01-01"
+        gender:
+          type: string
+          description: The user's gender
+          example: "Male"
+        pinCode:
+          type: string
+          description: The user's postal code
+          example: "110001"
+        applicationId:
+          type: string
+          description: The loan application ID
+          example: "app-12345"
+        loanAmount:
+          type: integer
+          description: The requested loan amount in INR
+          example: 500000
+        tenureYears:
+          type: integer
+          description: The loan tenure in years
+          example: 20
+        profession:
+          type: string
+          description: The user's profession
+          example: "Software Engineer"
+        propertyName:
+          type: string
+          description: The property name
+          example: "ABC Residency"
 
     LoanFormData:
       type: object
       properties:
-        name: { type: string }
-        email: { type: string, format: email }
-        pan: { type: string }
-        dob: { type: string, format: date }
-        phone: { type: string }
-        loanAmount: { type: integer }
-        tenureYears: { type: integer, default: 20 }
-        profession: { type: string }
-        location: { type: string }
-        hasCibil: { type: string }
-        cibilScore: { type: integer }
-        proceedScoreCheck: { type: string }
-        gender: { type: string }
-        pin: { type: string }
-        propertyName: { type: string }
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        pan:
+          type: string
+        dob:
+          type: string
+          format: date
+        phone:
+          type: string
+        loanAmount:
+          type: integer
+        tenureYears:
+          type: integer
+        profession:
+          type: string
+        location:
+          type: string
+        hasCibil:
+          type: string
+        cibilScore:
+          type: integer
+        proceedScoreCheck:
+          type: string
+        gender:
+          type: string
+        pin:
+          type: string
+        propertyName:
+          type: string
 
     CibilOTPRequest:
       type: object
       properties:
-        transId: { type: string }
-        otp: { type: string }
-        pan: { type: string }
+        transId:
+          type: string
+        otp:
+          type: string
+        pan:
+          type: string
 
     GenericResponse:
       type: object
-      description: Generic response from API
       properties:
-        message: { type: string }
-        cibilScore: { type: integer, nullable: true }
-        transId: { type: string, nullable: true }
-        status: { type: string, nullable: true }
-        report: { type: object, nullable: true }
-        raw: { type: object, nullable: true }
+        message:
+          type: string
+        status:
+          type: string
+        cibilScore:
+          type: integer
+          nullable: true
+        transId:
+          type: string
+          nullable: true
+        report:
+          type: object
+          nullable: true
+        raw:
+          type: object
+          nullable: true
+
+    Body_generate_cibil_report_generate_cibil_report_post:
+      type: object
+      properties:
+        file:
+          type: string
+          format: binary
+        source_url:
+          type: string
+        fallback_id:
+          type: string
+        prompt:
+          type: string
+        pdf_password:
+          type: string
+        user_id:
+          type: string
+
+    HTTPValidationError:
+      type: object
+      properties:
+        detail:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidationError'
+
+    ValidationError:
+      type: object
+      properties:
+        loc:
+          type: array
+          items:
+            anyOf:
+              - { type: string }
+              - { type: integer }
+        msg:
+          type: string
+        type:
+          type: string
+      required:
+        - loc
+        - msg
+        - type
