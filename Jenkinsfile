@@ -163,8 +163,8 @@ pipeline {
                 username: 'Jenkins'
             )
         }
-        always {
-            cleanWs()
-        }
+        // always {
+        //     cleanWs()
+        // }
     }
 }
