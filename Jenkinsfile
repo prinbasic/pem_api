@@ -7,6 +7,10 @@ pipeline {
 
     environment {
         BRANCH_NAME = "${env.BRANCH_NAME}"  // Correctly quote the variable
+        AWS_REGION = 'ap-south-1'  // Set your AWS region
+        DOCKER_REGISTRY = '676206929524.dkr.ecr.ap-south-1.amazonaws.com'  // ECR registry URL
+        DOCKER_IMAGE = 'my-repository/pem-api'  // ECR repository and image name
+        DOCKER_TAG = "${DOCKER_IMAGE}:${BUILD_NUMBER}"
     }
 
     stages {
@@ -41,6 +45,51 @@ pipeline {
                 pip install --upgrade pip
                 pip install -r requirements.txt
                 '''
+            }
+        }
+        stage('Login to AWS ECR') {
+            steps {
+                script {
+                    // Authenticate to AWS ECR using the AWS CLI
+                    withCredentials([aws(credentialsId: 'aws-credentials')]) {
+                        sh """
+                            aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${DOCKER_REGISTRY}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    // Build Docker image
+                    sh """
+                        docker build -t ${DOCKER_TAG} .
+                    """
+                }
+            }
+        }
+
+        stage('Tag Docker Image') {
+            steps {
+                script {
+                    // Tag the Docker image with the correct repository path
+                    sh """
+                        docker tag ${DOCKER_TAG} ${DOCKER_REGISTRY}/${DOCKER_TAG}
+                    """
+                }
+            }
+        }
+
+        stage('Push Docker Image to ECR') {
+            steps {
+                script {
+                    // Push the Docker image to AWS ECR
+                    sh """
+                        docker push ${DOCKER_REGISTRY}/${DOCKER_TAG}
+                    """
+                }
             }
         }
     }
