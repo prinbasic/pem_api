@@ -25,18 +25,18 @@ pipeline {
         }
 
         stage('Checkout') {
-            when {
-                expression { return  env.GIT_BRANCH == 'refs/heads/main' }
-            }
+            // when {
+            //     expression { return  env.GIT_BRANCH == 'refs/heads/main' }
+            // }
             steps {
                 checkout scm
             }
         }
 
         stage('Inject .env from Jenkins Secret File') {
-            when {
-                branch 'main'
-            }
+            // when {
+            //     branch 'main'
+            // }
             steps {
                 withCredentials([file(credentialsId: 'prinenvpem', variable: 'ENV_FILE')]) {
                     sh 'cp $ENV_FILE .env'
@@ -45,9 +45,9 @@ pipeline {
         }
 
         stage('Setup Python Env & Install Dependencies') {
-            when {
-                branch 'main'
-            }
+            // when {
+            //     branch 'main'
+            // }
             steps {
                 sh '''
                 python3 -m venv venv
