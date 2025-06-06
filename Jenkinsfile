@@ -9,7 +9,7 @@ pipeline {
         BRANCH_NAME = "${env.BRANCH_NAME}"  // Correctly quote the variable
         AWS_REGION = 'ap-south-1'  // Set your AWS region
         DOCKER_REGISTRY = '676206929524.dkr.ecr.ap-south-1.amazonaws.com'  // ECR registry URL
-        DOCKER_IMAGE = 'my-repository/my-image'  // ECR repository and image name
+        DOCKER_IMAGE = 'orbit/pem/pem-api'  // ECR repository and image name
         DOCKER_TAG = "${DOCKER_IMAGE}:${BUILD_NUMBER}"
     }
 
