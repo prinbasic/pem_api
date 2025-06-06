@@ -1,16 +1,12 @@
 pipeline {
     agent any
 
-    tools {
-        git 'Git'  // Reference the Git tool configured in Global Tool Configuration
-    }
-
     triggers {
         githubPush()  // Trigger build on GitHub push
     }
 
     environment {
-        BRANCH_NAME = "${env.BRANCH_NAME}"  // Correctly quote the variable
+        BRANCH_NAME = 'main'  // Set the branch name manually
         AWS_REGION = 'ap-south-1'  // Set your AWS region
         DOCKER_REGISTRY = '676206929524.dkr.ecr.ap-south-1.amazonaws.com'  // ECR registry URL
         DOCKER_IMAGE = 'dev-orbit-pem'  // ECR repository and image name
