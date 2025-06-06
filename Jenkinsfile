@@ -9,7 +9,7 @@ pipeline {
         BRANCH_NAME = "${env.BRANCH_NAME}"  // Correctly quote the variable
         AWS_REGION = 'ap-south-1'  // Set your AWS region
         DOCKER_REGISTRY = '676206929524.dkr.ecr.ap-south-1.amazonaws.com'  // ECR registry URL
-        DOCKER_IMAGE = 'orbit/pem'  // ECR repository and image name
+        DOCKER_IMAGE = 'pem-api'  // ECR repository and image name
         DOCKER_TAG = "${DOCKER_IMAGE}:${BUILD_NUMBER}"
     }
 
@@ -89,6 +89,34 @@ pipeline {
                     // Push the Docker image to AWS ECR
                     sh """
                         docker push ${DOCKER_REGISTRY}/${DOCKER_TAG}
+                    """
+                }
+            }
+        }
+        stage('Stop and Remove Old Docker Container Running on Port 8000') {
+            steps {
+                script {
+                    // Stop and remove the container running on port 8000
+                    sh """
+                        container_id=\$(docker ps -q --filter "publish=8000")
+                        if [ -n "\$container_id" ]; then
+                            docker stop \$container_id
+                            docker rm \$container_id
+                            echo 'Old container stopped and removed'
+                        else
+                            echo 'No container running on port 8000'
+                        fi
+                    """
+                }
+            }
+        }
+
+        stage('Run New Docker Container on Port 8000') {
+            steps {
+                script {
+                    // Run the new Docker image on port 8000 with necessary environment variables
+                    sh """
+                        docker run -d -p 8000:8000 -e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} -e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} ${DOCKER_TAG}
                     """
                 }
             }
