@@ -21,6 +21,10 @@ app.add_middleware(
     allow_headers=["*"],  # Allow all headers
 )
 
+@app.get("/")
+async def read_root():
+    return {"message": "CORS setup working!"}
+
 app.openapi = custom_openapi
 app.include_router(cibil_routes.router, prefix="/cibil")
 app.include_router(lender_routes.router)
