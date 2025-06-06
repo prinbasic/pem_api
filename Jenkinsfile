@@ -115,9 +115,10 @@ pipeline {
             steps {
                 script {
                     // Run the new Docker image on port 8000 with necessary environment variables
-                    sh """
-                        docker run -d -p 8000:8000 -e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} -e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} ${DOCKER_TAG}
-                    """
+                    withCredentials([aws(credentialsId: 'aws-credentials')])
+                        sh """
+                            docker run -d -p 8000:8000 -e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} -e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} ${DOCKER_TAG}
+                        """
                 }
             }
         }
