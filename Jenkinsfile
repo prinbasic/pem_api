@@ -14,9 +14,19 @@ pipeline {
     }
 
     stages {
+        // Debugging the branch outside any stage
+        stage('Initial Debug') {
+            steps {
+                script {
+                    echo "Global Branch Debug: Branch name is: ${env.BRANCH_NAME}"
+                    sh 'git rev-parse --abbrev-ref HEAD' // This will print the current git branch name
+                }
+            }
+        }
+
         stage('Checkout') {
             when {
-                expression { env.GIT_BRANCH == 'refs/heads/main' }
+                expression { return  env.GIT_BRANCH == 'refs/heads/main' }
             }
             steps {
                 checkout scm
