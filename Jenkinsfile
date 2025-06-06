@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    tools {
+        git 'Git'  // Reference the Git tool configured in Global Tool Configuration
+    }
+
     triggers {
         githubPush()  // Trigger build on GitHub push
     }
