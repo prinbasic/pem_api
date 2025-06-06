@@ -127,6 +127,7 @@ pipeline {
                                 ${DOCKER_REGISTRY}/${DOCKER_TAG}
                         """
                     }
+                }
             }
         }
     }
@@ -156,4 +157,4 @@ pipeline {
         //     // cleanWs()
         // }
     }
-}}
+}
