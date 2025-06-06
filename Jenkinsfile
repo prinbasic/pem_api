@@ -16,7 +16,7 @@ pipeline {
     stages {
         stage('Checkout') {
             when {
-                branch 'main'  // Only trigger on main branch
+                expression { env.GIT_BRANCH == 'refs/heads/main' }
             }
             steps {
                 checkout scm
