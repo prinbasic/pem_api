@@ -9,14 +9,14 @@ pipeline {
         BRANCH_NAME = "${env.BRANCH_NAME}"  // Correctly quote the variable
         AWS_REGION = 'ap-south-1'  // Set your AWS region
         DOCKER_REGISTRY = '676206929524.dkr.ecr.ap-south-1.amazonaws.com'  // ECR registry URL
-        DOCKER_IMAGE = 'my-repository/pem-api'  // ECR repository and image name
+        DOCKER_IMAGE = 'my-repository/my-image'  // ECR repository and image name
         DOCKER_TAG = "${DOCKER_IMAGE}:${BUILD_NUMBER}"
     }
 
     stages {
         stage('Checkout') {
             when {
-                branch 'main'  // Only trigger on main
+                branch 'main'  // Only trigger on main branch
             }
             steps {
                 checkout scm
@@ -47,13 +47,16 @@ pipeline {
                 '''
             }
         }
+
         stage('Login to AWS ECR') {
             steps {
                 script {
-                    // Authenticate to AWS ECR using AWS CLI (no plugin needed)
-                    sh """
-                        aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${DOCKER_REGISTRY}
-                    """
+                    // Authenticate to AWS ECR using the AWS CLI and Jenkins credentials
+                    withCredentials([usernamePassword(credentialsId: 'aws-credentials', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                        sh """
+                            aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${DOCKER_REGISTRY}
+                        """
+                    }
                 }
             }
         }
@@ -95,23 +98,23 @@ pipeline {
     post {
         success {
             slackSend (
-            tokenCredentialId: 'slack_channel_secret',  // The ID of the bot token credential in Jenkins
-            message: "✅ Build SUCCESSFUL: ${env.JOB_NAME} [${env.BUILD_NUMBER}]",
-            channel: '#jenekin_update',
-            color: 'good',  // Optional: Green color for success
-            iconEmoji: ':white_check_mark:',  // Optional: Emoji
-            username: 'Jenkins'
-        )
+                tokenCredentialId: 'slack_channel_secret',
+                message: "✅ Build SUCCESSFUL: ${env.JOB_NAME} [${env.BUILD_NUMBER}]",
+                channel: '#jenekin_update',
+                color: 'good',
+                iconEmoji: ':white_check_mark:',
+                username: 'Jenkins'
+            )
         }
         failure {
             slackSend (
-            tokenCredentialId: 'slack_channel_secret',
-            message: "❌ Build FAILED: ${env.JOB_NAME} [${env.BUILD_NUMBER}]",
-            channel: '#jenekin_update',
-            color: 'danger',  // Optional: Red color for failure
-            iconEmoji: ':x:',  // Optional: Emoji
-            username: 'Jenkins'
-        )
+                tokenCredentialId: 'slack_channel_secret',
+                message: "❌ Build FAILED: ${env.JOB_NAME} [${env.BUILD_NUMBER}]",
+                channel: '#jenekin_update',
+                color: 'danger',
+                iconEmoji: ':x:',
+                username: 'Jenkins'
+            )
         }
         always {
             cleanWs()
