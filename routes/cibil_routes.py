@@ -69,7 +69,7 @@ def fetch_cibil_score(data: LoanFormData):
     if data.proceedScoreCheck == "no" and data.hasCibil == "no":
         return result
     else:
-        if data.hasCibil == "yes" and result.get("cibilScore"):
+        if data.hasCibil == "yes" and data.cibilScore is True:
             return {"no need of polling"}
         else:
             trans_id = result.get("transId")
