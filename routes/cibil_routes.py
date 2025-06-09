@@ -72,9 +72,10 @@ def fetch_cibil_score(data: LoanFormData):
         if data.hasCibil == "yes" and data.cibilScore is True:
             return {"no need of polling"}
         else:
-            trans_id = result.get("transId")
+            if result.get("transId") == True:
+                trans_id = result.get("transId")
 
-            if not result.get("cibilScore") and trans_id:
+            elif not result.get("cibilScore") and trans_id:
                 print(f"🕒 Polling started for transID: {trans_id}")
 
                 # 👇 Let polling run in background (async would be ideal)
