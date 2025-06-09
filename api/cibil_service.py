@@ -30,119 +30,19 @@ def calculate_emi_amount(loan_amount: float, roi_string: str, years: int = 20):
         return None
 
 # def initiate_cibil_score(data: CibilRequest):
-#     body = {
-#         "panNumber": data.panNumber,
-#         "mobileNumber": data.mobileNumber,
-#         "firstName": data.firstName,
-#         "lastName": data.lastName,
-#         "emailAddress": data.emailAddress,
-#         "dob": datetime.strptime(data.dob, "%Y-%m-%d").strftime("%Y-%m-%dT00:00:00"),
-#         "gender": data.gender,
-#         "pinCode": data.pinCode,
-#         "applicationId": data.applicationId
-#     }
-
-#     headers = get_signature_headers(API_1_URL, "POST", body)
-#     response = requests.post(API_1_URL, headers=headers, json=body)
-#     api_data = response.json()
-
-#     result = api_data.get("result", {})
-#     score = result.get("cibilScore")
-#     trans = result.get("transID")
-#     if trans:
-#         cibil_request_cache[trans] = data
-
-#     if score:
-#         pan = data.panNumber
-#         report = fetch_equifax_report_by_pan(pan)
-
-#         try:
-#             conn = get_db_connection()
-#             with conn.cursor() as cur:
-#                 cur.execute("""
-#                     SELECT lender_name, lender_type, home_loan_roi, lap_roi,
-#                            home_loan_ltv, remarks, loan_approval_time, processing_time,
-#                            minimum_loan_amount, maximum_loan_amount
-#                     FROM lenders
-#                     WHERE CAST(LEFT(minimum_credit_score, 3) AS INTEGER) <= %s
-#                       AND home_loan_roi IS NOT NULL
-#                       AND home_loan_roi != ''
-#                     ORDER BY 
-#                         CAST(REPLACE(SPLIT_PART(home_loan_roi, '-', 1), '%%', '') AS FLOAT)
-#                 """, (score,))
-#                 rows = cur.fetchall()
-#                 col_names = [desc[0] for desc in cur.description]
-#             conn.close()
-
-#             lenders = [dict(zip(col_names, row)) for row in rows]
-#         except Exception as e:
-#             print("❌ Error fetching lenders:", e)
-#             lenders = []
-
-#         # ✅ Construct form_data from cibil_request
-#         form_data = LoanFormData(
-#             name=f"{data.firstName} {data.lastName}".strip(),
-#             email=data.emailAddress,
-#             pan=data.panNumber,
-#             dob=data.dob,
-#             phone=data.mobileNumber,
-#             profession=data.profession,
-#             loanAmount=data.loanAmount,
-#             tenureYears=data.tenureYears,
-#             location=data.pinCode,
-#             hasCibil="yes",
-#             cibilScore=score,
-#             proceedScoreCheck=None,
-#             gender = data.gender,
-#             pin= data.pinCode,
-#             propertyName= data.propertyName
-#         )
-
-#         # After fetching `lenders` list
-#         emi_data = []
-#         print(form_data.loanAmount)
-#         for lender in lenders:
-#             roi = lender.get("home_loan_roi")
-#             # print(f"➡️ Lender: {lender['lender_name']}, ROI: {roi}")
-#             if roi:
-#                 emi = calculate_emi_amount(loan_amount=form_data.loanAmount, roi_string=roi, years=form_data.tenureYears)
-#                 # print(f"🔍 Calculated EMI: {emi}")
-#                 if emi:
-#                     lender["emi"] = emi
-#                     emi_data.append({ "lender": lender["lender_name"], "emi": emi })
-
-#         # ✅ Log result to DB
-#         log_user_cibil_data(form_data, {
-#             "cibilScore": score,
-#             # "report": report.get("report"),
-#             "raw": report.get("raw"),
-#             "topMatches": lenders[:3],
-#             "moreLenders": lenders[3:9]
-#         }, emi_data)
-
-#         return {
-#             "message": "CIBIL score already available. Report and lenders fetched.",
-#             "cibilScore": score,
-#             "transId": result.get("transID"),
-#             # "report": report.get("report"),
-#             "raw": report.get("raw"),
-#             "topMatches": lenders[:3],
-#             "moreLenders": lenders[3:9],
-#             "emi_data": emi_data
-#         }
-
-#     return {
-#         "message": "OTP sent to customer.",
-#         "transId": result.get("transID"),
-#         "cibilScore": None,
-#         "status": "otp_required"
-#     }
-
-# def initiate_cibil_score(data:CibilRequest):
-#     # if data.hasCibil == "yes" and data.cibilScore == True:
-#     #     pass
-#     # else:
-#     print(data.hasCibil)
+#     score = None
+#     trans = None
+#     report = None
+#     print(data.hasCibil, data.cibilScore)
+#     # 🔍 Case 1: User-provided CIBIL
+#     if data.hasCibil == "yes" and data.cibilScore not in [None, 0, ""]:
+#         score = data.cibilScore
+#         print(f"✅ Using user-provided CIBIL score: {score}")
+#     else:
+#         score = data.cibilScore
+#     if data.hasCibil == "no" and data.proceedScoreCheck == "no":
+#         score = "750"
+#     # 🔍 Case 2: Initiate Equifax CIBIL
 #     body = {
 #         "panNumber": data.panNumber,
 #         "mobileNumber": data.mobileNumber,
@@ -158,165 +58,166 @@ def calculate_emi_amount(loan_amount: float, roi_string: str, years: int = 20):
 #     headers = get_signature_headers(API_1_URL, "POST", body)
 #     response = requests.post(API_1_URL, headers=headers, json=body)
 #     api_data = response.json()
+#     print(api_data)
 
 #     result = api_data.get("result", {})
+#     print(result)
 #     score = result.get("cibilScore")
-#     trans = result.get("transID")
-#     if trans:
-#         cibil_request_cache[trans] = data
+#     if score is True:
+#         trans = result.get("transID")
+#         print(trans)
+#         if trans:
+#             cibil_request_cache[trans] = data
 
-#     if score:
-#         pan = data.panNumber
-#         report = fetch_equifax_report_by_pan(pan)
+#         if not score:
+#             return {
+#                 "message": "OTP sent to customer.",
+#                 "transId": trans,
+#                 "cibilScore": None,
+#                 "status": "otp_required"
+#             }
 
+#         # 🔗 Fetch Equifax report if Equifax was used
+#         report = fetch_equifax_report_by_pan(data.panNumber)
+    
+
+#     # 🔍 Now we have a score (user-provided or Equifax); fetch lenders and calculate EMI
+#     try:
+#         conn = get_db_connection()
+#         with conn.cursor() as cur:
+#             cur.execute("""
+#                 SELECT id, lender_name, lender_type, home_loan_roi, lap_roi,
+#                     home_loan_ltv, remarks, loan_approval_time, processing_time,
+#                     minimum_loan_amount, maximum_loan_amount
+#                 FROM lenders
+#                 WHERE CAST(LEFT(minimum_credit_score, 3) AS INTEGER) <= %s
+#                 AND home_loan_roi IS NOT NULL
+#                 AND home_loan_roi != ''
+#                 ORDER BY CAST(REPLACE(SPLIT_PART(home_loan_roi, '-', 1), '%%', '') AS FLOAT)
+#             """, (score,))
+#             rows = cur.fetchall()
+#             col_names = [desc[0] for desc in cur.description]
+#         conn.close()
+#         lenders = [dict(zip(col_names, row)) for row in rows]
+#     except Exception as e:
+#         print("❌ Error fetching lenders:", e)
+#         lenders = []
+
+#     # 🏠 Handle propertyName if provided
+#     property_name = getattr(data, "propertyName", None)
+#     approved_lenders = []
+#     if property_name:
 #         try:
 #             conn = get_db_connection()
 #             with conn.cursor() as cur:
 #                 cur.execute("""
-#                     SELECT id, lender_name, lender_type, home_loan_roi, lap_roi,
-#                            home_loan_ltv, remarks, loan_approval_time, processing_time,
-#                            minimum_loan_amount, maximum_loan_amount
-#                     FROM lenders
-#                     WHERE CAST(LEFT(minimum_credit_score, 3) AS INTEGER) <= %s
-#                       AND home_loan_roi IS NOT NULL
-#                       AND home_loan_roi != ''
-#                     ORDER BY 
-#                         CAST(REPLACE(SPLIT_PART(home_loan_roi, '-', 1), '%%', '') AS FLOAT)
-#                 """, (score,))
+#                     SELECT l.id, l.lender_name, l.lender_type, l.home_loan_roi, l.lap_roi,
+#                         l.home_loan_ltv, l.remarks, l.loan_approval_time, l.processing_time,
+#                         l.minimum_loan_amount, l.maximum_loan_amount
+#                     FROM approved_projects ap
+#                     JOIN approved_projects_lenders apl ON apl.project_id = ap.id
+#                     JOIN lenders l ON l.id = apl.lender_id
+#                     WHERE LOWER(ap.project_name) LIKE LOWER(%s)
+#                 """, (f"%{property_name}%",))
 #                 rows = cur.fetchall()
 #                 col_names = [desc[0] for desc in cur.description]
+#                 approved_lenders = [dict(zip(col_names, row)) for row in rows]
 #             conn.close()
-
-#             lenders = [dict(zip(col_names, row)) for row in rows]
 #         except Exception as e:
-#             print("❌ Error fetching lenders:", e)
-#             lenders = []
+#             print("❌ Error fetching approved lenders:", e)
 
-#         # Optional propertyName logic
-#         property_name = getattr(data, "propertyName", None)
-#         approved_lenders = []
-#         if property_name:
-#             try:
-#                 conn = get_db_connection()
-#                 with conn.cursor() as cur:
-#                     cur.execute("""
-#                         SELECT l.id, l.lender_name, l.lender_type, l.home_loan_roi, l.lap_roi,
-#                                l.home_loan_ltv, l.remarks, l.loan_approval_time, l.processing_time,
-#                                l.minimum_loan_amount, l.maximum_loan_amount
-#                         FROM approved_projects ap
-#                         JOIN approved_projects_lenders apl ON apl.project_id = ap.id
-#                         JOIN lenders l ON l.id = apl.lender_id
-#                         WHERE LOWER(ap.project_name) LIKE LOWER(%s)
-#                     """, (f"%{property_name}%",))
-#                     rows = cur.fetchall()
-#                     col_names = [desc[0] for desc in cur.description]
-#                     approved_lenders = [dict(zip(col_names, row)) for row in rows]
-#                 conn.close()
-#             except Exception as e:
-#                 print("❌ Error fetching approved lenders:", e)
+#     approved_ids = {l['id'] for l in approved_lenders}
+#     remaining_lenders = [l for l in lenders if l.get('id') not in approved_ids]
+#     combined_lenders = approved_lenders + remaining_lenders
+#     limited_lenders = combined_lenders[:9]
 
-#         # Avoid duplicates based on lender id
-#         approved_ids = {l['id'] for l in approved_lenders}
-#         remaining_lenders = [l for l in lenders if l.get('id') not in approved_ids]
+#     # 🚀 Prepare LoanFormData for logging
+#     form_data = LoanFormData(
+#         name=f"{data.firstName} {data.lastName}".strip(),
+#         email=data.emailAddress,
+#         pan=data.panNumber,
+#         dob=data.dob,
+#         phone=data.mobileNumber,
+#         profession=data.profession,
+#         loanAmount=data.loanAmount,
+#         tenureYears=data.tenureYears,
+#         location=data.pinCode,
+#         hasCibil=data.hasCibil or "no",
+#         cibilScore=score,
+#         proceedScoreCheck=data.proceedScoreCheck,
+#         gender=data.gender,
+#         pin=data.pinCode,
+#         propertyName=property_name
+#     )
 
-#         # Limit to 9 lenders: 1 approved (if available) + up to 8 more lenders
-#         combined_lenders = approved_lenders + remaining_lenders
-#         max_lenders = 9
-#         limited_lenders = combined_lenders[:max_lenders]
+#     # 💰 EMI Calculation
+#     emi_data = []
+#     for lender in limited_lenders:
+#         roi = lender.get("home_loan_roi")
+#         if roi and roi.strip():
+#             emi = calculate_emi_amount(
+#                 loan_amount=form_data.loanAmount,
+#                 roi_string=roi,
+#                 years=form_data.tenureYears
+#             )
+#             emi_value = emi if emi else "Data Not Available"
+#         else:
+#             emi_value = "Data Not Available"
 
-#         # Prepare form_data
-#         form_data = LoanFormData(
-#             name=f"{data.firstName} {data.lastName}".strip(),
-#             email=data.emailAddress,
-#             pan=data.panNumber,
-#             dob=data.dob,
-#             phone=data.mobileNumber,
-#             profession=data.profession,
-#             loanAmount=data.loanAmount,
-#             tenureYears=data.tenureYears,
-#             location=data.pinCode,
-#             hasCibil="yes",
-#             cibilScore=score,
-#             proceedScoreCheck=None,
-#             gender=data.gender,
-#             pin=data.pinCode,
-#             propertyName=property_name
-#         )
+#         emi_data.append({
+#             "lender": lender.get("lender_name"),
+#             "emi": emi_value,
+#             "lender_type": lender.get("lender_type"),
+#             "remarks": lender.get("remarks", "Data Not Available"),
+#             "home_loan_ltv": lender.get("home_loan_ltv", "Data Not Available"),
+#             "loan_approval_time": lender.get("loan_approval_time", "Data Not Available"),
+#             "processing_time": lender.get("processing_time", "Data Not Available"),
+#             "min_loan_amount": lender.get("minimum_loan_amount", "Data Not Available"),
+#             "max_loan_amount": lender.get("maximum_loan_amount", "Data Not Available")
+#         })
 
-#         # EMI Calculation with fallback
-#         emi_data = []
-#         for lender in limited_lenders:
-#             roi = lender.get("home_loan_roi")
-#             if roi and roi.strip():
-#                 emi = calculate_emi_amount(
-#                     loan_amount=form_data.loanAmount,
-#                     roi_string=roi,
-#                     years=form_data.tenureYears
-#                 )
-#                 emi_value = emi if emi else "Data Not Available"
-#             else:
-#                 emi_value = "Data Not Available"
+#     # Clean IDs for response
+#     def clean_lenders(lenders_list):
+#         for lender in lenders_list:
+#             lender.pop('id', None)
+#         return lenders_list
 
-#             emi_data.append({
-#                 "lender": lender.get("lender_name"),
-#                 "emi": emi_value,
-#                 "lender_type": lender.get("lender_type"),
-#                 "remarks": lender.get("remarks", "Data Not Available"),
-#                 "home_loan_ltv": lender.get("home_loan_ltv", "Data Not Available"),
-#                 "loan_approval_time": lender.get("loan_approval_time", "Data Not Available"),
-#                 "processing_time": lender.get("processing_time", "Data Not Available"),
-#                 "min_loan_amount": lender.get("minimum_loan_amount", "Data Not Available"),
-#                 "max_loan_amount": lender.get("maximum_loan_amount", "Data Not Available")
-#             })
+#     approved_lenders = clean_lenders(approved_lenders)
+#     remaining_lenders = clean_lenders(remaining_lenders)
 
-#         # Clean lender lists to remove IDs
-#         def clean_lenders(lenders_list):
-#             for lender in lenders_list:
-#                 lender.pop('id', None)
-#             return lenders_list
-
-#         approved_lenders = clean_lenders(approved_lenders)
-#         remaining_lenders = clean_lenders(remaining_lenders)
-#         #✅ Log result to DB
-#         log_user_cibil_data(form_data, {
-#             "cibilScore": score,
-#             # "report": report.get("report"),
-#             "raw": report.get("raw"),
-#             "topMatches": lenders[:3],
-#             "moreLenders": lenders[3:9]
-#         }, emi_data)
-
-#         return {
-#             "message": "CIBIL score available. Report and lenders fetched.",
-#             "cibilScore": score,
-#             "transId": result.get("transID"),
-#             "raw": report.get("raw"),
-#             "approvedLenders": approved_lenders,
-#             "moreLenders": remaining_lenders,
-#             "emi_data": emi_data
-#         }
+#     # ✅ Log data
+#     log_user_cibil_data(form_data, {
+#         "cibilScore": score,
+#         "raw": report.get("raw") if report else "User-provided score; Equifax skipped",
+#         "topMatches": lenders[:3],
+#         "moreLenders": lenders[3:9]
+#     }, emi_data)
 
 #     return {
-#         "message": "OTP sent to customer.",
-#         "transId": result.get("transID"),
-#         "cibilScore": None,
-#         "status": "otp_required"
-#     }
+#     "message": "CIBIL score available. Report and lenders fetched.",
+#     "cibilScore": score,
+#     "transId": trans,
+#     "raw": report.get("raw") if report else "User-provided score; Equifax skipped",
+#     "approvedLenders": approved_lenders,
+#     "moreLenders": remaining_lenders,
+#     "emi_data": emi_data
+# }
 
 def initiate_cibil_score(data: CibilRequest):
     score = None
     trans = None
     report = None
-    print(data.hasCibil, data.cibilScore)
-    # 🔍 Case 1: User-provided CIBIL
-    if data.hasCibil == "yes" and data.cibilScore:
+
+    # 🔍 Case 1: Use user-provided CIBIL score if available
+    if data.hasCibil == "yes" and data.cibilScore not in [None, 0, ""]:
         score = data.cibilScore
         print(f"✅ Using user-provided CIBIL score: {score}")
-    # else
-    if data.hasCibil == "no" and data.proceedScoreCheck == "no":
-        return {"user denied cibil can't proceed without cibil score"}
+    elif data.hasCibil == "no" and data.proceedScoreCheck == "no":
+        # Default score for cases where no score is provided and the user doesn't want to proceed
+        score = 750  # Default score if user denies CIBIL score check
+        print(f"✅ Using default CIBIL score: {score}")
     else:
-    # 🔍 Case 2: Initiate Equifax CIBIL
+        # 🔍 Case 2: Initiate Equifax CIBIL fetch
         body = {
             "panNumber": data.panNumber,
             "mobileNumber": data.mobileNumber,
@@ -329,34 +230,38 @@ def initiate_cibil_score(data: CibilRequest):
             "applicationId": str(data.applicationId) if data.applicationId else None
         }
 
+        # Send request to external CIBIL service (Equifax)
         headers = get_signature_headers(API_1_URL, "POST", body)
         response = requests.post(API_1_URL, headers=headers, json=body)
         api_data = response.json()
+
         print(api_data)
 
         result = api_data.get("result", {})
-        
         score = result.get("cibilScore")
-        if score is True:
-            trans = result.get("transID")
-            print(trans)
-            if trans:
-                cibil_request_cache[trans] = data
+        trans = result.get("transID")
+        print(f"Transaction ID: {trans}")
 
-            if not score:
-                return {
-                    "message": "OTP sent to customer.",
-                    "transId": trans,
-                    "cibilScore": None,
-                    "status": "otp_required"
-                }
+        # Handle case when CIBIL score is not found in the response
+        if not score and trans:
+            # If score is not available, initiate OTP process and return transaction ID
+            return {
+                "message": "OTP sent to customer.",
+                "transId": trans,
+                "cibilScore": None,
+                "status": "otp_required"
+            }
 
-            # 🔗 Fetch Equifax report if Equifax was used
+        # Cache the transaction ID for future polling
+        if trans:
+            cibil_request_cache[trans] = data
+
+        # Fetch Equifax report if available
+        if score:
             report = fetch_equifax_report_by_pan(data.panNumber)
-        else:
-            score = data.cibilScore
 
-    # 🔍 Now we have a score (user-provided or Equifax); fetch lenders and calculate EMI
+    # 🔍 Fetch lenders based on CIBIL score (whether user-provided or from Equifax)
+    lenders = []
     try:
         conn = get_db_connection()
         with conn.cursor() as cur:
@@ -376,7 +281,6 @@ def initiate_cibil_score(data: CibilRequest):
         lenders = [dict(zip(col_names, row)) for row in rows]
     except Exception as e:
         print("❌ Error fetching lenders:", e)
-        lenders = []
 
     # 🏠 Handle propertyName if provided
     property_name = getattr(data, "propertyName", None)
@@ -401,6 +305,7 @@ def initiate_cibil_score(data: CibilRequest):
         except Exception as e:
             print("❌ Error fetching approved lenders:", e)
 
+    # Filter out lenders who are already approved for the project
     approved_ids = {l['id'] for l in approved_lenders}
     remaining_lenders = [l for l in lenders if l.get('id') not in approved_ids]
     combined_lenders = approved_lenders + remaining_lenders
@@ -425,7 +330,7 @@ def initiate_cibil_score(data: CibilRequest):
         propertyName=property_name
     )
 
-    # 💰 EMI Calculation
+    # 💰 EMI Calculation for lenders
     emi_data = []
     for lender in limited_lenders:
         roi = lender.get("home_loan_roi")
@@ -451,7 +356,7 @@ def initiate_cibil_score(data: CibilRequest):
             "max_loan_amount": lender.get("maximum_loan_amount", "Data Not Available")
         })
 
-    # Clean IDs for response
+    # Clean lender IDs for response
     def clean_lenders(lenders_list):
         for lender in lenders_list:
             lender.pop('id', None)
@@ -468,15 +373,16 @@ def initiate_cibil_score(data: CibilRequest):
         "moreLenders": lenders[3:9]
     }, emi_data)
 
+    # Return the final response
     return {
-    "message": "CIBIL score available. Report and lenders fetched.",
-    "cibilScore": score,
-    "transId": trans,
-    "raw": report.get("raw") if report else "User-provided score; Equifax skipped",
-    "approvedLenders": approved_lenders,
-    "moreLenders": remaining_lenders,
-    "emi_data": emi_data
-}
+        "message": "CIBIL score available. Report and lenders fetched.",
+        "cibilScore": score,
+        "transId": trans,
+        "raw": report.get("raw") if report else "User-provided score; Equifax skipped",
+        "approvedLenders": approved_lenders,
+        "moreLenders": remaining_lenders,
+        "emi_data": emi_data
+    }
 
 
 def verify_otp_and_fetch_score(trans_id: str, otp: str, pan: str):
