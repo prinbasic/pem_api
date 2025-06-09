@@ -66,7 +66,8 @@ def fetch_cibil_score(data: LoanFormData):
     )
 
     result = initiate_cibil_score(cibil_request)
-    trans_id = result.get("transId")
+    if result is True:
+        trans_id = result.get("transId")
 
     if not result.get("cibilScore") and trans_id:
         print(f"🕒 Polling started for transID: {trans_id}")
