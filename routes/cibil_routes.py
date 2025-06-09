@@ -69,22 +69,22 @@ def fetch_cibil_score(data: LoanFormData):
     if result is True:
         trans_id = result.get("transId")
 
-    if not result.get("cibilScore") and trans_id:
-        print(f"🕒 Polling started for transID: {trans_id}")
+        if not result.get("cibilScore") and trans_id:
+            print(f"🕒 Polling started for transID: {trans_id}")
 
-        # 👇 Let polling run in background (async would be ideal)
-        import threading
-        threading.Thread(
-            target=poll_consent_and_fetch,
-            args=(trans_id, cibil_request.panNumber, cibil_request),
-            daemon=True
-        ).start()
+            # 👇 Let polling run in background (async would be ideal)
+            import threading
+            threading.Thread(
+                target=poll_consent_and_fetch,
+                args=(trans_id, cibil_request.panNumber, cibil_request),
+                daemon=True
+            ).start()
 
-        # ✅ Immediately return transId while polling continues
-        return {
-            "status": "polling_started",
-            "transId": trans_id
-        }
+            # ✅ Immediately return transId while polling continues
+            return {
+                "status": "polling_started",
+                "transId": trans_id
+            }
 
     return result
 
