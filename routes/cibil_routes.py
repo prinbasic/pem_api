@@ -67,32 +67,37 @@ def fetch_cibil_score(data: LoanFormData):
 
     result = initiate_cibil_score(cibil_request)
     if data.proceedScoreCheck == "no" and data.hasCibil == "no":
+        # If the user opts out of checking the score and doesn't have a CIBIL, return the result immediately
         return result
-    else:
-        if data.hasCibil == "yes" and data.cibilScore is True:
-            return {"no need of polling"}
-        else:
-            if result.get("transId") == True:
-                trans_id = result.get("transId")
 
-            elif not result.get("cibilScore") and trans_id:
-                print(f"🕒 Polling started for transID: {trans_id}")
+    # If CIBIL score is available, no further action is needed
+    if data.hasCibil == "yes" and data.cibilScore is not None:
+        return {"message": "No need for polling, CIBIL score already available."}
 
-                # 👇 Let polling run in background (async would be ideal)
-                import threading
-                threading.Thread(
-                    target=poll_consent_and_fetch,
-                    args=(trans_id, cibil_request.panNumber, cibil_request),
-                    daemon=True
-                ).start()
+    # If there's a transaction ID, proceed with polling
+    trans_id = result.get("transId")
+    
+    if trans_id:
+        # If the CIBIL score is not present and a transaction ID exists, start polling
+        if not result.get("cibilScore"):
+            print(f"🕒 Polling started for transID: {trans_id}")
+            
+            # Start the polling in a background thread to avoid blocking the main thread
+            import threading
+            threading.Thread(
+                target=poll_consent_and_fetch,
+                args=(trans_id, cibil_request.panNumber, cibil_request),
+                daemon=True
+            ).start()
 
-                # ✅ Immediately return transId while polling continues
-                return {
-                    "status": "polling_started",
-                    "transId": trans_id
-                }
+            # Immediately return the transaction ID while polling continues
+            return {
+                "status": "polling_started",
+                "transId": trans_id
+            }
 
-            return result
+    # If no polling is required, simply return the result
+    return result
 
 @router.post("/submit-otp")
 def submit_otp(data: CibilOTPRequest):
