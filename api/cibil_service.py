@@ -387,14 +387,18 @@ def initiate_cibil_score(data: CibilRequest):
 
 def verify_otp_and_fetch_score(trans_id: str, otp: str, pan: str):
     res = requests.get(API_2_URL, params={"TransId": trans_id, "Otp": otp}).json()
-    result = res.get("result", {})
-
-    if "cibilScore" in result:
-        original_request = cibil_request_cache.get(trans_id)
-        if not original_request:
-            return {"error": "Original request data not found for transId."}
-        return initiate_cibil_score(original_request)
-    return {"message": "OTP not verified"}
+    if res.get('isError', None) == True:
+        result = res.get('responseException', {}).get('exceptionMessage', None)
+        return {result}
+    else:
+        result = res.get("result")
+        print(result)
+        if "cibilScore" in result:
+            original_request = cibil_request_cache.get(trans_id)
+            if not original_request:
+                return {"error": "Original request data not found for transId."}
+            return initiate_cibil_score(original_request)
+    return {result}
 
 def poll_consent_and_fetch(trans_id: str, pan: str, original_request: CibilRequest, attempts=5, wait=15):
     for attempt in range(1, attempts + 1):
