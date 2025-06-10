@@ -8,6 +8,7 @@ from models.request_models import CibilRequest
 # from routes.utility_routes import calculate_emi
 from db_client import get_db_connection  # make sure this is imported
 import re
+from fastapi.responses import JSONResponse
 
 
 API_1_URL = "https://dev-pemnew.basichomeloan.com/api/v1/CibilScore/InitiateCibilScoreRequest"
@@ -240,7 +241,10 @@ def initiate_cibil_score(data: CibilRequest):
         result = api_data.get("result", {})
         score = result.get("cibilScore")
         trans = result.get("transID")
-        print(f"Transaction ID: {trans}")
+
+        # Cache the transaction ID for future polling
+        if trans:
+            cibil_request_cache[trans] = data
 
         # Handle case when CIBIL score is not found in the response
         if not score and trans:
@@ -251,10 +255,6 @@ def initiate_cibil_score(data: CibilRequest):
                 "cibilScore": None,
                 "status": "otp_required"
             }
-
-        # Cache the transaction ID for future polling
-        if trans:
-            cibil_request_cache[trans] = data
 
         # Fetch Equifax report if available
         if score:
@@ -381,22 +381,26 @@ def initiate_cibil_score(data: CibilRequest):
         "raw": report.get("raw") if report else "User-provided score; Equifax skipped",
         "approvedLenders": approved_lenders,
         "moreLenders": remaining_lenders,
-        "emi_data": emi_data
+        "emi_data": emi_data,
+        "data":data
     }
 
-
 def verify_otp_and_fetch_score(trans_id: str, otp: str, pan: str):
+    print("hello", cibil_request_cache)
     res = requests.get(API_2_URL, params={"TransId": trans_id, "Otp": otp}).json()
     if res.get('isError', None) == True:
         result = res.get('responseException', {}).get('exceptionMessage', None)
-        return {result}
+        return JSONResponse(status_code=400, content=result)
+    elif res.get("result").get('cibilStatus') == "InValidOtp":
+        return JSONResponse(status_code=400, content="InValidOtp")
     else:
         result = res.get("result")
         print(result)
         if "cibilScore" in result:
             original_request = cibil_request_cache.get(trans_id)
-            if not original_request:
-                return {"error": "Original request data not found for transId."}
+            print(original_request)
+            # if not original_request:
+            #     return JSONResponse(status_code=400, content={"error": "Original request data not found for transId."})
             return initiate_cibil_score(original_request)
     return {result}
 
