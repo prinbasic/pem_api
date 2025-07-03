@@ -265,7 +265,7 @@ def initiate_cibil_score(data: cibilRequest):
     intell_response = intell_report()
 
     return {
-        "message": "cibil score available. Report and lenders fetched.",
+        "message": "Credit score available. Report and lenders fetched.",
         "cibilScore": score,
         "transId": trans,
         "raw": report.get("raw") if report else "User-provided score; Equifax skipped",
@@ -421,168 +421,6 @@ STATE_CODE_MAP = {
     "JAMMU AND KASHMIR": "JK"
 }
 
-# async def send_and_verify_pan(phone_number: str, otp: str, pan_number: str):
-#     async with httpx.AsyncClient(timeout=60.0) as client:
-#         try:
-#             # Step 1: OTP Verification
-#             print(f"🔍 Verifying OTP for {phone_number} with OTP: {otp}")
-#             verify_response = await client.post(
-#                 f"{OTP_BASE_URL}/verify",
-#                 json={"phone_number": phone_number, "otp": otp}
-#             )
-#             verify_data = verify_response.json()
-#             print(f"✅ OTP Verify Response [{verify_response.status_code}]: {verify_data}")
-#             if verify_response.status_code != 200 or not verify_data.get("success"):
-#                 return {"consent": "N", "message": "OTP verification failed"}
-
-#             # Step 2: PAN Fetch
-#             print(f"🔗 Fetching PAN details for: {pan_number}")
-#             pan_response = await client.post(
-#                 GRIDLINES_PAN_URL,
-#                 headers=GRIDLINES_HEADERS,
-#                 json={"pan_number": pan_number, "consent": "Y"}
-#             )
-#             print(f"✅ PAN Fetch Response [{pan_response.status_code}]: {pan_response.text}")
-#             if pan_response.status_code != 200:
-#                 return {"consent": "N", "message": "PAN fetch failed", "error": pan_response.text}
-
-#             pan_data = pan_response.json()
-#             raw_state = pan_data.get("data", {}).get("pan_data", {}).get("address_data", {}).get("state", "DELHI")
-#             mapped_state = STATE_CODE_MAP.get(raw_state.upper(), "DL")  # fallback to 'DL' (Delhi) if not found
-
-#             # Step 3: Build Bureau Profile Request
-#             print("📋 Building Bureau profile payload...")
-#             bureau_payload = {
-#                 "phone": phone_number[-10:],
-#                 "full_name": pan_data.get("data").get("pan_data").get("name"),
-#                 "date_of_birth": pan_data.get("data").get("pan_data").get("date_of_birth"),  # adjust format if needed
-#                 "pan": pan_data.get("data").get("pan_data").get("document_id"),
-#                 "address": pan_data.get("address", "NA"),
-#                 "state": mapped_state,  # must be valid state code
-#                 "pincode": pan_data.get("data").get("pan_data").get("address_data").get("pincode"),
-#                 "consent": "Y"
-#             }
-#             print(f"📨 Sending Bureau Profile Request: {bureau_payload}")
-#             bureau_response = await client.post(
-#                 BUREAU_PROFILE_URL,
-#                 headers=GRIDLINES_HEADERS,
-#                 json=bureau_payload
-#             )
-#             print(f"✅ Bureau Profile Response [{bureau_response.status_code}]: {bureau_response.text}")
-#             if bureau_response.status_code != 200:
-#                 return {"consent": "Y", "message": "Bureau profile fetch failed", "error": bureau_response.text}
-
-#             bureau_json = bureau_response.json()
-#             score = None
-
-#             # Updated path based on actual structure
-#             score_details = bureau_json.get("data", {}).get("profile_data", {}).get("score_detail", [])
-#             print("📊 Score details:", score_details)
-
-#             for item in score_details:
-#                 if item.get("type") == "ERS" and item.get("version") == "4.0":
-#                     score = item.get("value")
-#                     break
-
-#             print("✅ Extracted Score:", score)
-#             if not score:
-#                 return {"consent": "Y", "message": "cibil score not found in bureau response"}
-
-#         except Exception as e:
-#             print("❌ Exception occurred while verifying PAN/Bureau:")
-#             traceback.print_exc()
-#             raise HTTPException(status_code=500, detail="Server error during PAN/cibil process")
-
-# async def send_and_verify_pan(phone_number: str, otp: str, pan_number: str):
-#     async with httpx.AsyncClient(timeout=60.0) as client:
-#         try:
-#             # Step 1: OTP Verification
-#             print(f"🔍 Verifying OTP for {phone_number} with OTP: {otp}")
-#             verify_response = await client.post(
-#                 f"{OTP_BASE_URL}/verify",
-#                 json={"phone_number": phone_number, "otp": otp}
-#             )
-#             verify_data = verify_response.json()
-#             print(f"✅ OTP Verify Response [{verify_response.status_code}]: {verify_data}")
-#             if verify_response.status_code != 200 or not verify_data.get("success"):
-#                 return {"consent": "N", "message": "OTP verification failed"}
-
-#             # Step 2: PAN Fetch
-#             print(f"🔗 Fetching PAN details for: {pan_number}")
-#             pan_response = await client.post(
-#                 GRIDLINES_PAN_URL,
-#                 headers=GRIDLINES_HEADERS,
-#                 json={"pan_number": pan_number, "consent": "Y"}
-#             )
-#             print(f"✅ PAN Fetch Response [{pan_response.status_code}]: {pan_response.text}")
-#             if pan_response.status_code != 200:
-#                 return {"consent": "N", "message": "PAN fetch failed", "error": pan_response.text}
-
-#             pan_data = pan_response.json()
-#             raw_state = pan_data.get("data", {}).get("pan_data", {}).get("address_data", {}).get("state", "DELHI")
-#             mapped_state = STATE_CODE_MAP.get(raw_state.upper(), "DL")
-
-#             # Step 3: Bureau Profile
-#             print("📋 Building Bureau profile payload...")
-#             bureau_payload = {
-#                 "phone": phone_number[-10:],
-#                 "full_name": pan_data.get("data", {}).get("pan_data", {}).get("name"),
-#                 "date_of_birth": pan_data.get("data", {}).get("pan_data", {}).get("date_of_birth"),
-#                 "pan": pan_data.get("data", {}).get("pan_data", {}).get("document_id"),
-#                 "address": pan_data.get("address", "NA"),
-#                 "state": mapped_state,
-#                 "pincode": pan_data.get("data", {}).get("pan_data", {}).get("address_data", {}).get("pincode"),
-#                 "consent": "Y"
-#             }
-#             print(f"📨 Sending Bureau Profile Request: {bureau_payload}")
-#             bureau_response = await client.post(
-#                 BUREAU_PROFILE_URL,
-#                 headers=GRIDLINES_HEADERS,
-#                 json=bureau_payload
-#             )
-#             print(f"✅ Bureau Profile Response [{bureau_response.status_code}]: {bureau_response.text}")
-#             if bureau_response.status_code != 200:
-#                 return {"consent": "Y", "message": "Bureau profile fetch failed", "error": bureau_response.text}
-
-#             bureau_json = bureau_response.json()
-#             score = None
-#             score_details = bureau_json.get("data", {}).get("profile_data", {}).get("score_detail", [])
-#             print("📊 Score details:", score_details)
-
-#             for item in score_details:
-#                 if item.get("type") == "ERS" and item.get("version") == "4.0":
-#                     score = item.get("value")
-#                     break
-
-#             print("✅ Extracted Score:", score)
-#             if not score:
-#                 return {"consent": "Y", "message": "cibil score not found in bureau response"}
-
-#             # 🧠 Optional: Prepare dummy/empty values to return as placeholders
-#             trans = bureau_json.get("transaction_id", "")
-#             raw = bureau_json
-#             approved_lenders = []
-#             remaining_lenders = []
-#             emi_data = {}
-#             data = bureau_json.get("data")
-#             intell_response = {}
-
-#             return {
-#                 "message": "cibil score available. Report and lenders fetched.",
-#                 "cibilScore": score,
-#                 "transId": trans,
-#                 "raw": raw,
-#                 "approvedLenders": approved_lenders,
-#                 "moreLenders": remaining_lenders,
-#                 "emi_data": emi_data,
-#                 "data": data,
-#                 "intell_response": intell_response
-#             }
-
-#         except Exception as e:
-#             print("❌ Exception occurred while verifying PAN/Bureau:")
-#             traceback.print_exc()
-#             raise HTTPException(status_code=500, detail="Server error during PAN/cibil process")
 
 async def send_and_verify_pan(phone_number: str, otp: str, pan_number: str):
     async with httpx.AsyncClient(timeout=60.0) as client:
@@ -694,7 +532,7 @@ async def send_and_verify_pan(phone_number: str, otp: str, pan_number: str):
                 print("❌ Error logging cibil data:", log_err)
 
             return {
-                "message": "cibil score available. Report and lenders fetched.",
+                "message": "Credit score available. Report and lenders fetched.",
                 "cibilScore": score,
                 "transId": trans,
                 "raw": raw,
@@ -711,10 +549,53 @@ async def send_and_verify_pan(phone_number: str, otp: str, pan_number: str):
         
 
 async def fetch_lenders_and_emi(data: LoanFormData):
-    score = data.cibilScore
+    import re, json, tempfile, uuid, requests
+
+    def to_canonical(name: str) -> str:
+        return re.sub(r'[^a-zA-Z0-9]', '', name).lower()
+
+    def calculate_emi_amount(loan_amount, roi_str, tenure_years):
+        try:
+            if not roi_str or '-' not in roi_str:
+                return None
+            roi = float(roi_str.split('-')[0].replace('%', '').strip()) / 100 / 12
+            n = tenure_years * 12
+            emi = loan_amount * roi * ((1 + roi) ** n) / (((1 + roi) ** n) - 1)
+            return round(emi, 2)
+        except:
+            return None
+
+    def clean_lenders(lenders_list):
+        for lender in lenders_list:
+            lender.pop('id', None)
+        return lenders_list
+
+    def convert_uuids(obj):
+        if isinstance(obj, list):
+            return [convert_uuids(item) for item in obj]
+        elif isinstance(obj, dict):
+            return {k: (str(v) if isinstance(v, uuid.UUID) else convert_uuids(v)) for k, v in obj.items()}
+        return obj
+
+    score = None
+    pan = data.pan
     property_name = data.propertyName
-    lenders = []
-    approved_lenders = []
+    canonical_property = to_canonical(property_name)
+    lenders, approved_lenders = [], []
+
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT raw_report->>'cibilScore'
+                FROM user_cibil_logs
+                WHERE pan = %s ORDER BY created_at DESC LIMIT 1
+            """, (pan,))
+            result = cur.fetchone()
+        conn.close()
+        score = int(result[0]) if result and result[0] else data.cibilScore or 750
+    except:
+        score = data.cibilScore or 750
 
     try:
         conn = get_db_connection()
@@ -724,7 +605,7 @@ async def fetch_lenders_and_emi(data: LoanFormData):
                     home_loan_ltv, remarks, loan_approval_time, processing_time,
                     minimum_loan_amount, maximum_loan_amount
                 FROM lenders
-                WHERE CAST(LEFT(minimum_cibil_score, 3) AS INTEGER) <= %s
+                WHERE TRY_CAST(LEFT(minimum_cibil_score, 3) AS INTEGER) <= %s
                 AND home_loan_roi IS NOT NULL AND home_loan_roi != ''
                 ORDER BY CAST(REPLACE(SPLIT_PART(home_loan_roi, '-', 1), '%%', '') AS FLOAT)
             """, (score,))
@@ -736,47 +617,46 @@ async def fetch_lenders_and_emi(data: LoanFormData):
             if isinstance(row_dict.get("id"), uuid.UUID):
                 row_dict["id"] = str(row_dict["id"])
             lenders.append(row_dict)
-    except Exception as e:
-        print("❌ Error fetching lenders:", e)
+    except:
+        pass
 
-    if property_name:
-        try:
-            conn = get_db_connection()
-            with conn.cursor() as cur:
-                cur.execute("""
-                    SELECT l.id, l.lender_name, l.lender_type, l.home_loan_roi, l.lap_roi,
-                        l.home_loan_ltv, l.remarks, l.loan_approval_time, l.processing_time,
-                        l.minimum_loan_amount, l.maximum_loan_amount
-                    FROM approved_projects ap
-                    JOIN approved_projects_lenders apl ON apl.project_id = ap.id
-                    JOIN lenders l ON l.id = apl.lender_id
-                    WHERE LOWER(ap.project_name) LIKE LOWER(%s)
-                """, (f"%{property_name}%",))
-                rows = cur.fetchall()
-                col_names = [desc[0] for desc in cur.description]
-                for row in rows:
-                    row_dict = dict(zip(col_names, row))
-                    if isinstance(row_dict.get("id"), uuid.UUID):
-                        row_dict["id"] = str(row_dict["id"])
-                    approved_lenders.append(row_dict)
-            conn.close()
-        except Exception as e:
-            print("❌ Error fetching approved lenders:", e)
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT DISTINCT l.id, l.lender_name, l.lender_type, l.home_loan_roi, l.lap_roi,
+                    l.home_loan_ltv, l.remarks, l.loan_approval_time, l.processing_time,
+                    l.minimum_loan_amount, l.maximum_loan_amount
+                FROM approved_projects ap
+                JOIN approved_projects_lenders apl ON apl.project_id = ap.id
+                JOIN lenders l ON l.id = apl.lender_id
+                WHERE LOWER(ap.canonical_name) = LOWER(%s)
+            """, (canonical_property,))
+            rows = cur.fetchall()
+            col_names = [desc[0] for desc in cur.description]
+        conn.close()
+        for row in rows:
+            row_dict = dict(zip(col_names, row))
+            if isinstance(row_dict.get("id"), uuid.UUID):
+                row_dict["id"] = str(row_dict["id"])
+            approved_lenders.append(row_dict)
+    except:
+        pass
 
     approved_ids = {l['id'] for l in approved_lenders}
-    remaining_lenders = [l for l in lenders if l.get('id') not in approved_ids]
-    combined_lenders = approved_lenders + remaining_lenders
-    limited_lenders = combined_lenders[:9]
+    more_lenders = [l for l in lenders if l['id'] not in approved_ids]
 
+    approved_lenders_final = approved_lenders[:5]
+    more_lenders_final = more_lenders[:(9 - len(approved_lenders_final))]
+
+    limited_lenders = approved_lenders_final + more_lenders_final
     emi_data = []
     for lender in limited_lenders:
         roi = lender.get("home_loan_roi")
-        emi = calculate_emi_amount(data.loanAmount, roi, data.tenureYears) if roi else None
-        emi_value = emi if emi else "Data Not Available"
-
+        emi = calculate_emi_amount(data.loanAmount, roi, data.tenureYears)
         emi_data.append({
             "lender": lender.get("lender_name"),
-            "emi": emi_value,
+            "emi": emi if emi else "Data Not Available",
             "lender_type": lender.get("lender_type"),
             "remarks": lender.get("remarks", "Data Not Available"),
             "home_loan_ltv": lender.get("home_loan_ltv", "Data Not Available"),
@@ -791,15 +671,42 @@ async def fetch_lenders_and_emi(data: LoanFormData):
         convert_uuids({
             "cibilScore": score,
             "topMatches": lenders[:3],
-            "moreLenders": lenders[3:9]
+            "moreLenders": more_lenders[:6]
         }),
         convert_uuids(emi_data)
     )
 
-    return {
-        "cibilScore": score,
-        "approvedLenders": approved_lenders,
-        "moreLenders": remaining_lenders,
-        "emi_data": emi_data
-    }
+    def intell_report():
+        try:
+            conn = get_db_connection()
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT raw_report FROM user_cibil_logs
+                    WHERE pan = %s
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                """, (data.pan,))
+                result = cur.fetchone()
+            conn.close()
+            if not result or not result[0]:
+                return {"error": "No raw cibil data found"}
+            raw_json = result[0] if isinstance(result[0], dict) else json.loads(result[0])
+            with tempfile.NamedTemporaryFile(mode='w+', suffix='.json', delete=False) as tmpfile:
+                json.dump(raw_json, tmpfile)
+                tmpfile_path = tmpfile.name
+            with open(tmpfile_path, 'rb') as f:
+                files = {'file': f}
+                resp = requests.post("https://dev-api.orbit.basichomeloan.com/ai/generate_cibil_report", files=files)
+                resp.raise_for_status()
+                return resp.json()
+        except Exception as e:
+            return {"error": str(e)}
 
+    return {
+        "message": "Lenders fetched and EMI calculated successfully",
+        "cibilScore": score,
+        "approvedLenders": clean_lenders(approved_lenders_final),
+        "moreLenders": clean_lenders(more_lenders_final),
+        "emi_data": emi_data,
+        "intell_response": intell_report()
+    }
