@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from routes import Credit_routes, lender_routes
+from routes import cibil_routes, lender_routes
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -26,5 +26,5 @@ async def read_root():
     return {"message": "CORS setup working!"}
 
 app.openapi = custom_openapi
-app.include_router(Credit_routes.router, prefix="/Credit")
+app.include_router(cibil_routes.router, prefix="/cibil")
 app.include_router(lender_routes.router)

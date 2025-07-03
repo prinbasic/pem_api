@@ -11,15 +11,15 @@ class LoanFormData(BaseModel):
     tenureYears: Optional[int] = 20 
     profession: Optional[str] = None 
     location: str
-    hasCredit: Optional[str] = None
-    CreditScore: Optional[int] = None
+    hascibil: Optional[str] = None
+    cibilScore: Optional[int] = None
     proceedScoreCheck: Optional[str]= None
     gender:str
     pin: str
     propertyName: Optional[str] = None
 
 
-class CreditRequest(BaseModel):
+class cibilRequest(BaseModel):
     panNumber: str
     mobileNumber: str
     firstName: str
@@ -33,13 +33,13 @@ class CreditRequest(BaseModel):
     tenureYears: Optional[int] = 20 
     profession: Optional[str] = None
     propertyName: Optional[str] = None
-    hasCredit: Optional[str] = None
-    CreditScore: Optional[int] = None
+    hascibil: Optional[str] = None
+    cibilScore: Optional[int] = None
     proceedScoreCheck: Optional[str]= None
     
 
 
-class CreditOTPRequest(BaseModel):
+class cibilOTPRequest(BaseModel):
     transId: str
     otp: str
     pan: str
@@ -56,7 +56,7 @@ class PhoneNumberRequest(BaseModel):
 
 class LoanInputRequest(BaseModel):
     panNumber: str
-    CreditScore: int
+    cibilScore: int
     loanAmount: int
     tenureYears: int
     propertyName: Optional[str] = None

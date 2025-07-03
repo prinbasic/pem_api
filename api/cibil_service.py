@@ -3,9 +3,9 @@ from datetime import datetime
 from fastapi import HTTPException, Body
 from time import sleep
 from models.request_models import LoanFormData
-from api.log_utils import log_user_Credit_data
+from api.log_utils import log_user_cibil_data
 from api.signature import get_signature_headers
-from models.request_models import CreditRequest
+from models.request_models import cibilRequest
 from datetime import datetime, timezone
 # from routes.utility_routes import calculate_emi
 from db_client import get_db_connection  # make sure this is imported
@@ -19,16 +19,16 @@ import httpx
 import traceback
 
 
-API_1_URL = "https://dev-pemnew.basichomeloan.com/api/v1/CreditScore/InitiateCreditScoreRequest"
-API_2_URL = "https://dev-pemnew.basichomeloan.com/api/v1/CreditScore/CustomerConsentOtpVerification"
-API_3_URL = "https://dev-pemnew.basichomeloan.com/api/v1/CreditScore/GetCustomerConsentDataByTranId"
-API_4_URL = "https://dev-pemnew.basichomeloan.com/api/v1/CreditScore/GetCreditScoreByPanApiUseOnly"
+API_1_URL = "https://dev-pemnew.basichomeloan.com/api/v1/cibilScore/InitiatecibilScoreRequest"
+API_2_URL = "https://dev-pemnew.basichomeloan.com/api/v1/cibilScore/CustomerConsentOtpVerification"
+API_3_URL = "https://dev-pemnew.basichomeloan.com/api/v1/cibilScore/GetCustomerConsentDataByTranId"
+API_4_URL = "https://dev-pemnew.basichomeloan.com/api/v1/cibilScore/GetcibilScoreByPanApiUseOnly"
 GRIDLINES_PAN_URL = "https://api.gridlines.io/pan-api/fetch-detailed"
 GRIDLINES_API_KEY = "FD0SgdtM6KIw8p2sJYv7ObMuvuezZLw7"
 OTP_BASE_URL = "http://3.6.21.243:5000/otp"
 BUREAU_PROFILE_URL = "https://api.gridlines.io/profile-api/bureau/fetch-profile"
 
-Credit_request_cache = {}
+cibil_request_cache = {}
 
 def convert_uuids(obj):
     if isinstance(obj, dict):
@@ -52,21 +52,21 @@ def calculate_emi_amount(loan_amount: float, roi_string: str, years: int = 20):
         print("❌ EMI error:", e)
         return None
 
-def initiate_Credit_score(data: CreditRequest):
+def initiate_cibil_score(data: cibilRequest):
     score = None
     trans = None
     report = None
 
-    # 🔍 Case 1: Use user-provided Credit score if available
-    if data.hasCredit == "yes" and data.CreditScore not in [None, 0, ""]:
-        score = data.CreditScore
-        print(f"✅ Using user-provided Credit score: {score}")
-    elif data.hasCredit == "no" and data.proceedScoreCheck == "no":
+    # 🔍 Case 1: Use user-provided cibil score if available
+    if data.hascibil == "yes" and data.cibilScore not in [None, 0, ""]:
+        score = data.cibilScore
+        print(f"✅ Using user-provided cibil score: {score}")
+    elif data.hascibil == "no" and data.proceedScoreCheck == "no":
         # Default score for cases where no score is provided and the user doesn't want to proceed
-        score = 750  # Default score if user denies Credit score check
-        print(f"✅ Using default Credit score: {score}")
+        score = 750  # Default score if user denies cibil score check
+        print(f"✅ Using default cibil score: {score}")
     else:
-        # 🔍 Case 2: Initiate Equifax Credit fetch
+        # 🔍 Case 2: Initiate Equifax cibil fetch
         body = {
             "panNumber": data.panNumber,
             "mobileNumber": data.mobileNumber,
@@ -79,7 +79,7 @@ def initiate_Credit_score(data: CreditRequest):
             "applicationId": str(data.applicationId) if data.applicationId else None
         }
 
-        # Send request to external Credit service (Equifax)
+        # Send request to external cibil service (Equifax)
         headers = get_signature_headers(API_1_URL, "POST", body)
         response = requests.post(API_1_URL, headers=headers, json=body)
         api_data = response.json()
@@ -87,20 +87,20 @@ def initiate_Credit_score(data: CreditRequest):
         print(api_data)
 
         result = api_data.get("result", {})
-        score = result.get("CreditScore")
+        score = result.get("cibilScore")
         trans = result.get("transID")
 
         # Cache the transaction ID for future polling
         if trans:
-            Credit_request_cache[trans] = data
+            cibil_request_cache[trans] = data
 
-        # Handle case when Credit score is not found in the response
+        # Handle case when cibil score is not found in the response
         if not score and trans:
             # If score is not available, initiate OTP process and return transaction ID
             return {
                 "message": "OTP sent to customer.",
                 "transId": trans,
-                "CreditScore": None,
+                "cibilScore": None,
                 "status": "otp_required"
             }
 
@@ -108,7 +108,7 @@ def initiate_Credit_score(data: CreditRequest):
         if score:
             report = fetch_equifax_report_by_pan(data.panNumber)
 
-    # 🔍 Fetch lenders based on Credit score (whether user-provided or from Equifax)
+    # 🔍 Fetch lenders based on cibil score (whether user-provided or from Equifax)
     lenders = []
     try:
         conn = get_db_connection()
@@ -118,7 +118,7 @@ def initiate_Credit_score(data: CreditRequest):
                     home_loan_ltv, remarks, loan_approval_time, processing_time,
                     minimum_loan_amount, maximum_loan_amount
                 FROM lenders
-                WHERE CAST(LEFT(minimum_credit_score, 3) AS INTEGER) <= %s
+                WHERE CAST(LEFT(minimum_cibil_score, 3) AS INTEGER) <= %s
                 AND home_loan_roi IS NOT NULL
                 AND home_loan_roi != ''
                 ORDER BY CAST(REPLACE(SPLIT_PART(home_loan_roi, '-', 1), '%%', '') AS FLOAT)
@@ -175,8 +175,8 @@ def initiate_Credit_score(data: CreditRequest):
         loanAmount=data.loanAmount,
         tenureYears=data.tenureYears,
         location=data.pinCode,
-        hasCredit=data.hasCredit or "no",
-        CreditScore=score,
+        hascibil=data.hascibil or "no",
+        cibilScore=score,
         proceedScoreCheck=data.proceedScoreCheck,
         gender=data.gender,
         pin=data.pinCode,
@@ -210,10 +210,10 @@ def initiate_Credit_score(data: CreditRequest):
     remaining_lenders = clean_lenders(remaining_lenders)
 
     # ✅ Final logging with UUID-safe conversion
-    log_user_Credit_data(
+    log_user_cibil_data(
         form_data,
         convert_uuids({
-            "CreditScore": score,
+            "cibilScore": score,
             "raw": report.get("raw") if report else "User-provided score; Equifax skipped",
             "topMatches": lenders[:3],
             "moreLenders": lenders[3:9]
@@ -235,8 +235,8 @@ def initiate_Credit_score(data: CreditRequest):
             conn.close()
 
             if not result or not result[0]:
-                print("❌ No raw Credit data found for PAN")
-                return {"error": "No raw Credit data found"}
+                print("❌ No raw cibil data found for PAN")
+                return {"error": "No raw cibil data found"}
 
             raw_json = result[0]
             if not isinstance(raw_json, dict):
@@ -254,7 +254,7 @@ def initiate_Credit_score(data: CreditRequest):
             # Send file to external API
             with open(tmpfile_path, 'rb') as f:
                 files = {'file': f}
-                resp = requests.post("https://dev-api.orbit.basichomeloan.com/ai/generate_credit_report", files=files)
+                resp = requests.post("https://dev-api.orbit.basichomeloan.com/ai/generate_cibil_report", files=files)
                 resp.raise_for_status()
                 return resp.json()
 
@@ -265,8 +265,8 @@ def initiate_Credit_score(data: CreditRequest):
     intell_response = intell_report()
 
     return {
-        "message": "Credit score available. Report and lenders fetched.",
-        "CreditScore": score,
+        "message": "cibil score available. Report and lenders fetched.",
+        "cibilScore": score,
         "transId": trans,
         "raw": report.get("raw") if report else "User-provided score; Equifax skipped",
         "approvedLenders": approved_lenders,
@@ -278,25 +278,25 @@ def initiate_Credit_score(data: CreditRequest):
     }
 
 def verify_otp_and_fetch_score(trans_id: str, otp: str, pan: str):
-    print("hello", Credit_request_cache)
+    print("hello", cibil_request_cache)
     res = requests.get(API_2_URL, params={"TransId": trans_id, "Otp": otp}).json()
     if res.get('isError', None) == True:
         result = res.get('responseException', {}).get('exceptionMessage', None)
         return JSONResponse(status_code=400, content=result)
-    elif res.get("result").get('CreditStatus') == "InValidOtp":
+    elif res.get("result").get('cibilStatus') == "InValidOtp":
         return JSONResponse(status_code=400, content="InValidOtp")
     else:
         result = res.get("result")
         print(result)
-        if "CreditScore" in result:
-            original_request = Credit_request_cache.get(trans_id)
+        if "cibilScore" in result:
+            original_request = cibil_request_cache.get(trans_id)
             print(original_request)
             # if not original_request:
             #     return JSONResponse(status_code=400, content={"error": "Original request data not found for transId."})
-            return initiate_Credit_score(original_request)
+            return initiate_cibil_score(original_request)
     return {result}
 
-def poll_consent_and_fetch(trans_id: str, pan: str, original_request: CreditRequest, attempts=5, wait=15):
+def poll_consent_and_fetch(trans_id: str, pan: str, original_request: cibilRequest, attempts=5, wait=15):
     for attempt in range(1, attempts + 1):
         try:
             print(f"\n⏳ Polling attempt {attempt}/{attempts} for TransID: {trans_id}")
@@ -312,8 +312,8 @@ def poll_consent_and_fetch(trans_id: str, pan: str, original_request: CreditRequ
                 print("✅ Consent complete. Waiting 10 seconds...")
                 sleep(10)
 
-                print("🔁 Re-calling initiate_Credit_score to get full summary...")
-                return initiate_Credit_score(original_request)
+                print("🔁 Re-calling initiate_cibil_score to get full summary...")
+                return initiate_cibil_score(original_request)
 
             # ✅ Optional: Try fetching early
             early_report = fetch_equifax_report_by_pan(pan)
@@ -343,7 +343,7 @@ def fetch_equifax_report_by_pan(pan_number: str):
         print(final_data)
         report_json = final_data
         return {
-            "equifaxScore": report_json.get("result").get("customerCreditScore"),
+            "equifaxScore": report_json.get("result").get("customercibilScore"),
             "raw": final_data  # ✅ this ensures everything is saved/logged
         }
 
@@ -486,12 +486,12 @@ STATE_CODE_MAP = {
 
 #             print("✅ Extracted Score:", score)
 #             if not score:
-#                 return {"consent": "Y", "message": "Credit score not found in bureau response"}
+#                 return {"consent": "Y", "message": "cibil score not found in bureau response"}
 
 #         except Exception as e:
 #             print("❌ Exception occurred while verifying PAN/Bureau:")
 #             traceback.print_exc()
-#             raise HTTPException(status_code=500, detail="Server error during PAN/Credit process")
+#             raise HTTPException(status_code=500, detail="Server error during PAN/cibil process")
 
 # async def send_and_verify_pan(phone_number: str, otp: str, pan_number: str):
 #     async with httpx.AsyncClient(timeout=60.0) as client:
@@ -556,7 +556,7 @@ STATE_CODE_MAP = {
 
 #             print("✅ Extracted Score:", score)
 #             if not score:
-#                 return {"consent": "Y", "message": "Credit score not found in bureau response"}
+#                 return {"consent": "Y", "message": "cibil score not found in bureau response"}
 
 #             # 🧠 Optional: Prepare dummy/empty values to return as placeholders
 #             trans = bureau_json.get("transaction_id", "")
@@ -568,8 +568,8 @@ STATE_CODE_MAP = {
 #             intell_response = {}
 
 #             return {
-#                 "message": "Credit score available. Report and lenders fetched.",
-#                 "CreditScore": score,
+#                 "message": "cibil score available. Report and lenders fetched.",
+#                 "cibilScore": score,
 #                 "transId": trans,
 #                 "raw": raw,
 #                 "approvedLenders": approved_lenders,
@@ -582,7 +582,7 @@ STATE_CODE_MAP = {
 #         except Exception as e:
 #             print("❌ Exception occurred while verifying PAN/Bureau:")
 #             traceback.print_exc()
-#             raise HTTPException(status_code=500, detail="Server error during PAN/Credit process")
+#             raise HTTPException(status_code=500, detail="Server error during PAN/cibil process")
 
 async def send_and_verify_pan(phone_number: str, otp: str, pan_number: str):
     async with httpx.AsyncClient(timeout=60.0) as client:
@@ -647,7 +647,7 @@ async def send_and_verify_pan(phone_number: str, otp: str, pan_number: str):
 
             print("✅ Extracted Score:", score)
             if not score:
-                return {"consent": "Y", "message": "Credit score not found in bureau response"}
+                return {"consent": "Y", "message": "cibil score not found in bureau response"}
 
             # 🧠 Optional: Prepare dummy/empty values to return as placeholders
             trans = bureau_json.get("transaction_id", "")
@@ -657,14 +657,14 @@ async def send_and_verify_pan(phone_number: str, otp: str, pan_number: str):
             emi_data = {}
             data = bureau_json.get("data")
 
-            # ✅ Log Credit data
+            # ✅ Log cibil data
             try:
                 conn = get_db_connection()
                 with conn.cursor() as cur:
                     cur.execute("""
                         INSERT INTO user_cibil_logs (
                             pan, dob, name, phone, location, email,
-                            raw_report, Credit_score, created_at
+                            raw_report, cibil_score, created_at
                         ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                         ON CONFLICT (pan)
                         DO UPDATE SET
@@ -674,7 +674,7 @@ async def send_and_verify_pan(phone_number: str, otp: str, pan_number: str):
                             location = EXCLUDED.location,
                             email = EXCLUDED.email,
                             raw_report = EXCLUDED.raw_report,
-                            Credit_score = EXCLUDED.Credit_score,
+                            cibil_score = EXCLUDED.cibil_score,
                             created_at = EXCLUDED.created_at
                     """, (
                         pan_data.get("data", {}).get("pan_data", {}).get("document_id"),
@@ -689,13 +689,13 @@ async def send_and_verify_pan(phone_number: str, otp: str, pan_number: str):
                     ))
                     conn.commit()
                 conn.close()
-                print("✅ Credit log saved to database.")
+                print("✅ cibil log saved to database.")
             except Exception as log_err:
-                print("❌ Error logging Credit data:", log_err)
+                print("❌ Error logging cibil data:", log_err)
 
             return {
-                "message": "Credit score available. Report and lenders fetched.",
-                "CreditScore": score,
+                "message": "cibil score available. Report and lenders fetched.",
+                "cibilScore": score,
                 "transId": trans,
                 "raw": raw,
                 "approvedLenders": approved_lenders,
@@ -707,11 +707,11 @@ async def send_and_verify_pan(phone_number: str, otp: str, pan_number: str):
         except Exception as e:
             print("❌ Exception occurred while verifying PAN/Bureau:")
             traceback.print_exc()
-            raise HTTPException(status_code=500, detail="Server error during PAN/Credit process")
+            raise HTTPException(status_code=500, detail="Server error during PAN/cibil process")
         
 
 async def fetch_lenders_and_emi(data: LoanFormData):
-    score = data.CreditScore
+    score = data.cibilScore
     property_name = data.propertyName
     lenders = []
     approved_lenders = []
@@ -724,7 +724,7 @@ async def fetch_lenders_and_emi(data: LoanFormData):
                     home_loan_ltv, remarks, loan_approval_time, processing_time,
                     minimum_loan_amount, maximum_loan_amount
                 FROM lenders
-                WHERE CAST(LEFT(minimum_credit_score, 3) AS INTEGER) <= %s
+                WHERE CAST(LEFT(minimum_cibil_score, 3) AS INTEGER) <= %s
                 AND home_loan_roi IS NOT NULL AND home_loan_roi != ''
                 ORDER BY CAST(REPLACE(SPLIT_PART(home_loan_roi, '-', 1), '%%', '') AS FLOAT)
             """, (score,))
@@ -786,10 +786,10 @@ async def fetch_lenders_and_emi(data: LoanFormData):
             "max_loan_amount": lender.get("maximum_loan_amount", "Data Not Available")
         })
 
-    log_user_Credit_data(
+    log_user_cibil_data(
         data,
         convert_uuids({
-            "CreditScore": score,
+            "cibilScore": score,
             "topMatches": lenders[:3],
             "moreLenders": lenders[3:9]
         }),
@@ -797,7 +797,7 @@ async def fetch_lenders_and_emi(data: LoanFormData):
     )
 
     return {
-        "CreditScore": score,
+        "cibilScore": score,
         "approvedLenders": approved_lenders,
         "moreLenders": remaining_lenders,
         "emi_data": emi_data

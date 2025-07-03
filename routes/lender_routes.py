@@ -4,15 +4,15 @@ from db_client import get_db_connection
 
 router = APIRouter()
 
-# @router.post("/bank_by_Credit")
+# @router.post("/bank_by_cibil")
 # def get_lenders(data: LoanFormData):
 #     try:
-#         score = data.CreditScore
+#         score = data.cibilScore
 #         conn = get_db_connection()
 #         with conn.cursor() as cur:
 #             cur.execute("""
 #                 SELECT * FROM lenders
-#                 WHERE CAST(LEFT(minimum_credit_score, 3) AS INTEGER) < %s
+#                 WHERE CAST(LEFT(minimum_cibil_score, 3) AS INTEGER) < %s
 #             """, (score,))
 #             rows = cur.fetchall()
 #             col_names = [desc[0] for desc in cur.description]
@@ -28,7 +28,7 @@ router = APIRouter()
 #     except Exception as e:
 #         return {"error": str(e)}
 
-def get_matching_lenders(Credit_score: int):
+def get_matching_lenders(cibil_score: int):
     try:
         conn = get_db_connection()
         with conn.cursor() as cur:
@@ -37,12 +37,12 @@ def get_matching_lenders(Credit_score: int):
            home_loan_ltv, remarks, loan_approval_time, processing_time,
            minimum_loan_amount, maximum_loan_amount
     FROM lenders
-    WHERE CAST(LEFT(minimum_credit_score, 3) AS INTEGER) <= %s
+    WHERE CAST(LEFT(minimum_cibil_score, 3) AS INTEGER) <= %s
       AND home_loan_roi IS NOT NULL
       AND home_loan_roi != ''
     ORDER BY 
         CAST(REPLACE(SPLIT_PART(home_loan_roi, '-', 1), '%%', '') AS FLOAT)
-""", (Credit_score,))
+""", (cibil_score,))
 
 
             rows = cur.fetchall()

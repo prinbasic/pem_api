@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Query, HTTPException, Body
-from models.request_models import LoanFormData, CreditRequest
-from api.Credit_service import (
-    initiate_Credit_score,
+from models.request_models import LoanFormData, cibilRequest
+from api.cibil_service import (
+    initiate_cibil_score,
     verify_otp_and_fetch_score,
     poll_consent_and_fetch,send_and_verify_pan, send_otp_to_user, resend_otp_to_user, fetch_lenders_and_emi
 )
-from api.log_utils import log_user_Credit_data
-from models.request_models import CreditOTPRequest,PhoneNumberRequest,PANRequest, LoanFormData
+from api.log_utils import log_user_cibil_data
+from models.request_models import cibilOTPRequest,PhoneNumberRequest,PANRequest, LoanFormData
 import httpx
 router = APIRouter()
 
@@ -15,9 +15,9 @@ GRIDLINES_API_KEY = "Zvuio2QALeDhyRB0lzZq9o5SgwjBgXcu"
 OTP_BASE_URL = "http://3.6.21.243:5000/otp"
 
 # 🟢 New Equifax Flow APIs
-@router.post("/initiate-Credit")
-def initiate(data: CreditRequest):
-    return initiate_Credit_score(data)
+@router.post("/initiate-cibil")
+def initiate(data: cibilRequest):
+    return initiate_cibil_score(data)
 
 @router.get("/verify-otp")
 def verify(transId: str = Query(...), otp: str = Query(...), pan: str = Query(...)):
@@ -25,7 +25,7 @@ def verify(transId: str = Query(...), otp: str = Query(...), pan: str = Query(..
 
 @router.get("/poll-consent")
 def poll_consent(data: LoanFormData):
-    Credit_request = CreditRequest(
+    cibil_request = cibilRequest(
         panNumber=data.pan,
         mobileNumber=data.phone,
         firstName=data.name.split(" ")[0],
@@ -40,19 +40,19 @@ def poll_consent(data: LoanFormData):
     )
 
     trans_id = "BASIC" + data.pan[-4:]  # OR pass this from frontend
-    return poll_consent_and_fetch(trans_id, data.pan, Credit_request)
+    return poll_consent_and_fetch(trans_id, data.pan, cibil_request)
 # 🟡 Original Fallback Endpoints
-@router.post("/check-Credit")
-def check_Credit(data: LoanFormData):
+@router.post("/check-cibil")
+def check_cibil(data: LoanFormData):
     return {
-        "message": "User does not wish to check Credit score.",
+        "message": "User does not wish to check cibil score.",
         "name": data.name,
         "note": "Only limited loan options can be shown."
     }
 
-@router.post("/fetch-Credit-score")
-def fetch_Credit_score(data: LoanFormData):
-    Credit_request = CreditRequest(
+@router.post("/fetch-cibil-score")
+def fetch_cibil_score(data: LoanFormData):
+    cibil_request = cibilRequest(
         panNumber=data.pan,
         mobileNumber=data.phone,
         firstName=data.name.split(" ")[0],
@@ -64,23 +64,23 @@ def fetch_Credit_score(data: LoanFormData):
         applicationId="BASIC" + data.pan[-4:],
         loanAmount=data.loanAmount,
         propertyName=data.propertyName,
-        hasCredit=data.hasCredit,
-        CreditScore=data.CreditScore,
+        hascibil=data.hascibil,
+        cibilScore=data.cibilScore,
         proceedScoreCheck=data.proceedScoreCheck
     )
 
-    result = initiate_Credit_score(Credit_request)
+    result = initiate_cibil_score(cibil_request)
     if result is True:
         trans_id = result.get("transId")
 
-        if not result.get("CreditScore") and trans_id:
+        if not result.get("cibilScore") and trans_id:
             print(f"🕒 Polling started for transID: {trans_id}")
 
             # 👇 Let polling run in background (async would be ideal)
             import threading
             threading.Thread(
                 target=poll_consent_and_fetch,
-                args=(trans_id, Credit_request.panNumber, Credit_request),
+                args=(trans_id, cibil_request.panNumber, cibil_request),
                 daemon=True
             ).start()
 
@@ -93,7 +93,7 @@ def fetch_Credit_score(data: LoanFormData):
     return result
 
 @router.post("/submit-otp")
-def submit_otp(data: CreditOTPRequest):
+def submit_otp(data: cibilOTPRequest):
     return verify_otp_and_fetch_score(data.transId, data.otp, data.pan)
 
 @router.post("/consent/send-otp")
@@ -112,7 +112,7 @@ async def combined_otp_pan_flow(payload: PANRequest):
         pan_number=payload.pan_number
     )
 
-@router.post("/Credit/fetch-lenders")
+@router.post("/cibil/fetch-lenders")
 async def fetch_lenders_using_score(form: LoanFormData):
     try:
         result = await fetch_lenders_and_emi(form)

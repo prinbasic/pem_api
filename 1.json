@@ -1,0 +1,187 @@
+{
+    "consent": "Y",
+    "pan_data": {
+        "request_id": "8737d711-f93d-439b-a773-caba7d7f9708",
+        "transaction_id": "5d7b8642-84f0-41a5-8261-701144c5877f",
+        "status": 200,
+        "data": {
+            "code": "1000",
+            "message": "Valid PAN.",
+            "pan_data": {
+                "document_type": "PAN",
+                "document_id": "NUHPS0151J",
+                "name": "LOKESH SINGH",
+                "first_name": "LOKESH",
+                "last_name": "SINGH",
+                "category": "P",
+                "date_of_birth": "2000-06-16",
+                "masked_aadhaar_number": "XXXXXXXX2397",
+                "address_data": {
+                    "line_1": "D-1/79",
+                    "line_2": "ROHINI SECTOR-16",
+                    "street": "ROHINI SECTOR 15",
+                    "city": "ROHINI SECTOR 15",
+                    "state": "DELHI",
+                    "pincode": "110089"
+                },
+                "email": "lo***********11@gmail.com",
+                "phone": "80XXXXXX43",
+                "gender": "MALE",
+                "aadhaar_linked": true
+            }
+        },
+        "timestamp": 1751445511452,
+        "path": "/pan-api/fetch-detailed"
+    },
+    "bureau_data": {
+        "request_id": "7fe54639-bf2b-4e89-a63a-0126b7879342",
+        "transaction_id": "60db810d-bee8-43d3-bcfa-abe5ee938549",
+        "status": 200,
+        "data": {
+            "code": "1005",
+            "message": "Fetched Bureau Profile.",
+            "profile_data": {
+                "personal_information": {
+                    "full_name": "LOKESH SINGH",
+                    "first_name": "LOKESH",
+                    "last_name": "SINGH",
+                    "gender": "Male",
+                    "age": "25",
+                    "date_of_birth": "2000-06-16",
+                    "occupation": "SALARIED"
+                },
+                "national_document_data": {
+                    "pan": [
+                        {
+                            "serial_number": "1",
+                            "value": "NUHPS0151J",
+                            "reported_date": "2025-05-15"
+                        }
+                    ]
+                },
+                "address": [
+                    {
+                        "detailed_address": "D 1/79  NEAR DISTRICT PARK  SECTOR-16 ROHINI NORTH WEST DELHI  NEAR DISTRICT PARK  NEW DELHI",
+                        "state": "DL",
+                        "pincode": "110089",
+                        "type": "Primary",
+                        "date_of_reporting": "2025-05-15"
+                    }
+                ],
+                "phone": [
+                    {
+                        "serial_number": "1",
+                        "value": "8076298443",
+                        "reported_date": "2025-05-15"
+                    }
+                ],
+                "email": [
+                    {
+                        "serial_number": "1",
+                        "value": "LOKESHGARIA8811@GMAIL.COM",
+                        "reported_date": "2025-02-28"
+                    }
+                ],
+                "account_detail": [
+                    {
+                        "account_number": "XXXXXXXXXXXXXXX1419",
+                        "institution": "HDFC Bank Limited",
+                        "account_type": "cibil Card",
+                        "ownership_type": "Individual",
+                        "balance": "0",
+                        "open": "Yes",
+                        "date_reported": "2025-06-15",
+                        "date_opened": "2025-02-14",
+                        "account_status": "Current Account",
+                        "source": "INDIVIDUAL",
+                        "last_four_year_history_data": [
+                            {
+                                "key": "06-25",
+                                "payment_status": "000",
+                                "suit_filed_status": "*",
+                                "asset_classification_status": "*"
+                            },
+                            {
+                                "key": "05-25",
+                                "payment_status": "000",
+                                "suit_filed_status": "*",
+                                "asset_classification_status": "*"
+                            },
+                            {
+                                "key": "04-25",
+                                "payment_status": "000",
+                                "suit_filed_status": "*",
+                                "asset_classification_status": "*"
+                            },
+                            {
+                                "key": "03-25",
+                                "payment_status": "NEW",
+                                "suit_filed_status": "*",
+                                "asset_classification_status": "*"
+                            },
+                            {
+                                "key": "02-25",
+                                "payment_status": "NEW",
+                                "suit_filed_status": "*",
+                                "asset_classification_status": "*"
+                            }
+                        ]
+                    }
+                ],
+                "account_summary": {
+                    "number_of_accounts": "1",
+                    "number_of_active_accounts": "1",
+                    "number_of_write_offs": "0",
+                    "total_past_due": "0.00",
+                    "single_highest_cibil": "0.00",
+                    "single_highest_sanction_amount": "0.00",
+                    "total_highest_cibil": "0.00",
+                    "average_open_balance": "0.00",
+                    "single_highest_balance": "0.00",
+                    "number_of_past_due_accounts": "0",
+                    "number_of_zero_balance_accounts": "1",
+                    "recent_account": "cibil Card on 14-02-2025",
+                    "oldest_account": "cibil Card on 14-02-2025",
+                    "total_balance_amount": "0.00",
+                    "total_sanction_amount": "0.00",
+                    "total_cibil_limit": "100000.0",
+                    "total_monthly_payment_amount": "0.00"
+                },
+                "score_detail": [
+                    {
+                        "type": "ERS",
+                        "version": "4.0",
+                        "name": "ERS4.0",
+                        "value": "789",
+                        "scoring_elements": [
+                            {
+                                "type": "RES",
+                                "code": "100",
+                                "description": "Limited cibil History"
+                            },
+                            {
+                                "type": "RES",
+                                "code": "106",
+                                "description": "Percentage of Secure Trades"
+                            },
+                            {
+                                "type": "RES",
+                                "code": "103",
+                                "description": "Total cibil exposure"
+                            }
+                        ]
+                    }
+                ],
+                "list_of_institution": [
+                    {
+                        "institution_name": "HDFC Bank Limited",
+                        "number_of_total_accounts": 1,
+                        "number_of_open_accounts": 1
+                    }
+                ]
+            }
+        },
+        "timestamp": 1751445512152,
+        "path": "/profile-api/bureau/fetch-profile"
+    }
+}
