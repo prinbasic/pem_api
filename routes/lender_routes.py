@@ -4,10 +4,10 @@ from db_client import get_db_connection
 
 router = APIRouter()
 
-# @router.post("/bank_by_cibil")
+# @router.post("/bank_by_Credit")
 # def get_lenders(data: LoanFormData):
 #     try:
-#         score = data.cibilScore
+#         score = data.CreditScore
 #         conn = get_db_connection()
 #         with conn.cursor() as cur:
 #             cur.execute("""
@@ -28,7 +28,7 @@ router = APIRouter()
 #     except Exception as e:
 #         return {"error": str(e)}
 
-def get_matching_lenders(cibil_score: int):
+def get_matching_lenders(Credit_score: int):
     try:
         conn = get_db_connection()
         with conn.cursor() as cur:
@@ -42,7 +42,7 @@ def get_matching_lenders(cibil_score: int):
       AND home_loan_roi != ''
     ORDER BY 
         CAST(REPLACE(SPLIT_PART(home_loan_roi, '-', 1), '%%', '') AS FLOAT)
-""", (cibil_score,))
+""", (Credit_score,))
 
 
             rows = cur.fetchall()

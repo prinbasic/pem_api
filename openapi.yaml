@@ -20,6 +20,8 @@ paths:
   # 1. CIBIL score initiation
   /cibil/initiate-cibil:
     post:
+      tags:
+        - cred_equi
       summary: Initiate CIBIL score check
       description: This endpoint starts the process for checking the user's CIBIL score, and it requires the user's details.
       requestBody:
@@ -66,6 +68,8 @@ paths:
   # 2. OTP Verification for CIBIL consent
   /cibil/verify-otp:
     get:
+      tags:
+        - cred_equi
       summary: Verify OTP for CIBIL consent
       description: This endpoint allows you to verify OTP for CIBIL consent using a transaction ID, OTP, and PAN number.
       parameters:
@@ -104,6 +108,8 @@ paths:
   # 3. Poll for User Consent Status
   /cibil/poll-consent:
     get:
+      tags:
+        - cred_equi
       summary: Poll for user consent status
       description: This endpoint checks the status of user consent for the CIBIL score check.
       requestBody:
@@ -142,6 +148,8 @@ paths:
   # 4. Fallback CIBIL Check (User opted out)
   /cibil/check-cibil:
     post:
+      tags:
+        - cred_equi
       summary: Fallback CIBIL check
       description: This endpoint allows users who have opted out of consent to perform a fallback CIBIL check.
       requestBody:
@@ -164,6 +172,8 @@ paths:
   # 5. Fetch CIBIL Score
   /cibil/fetch-cibil-score:
     post:
+      tags:
+        - cred_equi
       summary: Fetch CIBIL score with form data
       description: This endpoint allows users to fetch their CIBIL score based on form data.
       requestBody:
@@ -187,6 +197,8 @@ paths:
   # 6. Submit OTP for Verification
   /cibil/submit-otp:
     post:
+      tags:
+        - cred_equi
       summary: Submit OTP for CIBIL verification
       description: This endpoint allows users to submit an OTP for CIBIL verification.
       requestBody:
@@ -213,6 +225,8 @@ paths:
   # 7. Generate CIBIL Report
   /ai/generate_cibil_report:
     post:
+      tags:
+        - verifyX
       summary: Generate CIBIL report
       description: Generate a CIBIL intelligence report from either an uploaded file or a source URL/raw JSON.
       requestBody:
@@ -242,6 +256,140 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+
+  /consent/send-otp:
+    post:
+      tags:
+        - cred_ongrid
+      summary: Send OTP for PAN verification
+      description: |
+        Sends an OTP to the user's mobile number using the OnGrid API 
+        for the purpose of verifying consent before fetching PAN details.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phone_number:
+                  type: string
+                  description: The user's 10-digit mobile number (with or without country code)
+                  example: "917759054070"
+      responses:
+        '200':
+          description: OTP successfully sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "Y"
+                  message:
+                    type: string
+                    example: "OTP sent successfully"
+        '500':
+          description: Server error during OTP send
+
+  /consent/resend-otp:
+    post:
+      tags:
+        - cred_ongrid
+      summary: Resend OTP for PAN verification
+      description: |
+        Resends an OTP to the user's mobile number in case the previous OTP 
+        was not received or expired. Uses the OnGrid resend API.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phone_number:
+                  type: string
+                  description: The user's 10-digit mobile number (with or without country code)
+                  example: "917759054070"
+      responses:
+        '200':
+          description: OTP resent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "Y"
+                  message:
+                    type: string
+                    example: "OTP resent successfully"
+        '500':
+          description: Server error during OTP resend
+
+  /consent/verify-pan:
+    post:
+      tags:
+        - cred_ongrid
+      summary: Verify OTP and Fetch PAN & Bureau Profile
+      description: |
+        Verifies the OTP sent to the user, then fetches PAN details and 
+        the credit bureau profile using OnGrid APIs.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phone_number:
+                  type: string
+                  description: The user's 10-digit mobile number
+                  example: "917759054070"
+                otp:
+                  type: string
+                  description: The OTP code received by the user
+                  example: "123456"
+                pan_number:
+                  type: string
+                  description: The user's PAN number
+                  example: "ABCDE1234F"
+      responses:
+        '200':
+          description: PAN and Bureau profile fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  consent:
+                    type: string
+                    example: "Y"
+                  pan_data:
+                    type: object
+                    description: PAN details as returned from OnGrid
+                  bureau_data:
+                    type: object
+                    description: Credit bureau profile details
+        '400':
+          description: Invalid OTP or PAN fetch failure
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  consent:
+                    type: string
+                    example: "N"
+                  message:
+                    type: string
+                    example: "OTP verification failed"
+        '500':
+          description: Server error during verification or data fetch
+
+
 
 components:
   schemas:
