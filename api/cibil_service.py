@@ -22,7 +22,7 @@ import traceback
 API_1_URL = "https://dev-pemnew.basichomeloan.com/api/v1/cibilScore/InitiatecibilScoreRequest"
 API_2_URL = "https://dev-pemnew.basichomeloan.com/api/v1/cibilScore/CustomerConsentOtpVerification"
 API_3_URL = "https://dev-pemnew.basichomeloan.com/api/v1/cibilScore/GetCustomerConsentDataByTranId"
-API_4_URL = "https://dev-pemnew.basichomeloan.com/api/v1/cibilScore/GetcibilScoreByPanApiUseOnly"
+API_4_URL = "https://dev-pemnew.basichomeloan.com/api/v1/cibilScore/GetCreditScoreByPanApiUseOnly"
 GRIDLINES_PAN_URL = "https://api.gridlines.io/pan-api/fetch-detailed"
 GRIDLINES_API_KEY = "FD0SgdtM6KIw8p2sJYv7ObMuvuezZLw7"
 OTP_BASE_URL = "http://3.6.21.243:5000/otp"
