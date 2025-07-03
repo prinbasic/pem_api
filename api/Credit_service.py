@@ -226,7 +226,7 @@ def initiate_Credit_score(data: CreditRequest):
             conn = get_db_connection()
             with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT raw_report FROM user_Credit_logs
+                    SELECT raw_report FROM user_cibil_logs
                     WHERE pan = %s
                     ORDER BY created_at DESC
                     LIMIT 1
@@ -357,7 +357,8 @@ def fetch_equifax_report_by_pan(pan_number: str):
 GRIDLINES_HEADERS = {
     "X-API-Key": "FD0SgdtM6KIw8p2sJYv7ObMuvuezZLw7",
     "X-Auth-Type": "API-Key",
-    "Content-Type": "application/json"
+    "Content-Type": "application/json",
+    "Accept": "application/json"
 }
 
 def send_otp_to_user(phone_number: str):
@@ -661,7 +662,7 @@ async def send_and_verify_pan(phone_number: str, otp: str, pan_number: str):
                 conn = get_db_connection()
                 with conn.cursor() as cur:
                     cur.execute("""
-                        INSERT INTO user_Credit_logs (
+                        INSERT INTO user_cibil_logs (
                             pan, dob, name, phone, location, email,
                             raw_report, Credit_score, created_at
                         ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
