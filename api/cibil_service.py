@@ -663,7 +663,7 @@ async def send_and_verify_pan(phone_number: str, otp: str, pan_number: str):
             data = bureau_json.get("data")
             raw_report_data = None
 
-            # ✅ Log cibil data
+
             try:
                 conn = get_db_connection()
                 with conn.cursor() as cur:
@@ -691,7 +691,7 @@ async def send_and_verify_pan(phone_number: str, otp: str, pan_number: str):
                         pan_data.get("data", {}).get("pan_data", {}).get("email", None),
                         json.dumps(raw),
                         score,
-                        datetime.now(timezone.utc)
+                        datetime.now(timezone.utc),
                     ))
                     conn.commit()
                 conn.close()
@@ -734,7 +734,7 @@ async def send_and_verify_pan(phone_number: str, otp: str, pan_number: str):
                 raw_report_data = result
             except Exception as e:
                 print("❌ Error fetching raw report:", e)
-            
+
             # AI-generated report
             def intell_report():
                 try:
@@ -752,6 +752,9 @@ async def send_and_verify_pan(phone_number: str, otp: str, pan_number: str):
                     return {"error": str(e)}
 
             intell_response = intell_report()
+
+            # ✅ Log cibil data
+            
 
             return {
                 "message": "Credit score available. Report and lenders fetched.",
