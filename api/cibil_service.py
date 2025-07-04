@@ -753,7 +753,31 @@ async def send_and_verify_pan(phone_number: str, otp: str, pan_number: str):
 
             intell_response = intell_report()
 
-            # ✅ Log cibil data
+            try:
+                # Check if intell_response is a dictionary and serialize it
+                if isinstance(intell_response, dict):
+                    serialized_intell_response = json.dumps(intell_response)
+                    print("Serialized intell_response:", serialized_intell_response)  # Debugging
+
+                # Insert the serialized response into the database
+                conn = get_db_connection()
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        INSERT INTO user_cibil_logs (
+                            intell_report
+                        ) VALUES (%s)
+                        ON CONFLICT (pan)
+                        DO UPDATE SET
+                            intell_report = EXCLUDED.intell_report
+                    """, (
+                        serialized_intell_response,  # Pass the serialized JSON as a tuple
+                    ))
+                    conn.commit()
+
+                conn.close()
+                print("✅ Cibil log saved to database.")
+            except Exception as log_err:
+                print("❌ Error logging cibil data:", log_err)
             
 
             return {
