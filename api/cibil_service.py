@@ -627,7 +627,7 @@ async def send_and_verify_pan(phone_number: str, otp: str, pan_number: str):
                 "pan": pan_data.get("data", {}).get("pan_data", {}).get("document_id"),
                 "address": pan_data.get("address", "NA"),
                 "state": mapped_state,
-                "pincode": pan_data.get("data", {}).get("pan_data", {}).get("address_data", {}).get("pincode"),
+                "pincode": pan_data.get("data", {}).get("pan_data", {}).get("address_data", {}).get("pincode") or "201310",
                 "consent": "Y"
             }
             print(f"📨 Sending Bureau Profile Request: {bureau_payload}")
