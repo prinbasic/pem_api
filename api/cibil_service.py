@@ -25,7 +25,7 @@ API_3_URL = "https://dev-pemnew.basichomeloan.com/api/v1/cibilScore/GetCustomerC
 API_4_URL = "https://dev-pemnew.basichomeloan.com/api/v1/cibilScore/GetCreditScoreByPanApiUseOnly"
 GRIDLINES_PAN_URL = "https://api.gridlines.io/pan-api/fetch-detailed"
 GRIDLINES_API_KEY = "FD0SgdtM6KIw8p2sJYv7ObMuvuezZLw7"
-OTP_BASE_URL = "http://3.6.21.243:5000/otp"
+OTP_BASE_URL = "https://dev-api.orbit.basichomeloan.com/otp"
 BUREAU_PROFILE_URL = "https://api.gridlines.io/profile-api/bureau/fetch-profile"
 
 cibil_request_cache = {}
