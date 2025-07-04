@@ -763,14 +763,12 @@ async def send_and_verify_pan(phone_number: str, otp: str, pan_number: str):
                 conn = get_db_connection()
                 with conn.cursor() as cur:
                     cur.execute("""
-                        INSERT INTO user_cibil_logs (
-                            intell_report
-                        ) VALUES (%s)
-                        ON CONFLICT (pan)
-                        DO UPDATE SET
-                            intell_report = EXCLUDED.intell_report
+                        UPDATE user_cibil_logs
+                        SET intell_report = %s
+                        WHERE pan = %s
                     """, (
-                        serialized_intell_response,  # Pass the serialized JSON as a tuple
+                        serialized_intell_response,  # Pass the serialized JSON
+                        pan_number  # The pan number to identify the row to update
                     ))
                     conn.commit()
 
