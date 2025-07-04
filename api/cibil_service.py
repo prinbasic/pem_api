@@ -422,6 +422,173 @@ STATE_CODE_MAP = {
 }
 
 
+# async def send_and_verify_pan(phone_number: str, otp: str, pan_number: str):
+#     async with httpx.AsyncClient(timeout=60.0) as client:
+#         try:
+#             # Step 1: OTP Verification
+#             print(f"🔍 Verifying OTP for {phone_number} with OTP: {otp}")
+#             verify_response = await client.post(
+#                 f"{OTP_BASE_URL}/verify",
+#                 json={"phone_number": phone_number, "otp": otp}
+#             )
+#             verify_data = verify_response.json()
+#             print(f"✅ OTP Verify Response [{verify_response.status_code}]: {verify_data}")
+#             if verify_response.status_code != 200 or not verify_data.get("success"):
+#                 return {"consent": "N", "message": "OTP verification failed"}
+
+#             # Step 2: PAN Fetch
+#             print(f"🔗 Fetching PAN details for: {pan_number}")
+#             pan_response = await client.post(
+#                 GRIDLINES_PAN_URL,
+#                 headers=GRIDLINES_HEADERS,
+#                 json={"pan_number": pan_number, "consent": "Y"}
+#             )
+#             print(f"✅ PAN Fetch Response [{pan_response.status_code}]: {pan_response.text}")
+#             if pan_response.status_code != 200:
+#                 return {"consent": "N", "message": "PAN fetch failed", "error": pan_response.text}
+
+#             pan_data = pan_response.json()
+#             raw_state = pan_data.get("data", {}).get("pan_data", {}).get("address_data", {}).get("state", "DELHI")
+#             mapped_state = STATE_CODE_MAP.get(raw_state.upper(), "DL")
+
+#             # Step 3: Bureau Profile
+#             print("📋 Building Bureau profile payload...")
+#             bureau_payload = {
+#                 "phone": phone_number[-10:],
+#                 "full_name": pan_data.get("data", {}).get("pan_data", {}).get("name"),
+#                 "date_of_birth": pan_data.get("data", {}).get("pan_data", {}).get("date_of_birth"),
+#                 "pan": pan_data.get("data", {}).get("pan_data", {}).get("document_id"),
+#                 "address": pan_data.get("address", "NA"),
+#                 "state": mapped_state,
+#                 "pincode": pan_data.get("data", {}).get("pan_data", {}).get("address_data", {}).get("pincode"),
+#                 "consent": "Y"
+#             }
+#             print(f"📨 Sending Bureau Profile Request: {bureau_payload}")
+#             bureau_response = await client.post(
+#                 BUREAU_PROFILE_URL,
+#                 headers=GRIDLINES_HEADERS,
+#                 json=bureau_payload
+#             )
+#             print(f"✅ Bureau Profile Response [{bureau_response.status_code}]: {bureau_response.text}")
+#             if bureau_response.status_code != 200:
+#                 return {"consent": "Y", "message": "Bureau profile fetch failed", "error": bureau_response.text}
+
+#             bureau_json = bureau_response.json()
+#             score = None
+#             score_details = bureau_json.get("data", {}).get("profile_data", {}).get("score_detail", [])
+#             print("📊 Score details:", score_details)
+
+#             for item in score_details:
+#                 if item.get("type") == "ERS" and item.get("version") == "4.0":
+#                     score = item.get("value")
+#                     break
+
+#             print("✅ Extracted Score:", score)
+#             if not score:
+#                 return {"consent": "Y", "message": "cibil score not found in bureau response"}
+
+#             # 🧠 Optional: Prepare dummy/empty values to return as placeholders
+#             trans = bureau_json.get("transaction_id", "")
+#             raw = bureau_json
+#             approved_lenders = []
+#             remaining_lenders = []
+#             emi_data = {}
+#             data = bureau_json.get("data")
+#             raw_report_data = None
+
+#             # ✅ Log cibil data
+#             try:
+#                 conn = get_db_connection()
+#                 with conn.cursor() as cur:
+#                     cur.execute("""
+#                         INSERT INTO user_cibil_logs (
+#                             pan, dob, name, phone, location, email,
+#                             raw_report, cibil_score, created_at
+#                         ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+#                         ON CONFLICT (pan)
+#                         DO UPDATE SET
+#                             dob = EXCLUDED.dob,
+#                             name = EXCLUDED.name,
+#                             phone = EXCLUDED.phone,
+#                             location = EXCLUDED.location,
+#                             email = EXCLUDED.email,
+#                             raw_report = EXCLUDED.raw_report,
+#                             cibil_score = EXCLUDED.cibil_score,
+#                             created_at = EXCLUDED.created_at
+#                     """, (
+#                         pan_data.get("data", {}).get("pan_data", {}).get("document_id"),
+#                         pan_data.get("data", {}).get("pan_data", {}).get("date_of_birth"),
+#                         pan_data.get("data", {}).get("pan_data", {}).get("name"),
+#                         phone_number,
+#                         pan_data.get("data", {}).get("pan_data", {}).get("address_data", {}).get("pincode"),
+#                         pan_data.get("data", {}).get("pan_data", {}).get("email", None),
+#                         json.dumps(raw),
+#                         score,
+#                         datetime.now(timezone.utc)
+#                     ))
+#                     conn.commit()
+#                 conn.close()
+#                 print("✅ cibil log saved to database.")
+#             except Exception as log_err:
+#                 print("❌ Error logging cibil data:", log_err)
+
+#             #Fetch score from DB
+#             try:
+#                 conn = get_db_connection()
+#                 with conn.cursor() as cur:
+#                     cur.execute("""
+#                         SELECT raw_report
+#                         FROM user_cibil_logs
+#                         WHERE pan = %s ORDER BY created_at DESC LIMIT 1
+#                     """, (pan_number))
+#                     result = cur.fetchone()
+#                 conn.close()
+#                 print("hello this is the result", result)
+#                 if result and result[0]:
+#                     raw_report_data = result[0] if isinstance(result[0], dict) else json.loads(result[0])
+
+#                     # score1 = int(raw_report_data.get("cibilScore", score or 750))
+#                 # else:
+#                 #     score1 = score or 750
+#             except Exception as e:
+#                 score1 = score or 750
+
+#             #AI-generated report
+#             def intell_report():
+#                 try:
+#                     if not raw_report_data:
+#                         return {"error": "No raw cibil data found"}
+#                     with tempfile.NamedTemporaryFile(mode='w+', suffix='.json', delete=False) as tmpfile:
+#                         json.dump(raw_report_data, tmpfile)
+#                         tmpfile_path = tmpfile.name
+#                     with open(tmpfile_path, 'rb') as f:
+#                         files = {'file': f}
+#                         resp = requests.post("https://dev-api.orbit.basichomeloan.com/ai/generate_credit_report", files=files)
+#                         resp.raise_for_status()
+#                         return resp.json()
+#                 except Exception as e:
+#                     return {"error": str(e)}
+
+#             intell_response = intell_report()
+
+#             return {
+#                 "message": "Credit score available. Report and lenders fetched.",
+#                 "cibilScore": score,
+#                 "transId": trans,
+#                 "raw": raw,
+#                 "approvedLenders": approved_lenders,
+#                 "moreLenders": remaining_lenders,
+#                 "emi_data": emi_data,
+#                 "data": data,
+#                 "intell_response": intell_response
+#             }
+
+#         except Exception as e:
+#             print("❌ Exception occurred while verifying PAN/Bureau:")
+#             traceback.print_exc()
+#             raise HTTPException(status_code=500, detail="Server error during PAN/cibil process")
+        
+
 async def send_and_verify_pan(phone_number: str, otp: str, pan_number: str):
     async with httpx.AsyncClient(timeout=60.0) as client:
         try:
@@ -485,7 +652,7 @@ async def send_and_verify_pan(phone_number: str, otp: str, pan_number: str):
 
             print("✅ Extracted Score:", score)
             if not score:
-                return {"consent": "Y", "message": "cibil score not found in bureau response"}
+                return {"consent": "Y", "message": "Cibil score not found in bureau response"}
 
             # 🧠 Optional: Prepare dummy/empty values to return as placeholders
             trans = bureau_json.get("transaction_id", "")
@@ -494,6 +661,7 @@ async def send_and_verify_pan(phone_number: str, otp: str, pan_number: str):
             remaining_lenders = []
             emi_data = {}
             data = bureau_json.get("data")
+            raw_report_data = None
 
             # ✅ Log cibil data
             try:
@@ -527,32 +695,47 @@ async def send_and_verify_pan(phone_number: str, otp: str, pan_number: str):
                     ))
                     conn.commit()
                 conn.close()
-                print("✅ cibil log saved to database.")
+                print("✅ Cibil log saved to database.")
             except Exception as log_err:
                 print("❌ Error logging cibil data:", log_err)
 
-            raw_report_data = None
+            # # Fetch score from DB
+            # try:
+            #     conn = get_db_connection()
+            #     with conn.cursor() as cur:
+            #         cur.execute("""
+            #             SELECT raw_report
+            #             FROM user_cibil_logs
+            #             WHERE pan = %s ORDER BY created_at DESC LIMIT 1
+            #         """, (pan_number))
+            #         result = cur.fetchone()
+            #     conn.close()
+            #     print("hello this is the result", result)
+            #     if result and result[0]:
+            #         raw_report_data = result[0] if isinstance(result[0], dict) else json.loads(result[0])
 
-            #Fetch score from DB
+            #         # score1 = int(raw_report_data.get("cibilScore", score or 750))
+            #     # else:
+            #     #     score1 = score or 750
+            # except Exception as e:
+            #     score1 = score or 750
+
+            # Debugging the raw_report_data retrieval process
+            print(f"Fetching raw CIBIL data for PAN {pan_number}")
             try:
                 conn = get_db_connection()
                 with conn.cursor() as cur:
                     cur.execute("""
-                        SELECT raw_report
-                        FROM user_cibil_logs
-                        WHERE pan = %s ORDER BY created_at DESC LIMIT 1
-                    """, (pan,))
+                        SELECT raw_report FROM user_cibil_logs WHERE pan = %s ORDER BY created_at DESC LIMIT 1
+                    """, (pan_number,))
                     result = cur.fetchone()
                 conn.close()
-                if result and result[0]:
-                    raw_report_data = result[0] if isinstance(result[0], dict) else json.loads(result[0])
-                    score = int(raw_report_data.get("cibilScore", data.cibilScore or 750))
-                else:
-                    score = data.cibilScore or 750
+                # print(f"Raw CIBIL Data: {result}")
+                raw_report_data = result
             except Exception as e:
-                score = data.cibilScore or 750
-
-            #AI-generated report
+                print("❌ Error fetching raw report:", e)
+            
+            # AI-generated report
             def intell_report():
                 try:
                     if not raw_report_data:
@@ -586,7 +769,7 @@ async def send_and_verify_pan(phone_number: str, otp: str, pan_number: str):
             print("❌ Exception occurred while verifying PAN/Bureau:")
             traceback.print_exc()
             raise HTTPException(status_code=500, detail="Server error during PAN/cibil process")
-        
+
 
 async def fetch_lenders_and_emi(data: LoanFormData):
     import re, json, tempfile, uuid, requests
