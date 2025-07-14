@@ -25,7 +25,7 @@ API_3_URL = "https://dev-pemnew.basichomeloan.com/api/v1/cibilScore/GetCustomerC
 API_4_URL = "https://dev-pemnew.basichomeloan.com/api/v1/cibilScore/GetCreditScoreByPanApiUseOnly"
 GRIDLINES_PAN_URL = "https://api.gridlines.io/pan-api/fetch-detailed"
 GRIDLINES_API_KEY = "FD0SgdtM6KIw8p2sJYv7ObMuvuezZLw7"
-OTP_BASE_URL = "https://dev-api.orbit.basichomeloan.com/otp"
+OTP_BASE_URL = "https://dev-api.orbit.basichomeloan.com/api_v1"
 BUREAU_PROFILE_URL = "https://api.gridlines.io/profile-api/bureau/fetch-profile"
 
 cibil_request_cache = {}
@@ -363,7 +363,7 @@ GRIDLINES_HEADERS = {
 
 def send_otp_to_user(phone_number: str):
     try:
-        response = requests.post(f"{OTP_BASE_URL}/send", json={"phone_number": phone_number})
+        response = requests.post(f"{OTP_BASE_URL}/otp_send", json={"phone_number": phone_number})
         return response.json()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"OTP send failed: {e}")
@@ -373,7 +373,7 @@ async def resend_otp_to_user(phone_number: str):
         try:
             print(f"🔁 Resending OTP to phone number: {phone_number}")
             resend_response = await client.post(
-                f"{OTP_BASE_URL}/resend",
+                f"{OTP_BASE_URL}/otp_resend",
                 json={"phone_number": phone_number}
             )
             resend_data = resend_response.json()
@@ -595,7 +595,7 @@ async def send_and_verify_pan(phone_number: str, otp: str, pan_number: str):
             # Step 1: OTP Verification
             print(f"🔍 Verifying OTP for {phone_number} with OTP: {otp}")
             verify_response = await client.post(
-                f"{OTP_BASE_URL}/verify",
+                f"{OTP_BASE_URL}/otp_verify",
                 json={"phone_number": phone_number, "otp": otp}
             )
             verify_data = verify_response.json()
