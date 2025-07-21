@@ -3,6 +3,7 @@ from fastapi import HTTPException
 
 OTP_BASE_URL = "https://dev-api.orbit.basichomeloan.com/api_v1"
 MOBILE_TO_PAN_URL = "https://api.trusthub.in/mobile-to-pan"
+MOBILE_TO_PREFILL_URL = "https://sandbox-api.trusthub.in/mobile-to-prefill-2"
 PAN_SUPREME_URL = "https://api.trusthub.in/pan-supreme"
 CIBIL_URL = "https://api.trusthub.in/cibil-report"
 
