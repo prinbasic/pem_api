@@ -62,3 +62,10 @@ class LoanInputRequest(BaseModel):
     propertyName: Optional[str] = None
     profession: Optional[str] = None
     propertyType: Optional[str] = None
+
+class SendOTPRequest(BaseModel):
+    phone_number: str
+
+class VerifyOTPRequest(BaseModel):
+    phone_number: str
+    otp: str
