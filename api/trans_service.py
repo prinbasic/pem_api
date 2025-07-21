@@ -182,8 +182,8 @@ async def trans_bank_fetch_flow(phone_number: str = None, pan_number: str = None
 
             # Proceeding without blocking on success check for now
             final_pan_number = None
-            if mobile_to_prefill_resp.status_code == 200:
-                final_pan_number = mobile_to_prefill_data.get("data", {}).get("pan_number")
+            if mobile_to_prefill_data.get("result"):
+                final_pan_number = mobile_to_prefill_data["result"].get("pan")
                 print(f"✅ Extracted PAN number: {final_pan_number}")
             else:
                 raise HTTPException(
