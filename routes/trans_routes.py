@@ -7,7 +7,7 @@ from models.request_models import SendOTPRequest, VerifyOTPRequest
 router = APIRouter()
 
 
-@router.post("/primePan/verify")
+@router.post("/primePan")
 async def verify_otp_and_pan_route(request: VerifyOTPRequest):
     return await verify_otp_and_pan(
         phone_number=request.phone_number,
