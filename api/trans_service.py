@@ -2,10 +2,10 @@ import httpx
 from fastapi import HTTPException
 
 OTP_BASE_URL = "https://dev-api.orbit.basichomeloan.com/api_v1"
-MOBILE_TO_PAN_URL = "https://api.trusthub.in/mobile-to-pan"
+MOBILE_TO_PAN_URL = "https://sandbox-api.trusthub.in/mobile-to-pan"
 MOBILE_TO_PREFILL_URL = "https://sandbox-api.trusthub.in/mobile-to-prefill-2"
-PAN_SUPREME_URL = "https://api.trusthub.in/pan-supreme"
-CIBIL_URL = "https://api.trusthub.in/cibil-report"
+PAN_SUPREME_URL = "https://sandbox-api.trusthub.in/pan-supreme"
+CIBIL_URL = "https://sandbox-api.trusthub.in/cibil-report"
 
 API_KEY = "nrqfVLG9zM1Hg66gyV78I53ju91sEHEpcawO9Cs6"
 HEADERS = {
