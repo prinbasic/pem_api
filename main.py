@@ -45,9 +45,13 @@ SERVICE_URLS = [
 
 async def fetch_openapi_spec(url):
     async with httpx.AsyncClient() as client:
-        response = await client.get(url)
-        response.raise_for_status()
-        return response.json()
+        try:
+            response = await client.get(url)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            print(f"❌ Failed to fetch or parse {url}: {e}")
+            return {"paths": {}, "components": {"schemas": {}}}  # Return empty structure to prevent crash
 
 async def get_combined_openapi():
     specs = await asyncio.gather(*(fetch_openapi_spec(url) for url in SERVICE_URLS))
