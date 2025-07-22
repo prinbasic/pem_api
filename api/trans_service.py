@@ -241,7 +241,7 @@ async def trans_bank_fetch_flow(phone_number: str = None, pan_number: str = None
             "LegalCopyStatus": "Accept",
             "UserConsentForDataSharing": True
         }
-        print(cibil_payload)
+        print("cibil report payload", cibil_payload)
         cibil_resp = await client.post(CIBIL_URL, headers=HEADERS, json=cibil_payload)
         cibil_data = cibil_resp.json()
         print(f"✅ CIBIL Report Data: {cibil_data}")
