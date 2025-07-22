@@ -1,6 +1,10 @@
 from fastapi import FastAPI
-from routes import cibil_routes, lender_routes, trans_routes
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
+from routes import cibil_routes, lender_routes, trans_routes
+import httpx
+import asyncio
+import yaml
 
 app = FastAPI()
 
@@ -8,23 +12,69 @@ def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
     with open("openapi.yaml", "r") as f:
-        import yaml
         schema = yaml.safe_load(f)
     app.openapi_schema = schema
     return app.openapi_schema
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all HTTP methods
-    allow_headers=["*"],  # Allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.get("/")
 async def read_root():
     return {"message": "CORS setup working!"}
 
+# --- Include your existing routers ---
 app.include_router(cibil_routes.router, prefix="/cibil")
 app.include_router(lender_routes.router)
-app.include_router(trans_routes.router,prefix="/cibil")
+app.include_router(trans_routes.router, prefix="/cibil")
+
+# --- Swagger Aggregation Setup ---
+
+# List the container Swagger URLs
+SERVICE_URLS = [
+    "http://3.6.21.243:8000/docs",
+    "http://3.6.21.243:8001/docs",
+    "http://3.6.21.243:9000/docs",
+    "http://3.6.21.243:5000/docs"
+]
+
+async def fetch_openapi_spec(url):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url)
+        response.raise_for_status()
+        return response.json()
+
+async def get_combined_openapi():
+    specs = await asyncio.gather(*(fetch_openapi_spec(url) for url in SERVICE_URLS))
+
+    combined_paths = {}
+    combined_components = {"schemas": {}}
+
+    for spec in specs:
+        combined_paths.update(spec.get("paths", {}))
+        components = spec.get("components", {}).get("schemas", {})
+        combined_components["schemas"].update(components)
+
+    return {
+        "openapi": "3.0.0",
+        "info": {"title": "Combined API", "version": "1.0.0"},
+        "paths": combined_paths,
+        "components": combined_components
+    }
+
+@app.get("/openapi/aggregate.json")
+async def openapi_aggregate():
+    return await get_combined_openapi()
+
+@app.get("/docs/aggregate", include_in_schema=False)
+async def aggregated_swagger_ui():
+    return get_swagger_ui_html(openapi_url="/openapi/aggregate.json", title="Combined API Docs")
+
+@app.get("/redoc/aggregate", include_in_schema=False)
+async def aggregated_redoc():
+    return get_redoc_html(openapi_url="/openapi/aggregate.json", title="Combined API Docs")
