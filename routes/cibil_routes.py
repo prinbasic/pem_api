@@ -15,15 +15,15 @@ GRIDLINES_API_KEY = "Zvuio2QALeDhyRB0lzZq9o5SgwjBgXcu"
 OTP_BASE_URL = "https://dev-api.orbit.basichomeloan.com/api_v1"
 
 # 🟢 New Equifax Flow APIs
-@router.post("/initiate-cibil")
+@router.post("/initiate-cibil", tags=["credit"])
 def initiate(data: cibilRequest):
     return initiate_cibil_score(data)
 
-@router.get("/verify-otp")
+@router.get("/verify-otp", tags=["credit"])
 def verify(transId: str = Query(...), otp: str = Query(...), pan: str = Query(...)):
     return verify_otp_and_fetch_score(transId, otp, pan)
 
-@router.get("/poll-consent")
+@router.get("/poll-consent", tags=["credit"])
 def poll_consent(data: LoanFormData):
     cibil_request = cibilRequest(
         panNumber=data.pan,
@@ -42,7 +42,7 @@ def poll_consent(data: LoanFormData):
     trans_id = "BASIC" + data.pan[-4:]  # OR pass this from frontend
     return poll_consent_and_fetch(trans_id, data.pan, cibil_request)
 # 🟡 Original Fallback Endpoints
-@router.post("/check-cibil")
+@router.post("/check-cibil", tags=["credit"])
 def check_cibil(data: LoanFormData):
     return {
         "message": "User does not wish to check cibil score.",
@@ -50,7 +50,7 @@ def check_cibil(data: LoanFormData):
         "note": "Only limited loan options can be shown."
     }
 
-@router.post("/fetch-cibil-score")
+@router.post("/fetch-cibil-score", tags=["credit"])
 def fetch_cibil_score(data: LoanFormData):
     cibil_request = cibilRequest(
         panNumber=data.pan,
@@ -92,19 +92,19 @@ def fetch_cibil_score(data: LoanFormData):
 
     return result
 
-@router.post("/submit-otp")
+@router.post("/submit-otp", tags=["credit"])
 def submit_otp(data: cibilOTPRequest):
     return verify_otp_and_fetch_score(data.transId, data.otp, data.pan)
 
-@router.post("/consent/send-otp")
+@router.post("/consent/send-otp", tags=["Ongrid"])
 def send_otp_route(payload: PhoneNumberRequest):
     return send_otp_to_user(payload.phone_number)
 
-@router.post("/consent/resend-otp")
+@router.post("/consent/resend-otp", tags=["Ongrid"])
 async def resend_otp_route(payload: PhoneNumberRequest):
     return await resend_otp_to_user(payload.phone_number)
 
-@router.post("/consent/verify-pan")
+@router.post("/consent/verify-pan", tags=["Ongrid"])
 async def combined_otp_pan_flow(payload: PANRequest):
     return await send_and_verify_pan(
         phone_number=payload.phone_number,
@@ -112,7 +112,7 @@ async def combined_otp_pan_flow(payload: PANRequest):
         pan_number=payload.pan_number
     )
 
-@router.post("/cibil/fetch-lenders")
+@router.post("/cibil/fetch-lenders", tags=["credit"])
 async def fetch_lenders_using_score(form: LoanFormData):
     try:
         result = await fetch_lenders_and_emi(form)

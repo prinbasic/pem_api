@@ -242,8 +242,6 @@ async def trans_bank_fetch_flow(phone_number: str = None, pan_number: str = None
                 "LegalCopyStatus": "Accept",
                 "UserConsentForDataSharing": True
             }
-            print("✅ CIBIL Payload successfully created", flush=True)
-            print(f"cibil report payload: {cibil_payload}", flush=True)
         except:
             print("unable to create payload")
         print(f"cibil report payload:{cibil_payload}")

@@ -1,561 +1,561 @@
-openapi: 3.0.0
-info:
-  title: BASIC HOME LOANS API
-  version: 1.0.0
-  description: This API allows interaction with **CIBIL Score** initiation, **OTP verification**, **consent polling**, **lender offers**, and **CIBIL report generation**.
-  contact:
-    name: Support Team
-    url: https://www.basichomeloans.com/support
-    email: support@basichomeloans.com
-  termsOfService: https://www.basichomeloans.com/terms
-  license:
-    name: MIT License
-    url: https://opensource.org/licenses/MIT
+# openapi: 3.0.0
+# info:
+#   title: BASIC HOME LOANS API
+#   version: 1.0.0
+#   description: This API allows interaction with **CIBIL Score** initiation, **OTP verification**, **consent polling**, **lender offers**, and **CIBIL report generation**.
+#   contact:
+#     name: Support Team
+#     url: https://www.basichomeloans.com/support
+#     email: support@basichomeloans.com
+#   termsOfService: https://www.basichomeloans.com/terms
+#   license:
+#     name: MIT License
+#     url: https://opensource.org/licenses/MIT
 
-servers:
-  - url: http://localhost:8000
-    description: Local server
+# servers:
+#   - url: http://localhost:8000
+#     description: Local server
 
-paths:
-  # 1. CIBIL score initiation
-  /cibil/initiate-cibil:
-    post:
-      tags:
-        - cred_equi
-      summary: Initiate CIBIL score check
-      description: This endpoint starts the process for checking the user's CIBIL score, and it requires the user's details.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CibilRequest'
-            example:
-              panNumber: "ABCDE1234F"
-              mobileNumber: "9876543210"
-              firstName: "John"
-              lastName: "Doe"
-              emailAddress: "john.doe@example.com"
-              dob: "1990-01-01"
-              gender: "Male"
-              pinCode: "110001"
-              applicationId: "app-12345"
-              loanAmount: 500000
-              tenureYears: 20
-              profession: "Software Engineer"
-              propertyName: "ABC Residency"
-      responses:
-        '200':
-          description: CIBIL score initiation response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GenericResponse'
-              example:
-                message: "CIBIL score initiation successful"
-                status: "success"
-                cibilScore: 750
-        '400':
-          description: Invalid Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GenericResponse'
-              example:
-                message: "Invalid input data"
-                status: "failure"
+# paths:
+#   # 1. CIBIL score initiation
+#   /cibil/initiate-cibil:
+#     post:
+#       tags:
+#         - cred_equi
+#       summary: Initiate CIBIL score check
+#       description: This endpoint starts the process for checking the user's CIBIL score, and it requires the user's details.
+#       requestBody:
+#         required: true
+#         content:
+#           application/json:
+#             schema:
+#               $ref: '#/components/schemas/CibilRequest'
+#             example:
+#               panNumber: "ABCDE1234F"
+#               mobileNumber: "9876543210"
+#               firstName: "John"
+#               lastName: "Doe"
+#               emailAddress: "john.doe@example.com"
+#               dob: "1990-01-01"
+#               gender: "Male"
+#               pinCode: "110001"
+#               applicationId: "app-12345"
+#               loanAmount: 500000
+#               tenureYears: 20
+#               profession: "Software Engineer"
+#               propertyName: "ABC Residency"
+#       responses:
+#         '200':
+#           description: CIBIL score initiation response
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/GenericResponse'
+#               example:
+#                 message: "CIBIL score initiation successful"
+#                 status: "success"
+#                 cibilScore: 750
+#         '400':
+#           description: Invalid Request
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/GenericResponse'
+#               example:
+#                 message: "Invalid input data"
+#                 status: "failure"
 
-  # 2. OTP Verification for CIBIL consent
-  /cibil/verify-otp:
-    get:
-      tags:
-        - cred_equi
-      summary: Verify OTP for CIBIL consent
-      description: This endpoint allows you to verify OTP for CIBIL consent using a transaction ID, OTP, and PAN number.
-      parameters:
-        - name: transId
-          in: query
-          required: true
-          description: The transaction ID for OTP verification
-          schema:
-            type: string
-            example: "txn-12345"
-        - name: otp
-          in: query
-          required: true
-          description: The OTP code sent to the user
-          schema:
-            type: string
-            example: "123456"
-        - name: pan
-          in: query
-          required: true
-          description: The user's PAN number for identity verification
-          schema:
-            type: string
-            example: "ABCDE1234F"
-      responses:
-        '200':
-          description: OTP verification successful
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GenericResponse'
-              example:
-                message: "OTP verified successfully"
-                status: "success"
+#   # 2. OTP Verification for CIBIL consent
+#   /cibil/verify-otp:
+#     get:
+#       tags:
+#         - cred_equi
+#       summary: Verify OTP for CIBIL consent
+#       description: This endpoint allows you to verify OTP for CIBIL consent using a transaction ID, OTP, and PAN number.
+#       parameters:
+#         - name: transId
+#           in: query
+#           required: true
+#           description: The transaction ID for OTP verification
+#           schema:
+#             type: string
+#             example: "txn-12345"
+#         - name: otp
+#           in: query
+#           required: true
+#           description: The OTP code sent to the user
+#           schema:
+#             type: string
+#             example: "123456"
+#         - name: pan
+#           in: query
+#           required: true
+#           description: The user's PAN number for identity verification
+#           schema:
+#             type: string
+#             example: "ABCDE1234F"
+#       responses:
+#         '200':
+#           description: OTP verification successful
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/GenericResponse'
+#               example:
+#                 message: "OTP verified successfully"
+#                 status: "success"
 
-  # 3. Poll for User Consent Status
-  /cibil/poll-consent:
-    get:
-      tags:
-        - cred_equi
-      summary: Poll for user consent status
-      description: This endpoint checks the status of user consent for the CIBIL score check.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LoanFormData'
-            example:
-              name: "John Doe"
-              email: "john.doe@example.com"
-              pan: "ABCDE1234F"
-              dob: "1990-01-01"
-              phone: "9876543210"
-              loanAmount: 500000
-              tenureYears: 20
-              profession: "Software Engineer"
-              location: "New Delhi"
-              hasCibil: "yes"
-              cibilScore: 750
-              proceedScoreCheck: "yes"
-              gender: "Male"
-              pin: "110001"
-              propertyName: "ABC Residency"
-      responses:
-        '200':
-          description: Consent polling response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GenericResponse'
-              example:
-                message: "Consent status polled successfully"
-                status: "success"
+#   # 3. Poll for User Consent Status
+#   /cibil/poll-consent:
+#     get:
+#       tags:
+#         - cred_equi
+#       summary: Poll for user consent status
+#       description: This endpoint checks the status of user consent for the CIBIL score check.
+#       requestBody:
+#         required: true
+#         content:
+#           application/json:
+#             schema:
+#               $ref: '#/components/schemas/LoanFormData'
+#             example:
+#               name: "John Doe"
+#               email: "john.doe@example.com"
+#               pan: "ABCDE1234F"
+#               dob: "1990-01-01"
+#               phone: "9876543210"
+#               loanAmount: 500000
+#               tenureYears: 20
+#               profession: "Software Engineer"
+#               location: "New Delhi"
+#               hasCibil: "yes"
+#               cibilScore: 750
+#               proceedScoreCheck: "yes"
+#               gender: "Male"
+#               pin: "110001"
+#               propertyName: "ABC Residency"
+#       responses:
+#         '200':
+#           description: Consent polling response
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/GenericResponse'
+#               example:
+#                 message: "Consent status polled successfully"
+#                 status: "success"
 
-  # 4. Fallback CIBIL Check (User opted out)
-  /cibil/check-cibil:
-    post:
-      tags:
-        - cred_equi
-      summary: Fallback CIBIL check
-      description: This endpoint allows users who have opted out of consent to perform a fallback CIBIL check.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LoanFormData'
-      responses:
-        '200':
-          description: Opt-out response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GenericResponse'
-              example:
-                message: "CIBIL check completed"
-                status: "success"
+#   # 4. Fallback CIBIL Check (User opted out)
+#   /cibil/check-cibil:
+#     post:
+#       tags:
+#         - cred_equi
+#       summary: Fallback CIBIL check
+#       description: This endpoint allows users who have opted out of consent to perform a fallback CIBIL check.
+#       requestBody:
+#         required: true
+#         content:
+#           application/json:
+#             schema:
+#               $ref: '#/components/schemas/LoanFormData'
+#       responses:
+#         '200':
+#           description: Opt-out response
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/GenericResponse'
+#               example:
+#                 message: "CIBIL check completed"
+#                 status: "success"
 
-  # 5. Fetch CIBIL Score
-  /cibil/fetch-cibil-score:
-    post:
-      tags:
-        - cred_equi
-      summary: Fetch CIBIL score with form data
-      description: This endpoint allows users to fetch their CIBIL score based on form data.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LoanFormData'
-      responses:
-        '200':
-          description: Fetch score response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GenericResponse'
-              example:
-                message: "CIBIL score fetched successfully"
-                status: "success"
-                cibilScore: 750
+#   # 5. Fetch CIBIL Score
+#   /cibil/fetch-cibil-score:
+#     post:
+#       tags:
+#         - cred_equi
+#       summary: Fetch CIBIL score with form data
+#       description: This endpoint allows users to fetch their CIBIL score based on form data.
+#       requestBody:
+#         required: true
+#         content:
+#           application/json:
+#             schema:
+#               $ref: '#/components/schemas/LoanFormData'
+#       responses:
+#         '200':
+#           description: Fetch score response
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/GenericResponse'
+#               example:
+#                 message: "CIBIL score fetched successfully"
+#                 status: "success"
+#                 cibilScore: 750
 
-  # 6. Submit OTP for Verification
-  /cibil/submit-otp:
-    post:
-      tags:
-        - cred_equi
-      summary: Submit OTP for CIBIL verification
-      description: This endpoint allows users to submit an OTP for CIBIL verification.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CibilOTPRequest'
-            example:
-              transId: "txn-12345"
-              otp: "123456"
-              pan: "ABCDE1234F"
-      responses:
-        '200':
-          description: OTP submission response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GenericResponse'
-              example:
-                message: "OTP submitted successfully"
-                status: "success"
+#   # 6. Submit OTP for Verification
+#   /cibil/submit-otp:
+#     post:
+#       tags:
+#         - cred_equi
+#       summary: Submit OTP for CIBIL verification
+#       description: This endpoint allows users to submit an OTP for CIBIL verification.
+#       requestBody:
+#         required: true
+#         content:
+#           application/json:
+#             schema:
+#               $ref: '#/components/schemas/CibilOTPRequest'
+#             example:
+#               transId: "txn-12345"
+#               otp: "123456"
+#               pan: "ABCDE1234F"
+#       responses:
+#         '200':
+#           description: OTP submission response
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/GenericResponse'
+#               example:
+#                 message: "OTP submitted successfully"
+#                 status: "success"
 
-  # 7. Generate CIBIL Report
-  /ai/generate_cibil_report:
-    post:
-      tags:
-        - verifyX
-      summary: Generate CIBIL report
-      description: Generate a CIBIL intelligence report from either an uploaded file or a source URL/raw JSON.
-      requestBody:
-        content:
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/Body_generate_cibil_report_generate_cibil_report_post'
-            example:
-              file: "path/to/file"
-              source_url: "https://example.com/data"
-              fallback_id: "file123"
-              prompt: "Generate CIBIL report"
-              pdf_password: "password123"
-              user_id: "user-123"
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-              example:
-                message: "CIBIL report generated successfully"
-                status: "success"
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
+#   # 7. Generate CIBIL Report
+#   /ai/generate_cibil_report:
+#     post:
+#       tags:
+#         - verifyX
+#       summary: Generate CIBIL report
+#       description: Generate a CIBIL intelligence report from either an uploaded file or a source URL/raw JSON.
+#       requestBody:
+#         content:
+#           multipart/form-data:
+#             schema:
+#               $ref: '#/components/schemas/Body_generate_cibil_report_generate_cibil_report_post'
+#             example:
+#               file: "path/to/file"
+#               source_url: "https://example.com/data"
+#               fallback_id: "file123"
+#               prompt: "Generate CIBIL report"
+#               pdf_password: "password123"
+#               user_id: "user-123"
+#       responses:
+#         '200':
+#           description: Successful Response
+#           content:
+#             application/json:
+#               schema: {}
+#               example:
+#                 message: "CIBIL report generated successfully"
+#                 status: "success"
+#         '422':
+#           description: Validation Error
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/HTTPValidationError'
 
-  /consent/send-otp:
-    post:
-      tags:
-        - cred_ongrid
-      summary: Send OTP for PAN verification
-      description: |
-        Sends an OTP to the user's mobile number using the OnGrid API 
-        for the purpose of verifying consent before fetching PAN details.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                phone_number:
-                  type: string
-                  description: The user's 10-digit mobile number (with or without country code)
-                  example: "917759054070"
-      responses:
-        '200':
-          description: OTP successfully sent
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: "Y"
-                  message:
-                    type: string
-                    example: "OTP sent successfully"
-        '500':
-          description: Server error during OTP send
+#   /consent/send-otp:
+#     post:
+#       tags:
+#         - cred_ongrid
+#       summary: Send OTP for PAN verification
+#       description: |
+#         Sends an OTP to the user's mobile number using the OnGrid API 
+#         for the purpose of verifying consent before fetching PAN details.
+#       requestBody:
+#         required: true
+#         content:
+#           application/json:
+#             schema:
+#               type: object
+#               properties:
+#                 phone_number:
+#                   type: string
+#                   description: The user's 10-digit mobile number (with or without country code)
+#                   example: "917759054070"
+#       responses:
+#         '200':
+#           description: OTP successfully sent
+#           content:
+#             application/json:
+#               schema:
+#                 type: object
+#                 properties:
+#                   status:
+#                     type: string
+#                     example: "Y"
+#                   message:
+#                     type: string
+#                     example: "OTP sent successfully"
+#         '500':
+#           description: Server error during OTP send
 
-  /consent/resend-otp:
-    post:
-      tags:
-        - cred_ongrid
-      summary: Resend OTP for PAN verification
-      description: |
-        Resends an OTP to the user's mobile number in case the previous OTP 
-        was not received or expired. Uses the OnGrid resend API.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                phone_number:
-                  type: string
-                  description: The user's 10-digit mobile number (with or without country code)
-                  example: "917759054070"
-      responses:
-        '200':
-          description: OTP resent successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: "Y"
-                  message:
-                    type: string
-                    example: "OTP resent successfully"
-        '500':
-          description: Server error during OTP resend
+#   /consent/resend-otp:
+#     post:
+#       tags:
+#         - cred_ongrid
+#       summary: Resend OTP for PAN verification
+#       description: |
+#         Resends an OTP to the user's mobile number in case the previous OTP 
+#         was not received or expired. Uses the OnGrid resend API.
+#       requestBody:
+#         required: true
+#         content:
+#           application/json:
+#             schema:
+#               type: object
+#               properties:
+#                 phone_number:
+#                   type: string
+#                   description: The user's 10-digit mobile number (with or without country code)
+#                   example: "917759054070"
+#       responses:
+#         '200':
+#           description: OTP resent successfully
+#           content:
+#             application/json:
+#               schema:
+#                 type: object
+#                 properties:
+#                   status:
+#                     type: string
+#                     example: "Y"
+#                   message:
+#                     type: string
+#                     example: "OTP resent successfully"
+#         '500':
+#           description: Server error during OTP resend
 
-  /consent/verify-pan:
-    post:
-      tags:
-        - cred_ongrid
-      summary: Verify OTP and Fetch PAN & Bureau Profile
-      description: |
-        Verifies the OTP sent to the user, then fetches PAN details and 
-        the credit bureau profile using OnGrid APIs.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                phone_number:
-                  type: string
-                  description: The user's 10-digit mobile number
-                  example: "917759054070"
-                otp:
-                  type: string
-                  description: The OTP code received by the user
-                  example: "123456"
-                pan_number:
-                  type: string
-                  description: The user's PAN number
-                  example: "ABCDE1234F"
-      responses:
-        '200':
-          description: PAN and Bureau profile fetched successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  consent:
-                    type: string
-                    example: "Y"
-                  pan_data:
-                    type: object
-                    description: PAN details as returned from OnGrid
-                  bureau_data:
-                    type: object
-                    description: Credit bureau profile details
-        '400':
-          description: Invalid OTP or PAN fetch failure
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  consent:
-                    type: string
-                    example: "N"
-                  message:
-                    type: string
-                    example: "OTP verification failed"
-        '500':
-          description: Server error during verification or data fetch
+#   /consent/verify-pan:
+#     post:
+#       tags:
+#         - cred_ongrid
+#       summary: Verify OTP and Fetch PAN & Bureau Profile
+#       description: |
+#         Verifies the OTP sent to the user, then fetches PAN details and 
+#         the credit bureau profile using OnGrid APIs.
+#       requestBody:
+#         required: true
+#         content:
+#           application/json:
+#             schema:
+#               type: object
+#               properties:
+#                 phone_number:
+#                   type: string
+#                   description: The user's 10-digit mobile number
+#                   example: "917759054070"
+#                 otp:
+#                   type: string
+#                   description: The OTP code received by the user
+#                   example: "123456"
+#                 pan_number:
+#                   type: string
+#                   description: The user's PAN number
+#                   example: "ABCDE1234F"
+#       responses:
+#         '200':
+#           description: PAN and Bureau profile fetched successfully
+#           content:
+#             application/json:
+#               schema:
+#                 type: object
+#                 properties:
+#                   consent:
+#                     type: string
+#                     example: "Y"
+#                   pan_data:
+#                     type: object
+#                     description: PAN details as returned from OnGrid
+#                   bureau_data:
+#                     type: object
+#                     description: Credit bureau profile details
+#         '400':
+#           description: Invalid OTP or PAN fetch failure
+#           content:
+#             application/json:
+#               schema:
+#                 type: object
+#                 properties:
+#                   consent:
+#                     type: string
+#                     example: "N"
+#                   message:
+#                     type: string
+#                     example: "OTP verification failed"
+#         '500':
+#           description: Server error during verification or data fetch
 
 
 
-components:
-  schemas:
-    CibilRequest:
-      type: object
-      properties:
-        panNumber:
-          type: string
-          description: The PAN number of the user
-          example: "ABCDE1234F"
-        mobileNumber:
-          type: string
-          description: The mobile number of the user
-          example: "9876543210"
-        firstName:
-          type: string
-          description: The user's first name
-          example: "John"
-        lastName:
-          type: string
-          description: The user's last name
-          example: "Doe"
-        emailAddress:
-          type: string
-          format: email
-          description: The email address of the user
-          example: "john.doe@example.com"
-        dob:
-          type: string
-          format: date
-          description: The user's date of birth
-          example: "1990-01-01"
-        gender:
-          type: string
-          description: The user's gender
-          example: "Male"
-        pinCode:
-          type: string
-          description: The user's postal code
-          example: "110001"
-        applicationId:
-          type: string
-          description: The loan application ID
-          example: "app-12345"
-        loanAmount:
-          type: integer
-          description: The requested loan amount in INR
-          example: 500000
-        tenureYears:
-          type: integer
-          description: The loan tenure in years
-          example: 20
-        profession:
-          type: string
-          description: The user's profession
-          example: "Software Engineer"
-        propertyName:
-          type: string
-          description: The property name
-          example: "ABC Residency"
+# components:
+#   schemas:
+#     CibilRequest:
+#       type: object
+#       properties:
+#         panNumber:
+#           type: string
+#           description: The PAN number of the user
+#           example: "ABCDE1234F"
+#         mobileNumber:
+#           type: string
+#           description: The mobile number of the user
+#           example: "9876543210"
+#         firstName:
+#           type: string
+#           description: The user's first name
+#           example: "John"
+#         lastName:
+#           type: string
+#           description: The user's last name
+#           example: "Doe"
+#         emailAddress:
+#           type: string
+#           format: email
+#           description: The email address of the user
+#           example: "john.doe@example.com"
+#         dob:
+#           type: string
+#           format: date
+#           description: The user's date of birth
+#           example: "1990-01-01"
+#         gender:
+#           type: string
+#           description: The user's gender
+#           example: "Male"
+#         pinCode:
+#           type: string
+#           description: The user's postal code
+#           example: "110001"
+#         applicationId:
+#           type: string
+#           description: The loan application ID
+#           example: "app-12345"
+#         loanAmount:
+#           type: integer
+#           description: The requested loan amount in INR
+#           example: 500000
+#         tenureYears:
+#           type: integer
+#           description: The loan tenure in years
+#           example: 20
+#         profession:
+#           type: string
+#           description: The user's profession
+#           example: "Software Engineer"
+#         propertyName:
+#           type: string
+#           description: The property name
+#           example: "ABC Residency"
 
-    LoanFormData:
-      type: object
-      properties:
-        name:
-          type: string
-        email:
-          type: string
-          format: email
-        pan:
-          type: string
-        dob:
-          type: string
-          format: date
-        phone:
-          type: string
-        loanAmount:
-          type: integer
-        tenureYears:
-          type: integer
-        profession:
-          type: string
-        location:
-          type: string
-        hasCibil:
-          type: string
-        cibilScore:
-          type: integer
-        proceedScoreCheck:
-          type: string
-        gender:
-          type: string
-        pin:
-          type: string
-        propertyName:
-          type: string
+#     LoanFormData:
+#       type: object
+#       properties:
+#         name:
+#           type: string
+#         email:
+#           type: string
+#           format: email
+#         pan:
+#           type: string
+#         dob:
+#           type: string
+#           format: date
+#         phone:
+#           type: string
+#         loanAmount:
+#           type: integer
+#         tenureYears:
+#           type: integer
+#         profession:
+#           type: string
+#         location:
+#           type: string
+#         hasCibil:
+#           type: string
+#         cibilScore:
+#           type: integer
+#         proceedScoreCheck:
+#           type: string
+#         gender:
+#           type: string
+#         pin:
+#           type: string
+#         propertyName:
+#           type: string
 
-    CibilOTPRequest:
-      type: object
-      properties:
-        transId:
-          type: string
-        otp:
-          type: string
-        pan:
-          type: string
+#     CibilOTPRequest:
+#       type: object
+#       properties:
+#         transId:
+#           type: string
+#         otp:
+#           type: string
+#         pan:
+#           type: string
 
-    GenericResponse:
-      type: object
-      properties:
-        message:
-          type: string
-        status:
-          type: string
-        cibilScore:
-          type: integer
-          nullable: true
-        transId:
-          type: string
-          nullable: true
-        report:
-          type: object
-          nullable: true
-        raw:
-          type: object
-          nullable: true
+#     GenericResponse:
+#       type: object
+#       properties:
+#         message:
+#           type: string
+#         status:
+#           type: string
+#         cibilScore:
+#           type: integer
+#           nullable: true
+#         transId:
+#           type: string
+#           nullable: true
+#         report:
+#           type: object
+#           nullable: true
+#         raw:
+#           type: object
+#           nullable: true
 
-    Body_generate_cibil_report_generate_cibil_report_post:
-      type: object
-      properties:
-        file:
-          type: string
-          format: binary
-        source_url:
-          type: string
-        fallback_id:
-          type: string
-        prompt:
-          type: string
-        pdf_password:
-          type: string
-        user_id:
-          type: string
+#     Body_generate_cibil_report_generate_cibil_report_post:
+#       type: object
+#       properties:
+#         file:
+#           type: string
+#           format: binary
+#         source_url:
+#           type: string
+#         fallback_id:
+#           type: string
+#         prompt:
+#           type: string
+#         pdf_password:
+#           type: string
+#         user_id:
+#           type: string
 
-    HTTPValidationError:
-      type: object
-      properties:
-        detail:
-          type: array
-          items:
-            $ref: '#/components/schemas/ValidationError'
+#     HTTPValidationError:
+#       type: object
+#       properties:
+#         detail:
+#           type: array
+#           items:
+#             $ref: '#/components/schemas/ValidationError'
 
-    ValidationError:
-      type: object
-      properties:
-        loc:
-          type: array
-          items:
-            anyOf:
-              - { type: string }
-              - { type: integer }
-        msg:
-          type: string
-        type:
-          type: string
-      required:
-        - loc
-        - msg
-        - type
+#     ValidationError:
+#       type: object
+#       properties:
+#         loc:
+#           type: array
+#           items:
+#             anyOf:
+#               - { type: string }
+#               - { type: integer }
+#         msg:
+#           type: string
+#         type:
+#           type: string
+#       required:
+#         - loc
+#         - msg
+#         - type
