@@ -216,31 +216,34 @@ async def trans_bank_fetch_flow(phone_number: str = None, pan_number: str = None
         print(f"✅ PAN Supreme Details: {pan_details}")
 
         # Step 3: CIBIL Report
-        cibil_payload = {
-            "CustomerInfo": {
-                "Name": {
-                    "Forename": pan_details["first_name"],
-                    "Surname": pan_details["last_name"]
+        try:
+            cibil_payload = {
+                "CustomerInfo": {
+                    "Name": {
+                        "Forename": pan_details["first_name"],
+                        "Surname": pan_details["last_name"]
+                    },
+                    "IdentificationNumber": {
+                        "IdentifierName": "TaxId",
+                        "Id": final_pan_number
+                    },
+                    "Address": {
+                        "StreetAddress": pan_details["address"]["address_line_1"],
+                        "City": pan_details["address"]["state"],
+                        "PostalCode": pan_details["address"]["pin_code"],
+                        "Region": 20,
+                        "AddressType": 1
+                    },
+                    "EmailID": pan_details.get("email") or "",
+                    "DateOfBirth": pan_details["dob"],
+                    "PhoneNumber": {"Number": phone_number if phone_number else ""},
+                    "Gender": pan_details["gender"]
                 },
-                "IdentificationNumber": {
-                    "IdentifierName": "TaxId",
-                    "Id": final_pan_number
-                },
-                "Address": {
-                    "StreetAddress": pan_details["address"]["address_line_1"],
-                    "City": pan_details["address"]["state"],
-                    "PostalCode": pan_details["address"]["pin_code"],
-                    "Region": 20,
-                    "AddressType": 1
-                },
-                "EmailID": pan_details.get("email") or "",
-                "DateOfBirth": pan_details["dob"],
-                "PhoneNumber": {"Number": phone_number if phone_number else ""},
-                "Gender": pan_details["gender"]
-            },
-            "LegalCopyStatus": "Accept",
-            "UserConsentForDataSharing": True
-        }
+                "LegalCopyStatus": "Accept",
+                "UserConsentForDataSharing": True
+            }
+        except:
+            print("unable to create payload")
         print(f"cibil report payload:{cibil_payload}")
         cibil_resp = await client.post(CIBIL_URL, headers=HEADERS, json=cibil_payload)
         cibil_data = cibil_resp.json()
