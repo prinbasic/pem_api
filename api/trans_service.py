@@ -230,7 +230,7 @@ async def trans_bank_fetch_flow(phone_number: str = None, pan_number: str = None
                     "StreetAddress": pan_details["address"]["address_line_1"],
                     "City": pan_details["address"]["state"],
                     "PostalCode": pan_details["address"]["pin_code"],
-                    "Region": 27,
+                    "Region": 20,
                     "AddressType": 1
                 },
                 "EmailID": pan_details.get("email") or "",
