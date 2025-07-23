@@ -264,7 +264,7 @@ async def verify_otp_and_pan(phone_number: str, otp: str, pan_number: str = None
 #             "cibil_report": cibil_data
 #         }
 
-async def trans_bank_fetch_flow(phone_number: str = None, pan_number: str = None, first_name: str = "PRINCE", last_name: str = "RAJ"):
+async def trans_bank_fetch_flow(phone_number: str = None, pan_number: str = None, first_name: str = None, last_name: str = None):
     async with httpx.AsyncClient(timeout=60.0) as client:
         if pan_number:
             print("📌 Using provided PAN number directly.")
