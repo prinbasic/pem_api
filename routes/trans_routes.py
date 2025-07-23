@@ -12,6 +12,8 @@ async def verify_otp_and_pan_route(request: VerifyOTPRequest) -> VerifyOtpRespon
     resp_dict = await verify_otp_and_pan(
         phone_number=request.phone_number,
         otp=request.otp,
-        pan_number=request.pan_number  # Optional, included dynamically
+        pan_number=request.pan_number,  # Optional, included dynamically
+        first_name= request.first_name,
+        last_name= request.last_name
     )
     return VerifyOtpResponse(**resp_dict)

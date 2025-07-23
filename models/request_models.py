@@ -66,6 +66,8 @@ class VerifyOTPRequest(BaseModel):
     phone_number: str
     otp: str
     pan_number: Optional[str] = None
+    first_name: Optional[str]
+    last_name: Optional[str]
 
 class VerifyOtpResponse(BaseModel):
     consent: str

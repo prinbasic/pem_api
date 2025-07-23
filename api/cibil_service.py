@@ -699,27 +699,6 @@ async def send_and_verify_pan(phone_number: str, otp: str, pan_number: str):
             except Exception as log_err:
                 print("❌ Error logging cibil data:", log_err)
 
-            # # Fetch score from DB
-            # try:
-            #     conn = get_db_connection()
-            #     with conn.cursor() as cur:
-            #         cur.execute("""
-            #             SELECT raw_report
-            #             FROM user_cibil_logs
-            #             WHERE pan = %s ORDER BY created_at DESC LIMIT 1
-            #         """, (pan_number))
-            #         result = cur.fetchone()
-            #     conn.close()
-            #     print("hello this is the result", result)
-            #     if result and result[0]:
-            #         raw_report_data = result[0] if isinstance(result[0], dict) else json.loads(result[0])
-
-            #         # score1 = int(raw_report_data.get("cibilScore", score or 750))
-            #     # else:
-            #     #     score1 = score or 750
-            # except Exception as e:
-            #     score1 = score or 750
-
             # Debugging the raw_report_data retrieval process
             print(f"Fetching raw CIBIL data for PAN {pan_number}")
             try:

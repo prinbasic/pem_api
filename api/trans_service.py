@@ -156,7 +156,115 @@ async def verify_otp_and_pan(phone_number: str, otp: str, pan_number: str = None
 #         }
 
 
-async def trans_bank_fetch_flow(phone_number: str = None, pan_number: str = None):
+# async def trans_bank_fetch_flow(phone_number: str = None, pan_number: str = None):
+#     async with httpx.AsyncClient(timeout=60.0) as client:
+#         if pan_number:
+#             print("📌 Using provided PAN number directly.")
+#             final_pan_number = pan_number
+
+#         elif phone_number:
+#             print("📌 Fetching PAN from Mobile Number using Mobile to Prefill API with name_lookup: 0.")
+#             static_first_name = "PRINCE"
+#             static_last_name = "RAJ"
+
+#             mobile_to_prefill_payload = {
+#                 "client_ref_num": "BBA225PR001",  # Ideally generate dynamically
+#                 "mobile_no": phone_number,
+#                 "name_lookup": 0,
+#                 "first_name": static_first_name,
+#                 "last_name": static_last_name,
+#                 "name_fallback": 1
+#             }
+
+#             mobile_to_prefill_resp = await client.post(
+#                 MOBILE_TO_PREFILL_URL,
+#                 headers=HEADERS,
+#                 json=mobile_to_prefill_payload
+#             )
+
+#             print(f"🔍 Mobile to Prefill API Response Status [{mobile_to_prefill_resp.status_code}]")
+#             mobile_to_prefill_data = mobile_to_prefill_resp.json()
+#             print("📋 Full Mobile to Prefill API Response:")
+#             print(mobile_to_prefill_data)
+
+#             # Proceeding without blocking on success check for now
+#             final_pan_number = None
+#             if mobile_to_prefill_data.get("result"):
+#                 final_pan_number = mobile_to_prefill_data["result"].get("pan")
+#                 print(f"✅ Extracted PAN number: {final_pan_number}")
+#             else:
+#                 raise HTTPException(
+#                     status_code=mobile_to_prefill_resp.status_code,
+#                     detail="Mobile to Prefill API call failed."
+#                 )
+
+#             if not final_pan_number:
+#                 raise HTTPException(status_code=400, detail="PAN number not returned in Mobile to Prefill response.")
+
+#         else:
+#             raise HTTPException(status_code=400, detail="Either PAN number or Phone number must be provided")
+
+#         # Step 2: PAN Supreme API
+#         pan_supreme_resp = await client.post(
+#             PAN_SUPREME_URL,
+#             headers=HEADERS,
+#             json={"pan": final_pan_number}
+#         )
+#         pan_supreme_data = pan_supreme_resp.json()
+#         print(f"🔍 PAN Supreme API Response: {pan_supreme_data}")
+
+#         if pan_supreme_data.get("status") != "1":
+#             raise HTTPException(
+#                 status_code=400,
+#                 detail=f"PAN Supreme verification failed: {pan_supreme_data.get('message', 'No message')}"
+#             )
+
+#         pan_details = pan_supreme_data["result"]
+#         print(f"✅ PAN Supreme Details: {pan_details}")
+
+#         # Step 3: CIBIL Report
+#         try:
+#             cibil_payload = {
+#                 "CustomerInfo": {
+#                     "Name": {
+#                         "Forename": pan_details["first_name"],
+#                         "Surname": pan_details["last_name"]
+#                     },
+#                     "IdentificationNumber": {
+#                         "IdentifierName": "TaxId",
+#                         "Id": final_pan_number
+#                     },
+#                     "Address": {
+#                         "StreetAddress": pan_details["address"]["address_line_1"],
+#                         "City": pan_details["address"]["state"],
+#                         "PostalCode": pan_details["address"]["pin_code"],
+#                         "Region": 20,
+#                         "AddressType": 1
+#                     },
+#                     "EmailID": pan_details.get("email") or "",
+#                     "DateOfBirth": pan_details["dob"],
+#                     "PhoneNumber": {"Number": phone_number if phone_number else ""},
+#                     "Gender": pan_details["gender"]
+#                 },
+#                 "LegalCopyStatus": "Accept",
+#                 "UserConsentForDataSharing": True
+#             }
+#             print("✅ CIBIL Payload successfully created", flush=True)
+#             print(f"cibil report payload: {cibil_payload}", flush=True)
+#         except:
+#             print("unable to create payload")
+#         print(f"cibil report payload:{cibil_payload}")
+#         cibil_resp = await client.post(CIBIL_URL, headers=HEADERS, json=cibil_payload)
+#         cibil_data = cibil_resp.json()
+#         print(f"✅ CIBIL Report Data: {cibil_data}")
+
+#         return {
+#             "pan_number": final_pan_number,
+#             "pan_supreme": pan_supreme_data,
+#             "cibil_report": cibil_data
+#         }
+
+async def trans_bank_fetch_flow(phone_number: str = None, pan_number: str = None, first_name: str = "PRINCE", last_name: str = "RAJ"):
     async with httpx.AsyncClient(timeout=60.0) as client:
         if pan_number:
             print("📌 Using provided PAN number directly.")
@@ -164,15 +272,14 @@ async def trans_bank_fetch_flow(phone_number: str = None, pan_number: str = None
 
         elif phone_number:
             print("📌 Fetching PAN from Mobile Number using Mobile to Prefill API with name_lookup: 0.")
-            static_first_name = "PRINCE"
-            static_last_name = "RAJ"
+            client_ref_num = generate_ref_num()
 
             mobile_to_prefill_payload = {
-                "client_ref_num": "BBA225PR001",  # Ideally generate dynamically
+                "client_ref_num": client_ref_num,
                 "mobile_no": phone_number,
                 "name_lookup": 0,
-                "first_name": static_first_name,
-                "last_name": static_last_name,
+                "first_name": first_name,
+                "last_name": last_name,
                 "name_fallback": 1
             }
 
@@ -187,7 +294,6 @@ async def trans_bank_fetch_flow(phone_number: str = None, pan_number: str = None
             print("📋 Full Mobile to Prefill API Response:")
             print(mobile_to_prefill_data)
 
-            # Proceeding without blocking on success check for now
             final_pan_number = None
             if mobile_to_prefill_data.get("result"):
                 final_pan_number = mobile_to_prefill_data["result"].get("pan")
@@ -204,7 +310,7 @@ async def trans_bank_fetch_flow(phone_number: str = None, pan_number: str = None
         else:
             raise HTTPException(status_code=400, detail="Either PAN number or Phone number must be provided")
 
-        # Step 2: PAN Supreme API
+        # PAN Supreme API
         pan_supreme_resp = await client.post(
             PAN_SUPREME_URL,
             headers=HEADERS,
@@ -222,7 +328,7 @@ async def trans_bank_fetch_flow(phone_number: str = None, pan_number: str = None
         pan_details = pan_supreme_data["result"]
         print(f"✅ PAN Supreme Details: {pan_details}")
 
-        # Step 3: CIBIL Report
+        # CIBIL Report
         try:
             cibil_payload = {
                 "CustomerInfo": {
@@ -251,9 +357,10 @@ async def trans_bank_fetch_flow(phone_number: str = None, pan_number: str = None
             }
             print("✅ CIBIL Payload successfully created", flush=True)
             print(f"cibil report payload: {cibil_payload}", flush=True)
-        except:
-            print("unable to create payload")
-        print(f"cibil report payload:{cibil_payload}")
+        except Exception as e:
+            print("❌ Unable to create CIBIL payload:", e)
+            raise HTTPException(status_code=500, detail="CIBIL payload creation failed")
+
         cibil_resp = await client.post(CIBIL_URL, headers=HEADERS, json=cibil_payload)
         cibil_data = cibil_resp.json()
         print(f"✅ CIBIL Report Data: {cibil_data}")
