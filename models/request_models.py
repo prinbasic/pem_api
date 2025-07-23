@@ -63,7 +63,7 @@ class SendOTPRequest(BaseModel):
     phone_number: str
 
 class VerifyOTPRequest(BaseModel):
-    
+    phone_number: str = Field(..., example="9876543210")
     otp: str = Field(..., example="123456")
     pan_number: Optional[str] = Field(None, example="ABCDE1234F")
     first_name: Optional[str] = Field(None, example="Ravi")
