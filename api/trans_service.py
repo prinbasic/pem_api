@@ -1,6 +1,8 @@
-import httpx
 from fastapi import HTTPException
-
+from datetime import datetime
+import random
+import string
+import httpx
 OTP_BASE_URL = "https://dev-api.orbit.basichomeloan.com/api_v1"
 MOBILE_TO_PAN_URL = "https://sandbox-api.trusthub.in/mobile-to-pan"
 MOBILE_TO_PREFILL_URL = "https://sandbox-api.trusthub.in/mobile-to-prefill-2"
@@ -12,6 +14,11 @@ HEADERS = {
     "x-api-key": API_KEY,
     "Content-Type": "application/json; charset=utf-8"
 }
+
+def generate_ref_num(prefix="BBA"):
+    timestamp = datetime.now().strftime("%d%m%y")
+    suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
+    return f"{prefix}{timestamp}{suffix}"
 
 async def verify_otp_and_pan(phone_number: str, otp: str, pan_number: str = None):
     async with httpx.AsyncClient(timeout=60.0) as client:

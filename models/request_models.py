@@ -19,7 +19,6 @@ class LoanFormData(BaseModel):
     pin: str
     propertyName: Optional[str] = None
 
-
 class cibilRequest(BaseModel):
     panNumber: str
     mobileNumber: str
@@ -37,15 +36,11 @@ class cibilRequest(BaseModel):
     hascibil: Optional[str] = None
     cibilScore: Optional[int] = None
     proceedScoreCheck: Optional[str]= None
-    
-
 
 class cibilOTPRequest(BaseModel):
     transId: str
     otp: str
     pan: str
-
-
 
 class PANRequest(BaseModel):
     phone_number: str
@@ -70,14 +65,14 @@ class SendOTPRequest(BaseModel):
 class VerifyOTPRequest(BaseModel):
     phone_number: str
     otp: str
+    pan_number: Optional[str] = None
 
 class VerifyOtpResponse(BaseModel):
-    consent: Literal["Y", "N"] = Field(..., description="Y if OTP verified and downstream data obtained; N otherwise.")
+    consent: str
     message: str
     phone_number: Optional[str] = None
     pan_number: Optional[str] = None
-    pan_supreme: Optional[dict] = Field(None, description="PAN Supreme API raw response.")
-    cibil_report: Optional[dict] = Field(None, description="CIBIL report raw response or error.")
-
+    pan_supreme: Optional[dict] = None
+    cibil_report: Optional[dict] = None
 
 
