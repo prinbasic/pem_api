@@ -66,6 +66,15 @@ async def get_combined_openapi():
         "components": combined_components
     }
 
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    with open("openapi.yaml", "r") as f:
+        schema = yaml.safe_load(f)
+    app.openapi_schema = schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi
 
 @app.get("/openapi/aggregate.json")
 async def openapi_aggregate():
