@@ -76,8 +76,8 @@ class VerifyOtpResponse(BaseModel):
     message: str
     phone_number: Optional[str] = None
     pan_number: Optional[str] = None
-    pan_supreme: Optional[Any] = Field(None, description="PAN Supreme API raw response.")
-    cibil_report: Optional[Any] = Field(None, description="CIBIL report raw response or error.")
+    pan_supreme: Optional[dict] = Field(None, description="PAN Supreme API raw response.")
+    cibil_report: Optional[dict] = Field(None, description="CIBIL report raw response or error.")
 
 
 
