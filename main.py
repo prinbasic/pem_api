@@ -8,13 +8,6 @@ import yaml
 
 app = FastAPI()
 
-def custom_openapi():
-    if app.openapi_schema:
-        return app.openapi_schema
-    with open("openapi.yaml", "r") as f:
-        schema = yaml.safe_load(f)
-    app.openapi_schema = schema
-    return app.openapi_schema
 
 app.add_middleware(
     CORSMiddleware,
@@ -70,6 +63,14 @@ async def get_combined_openapi():
         "paths": combined_paths,
         "components": combined_components
     }
+
+# @asynccontextmanager
+# async def lifespan(app: FastAPI):
+#     # Reset OpenAPI schema cache at startup
+#     app.openapi_schema = None
+#     app.openapi()
+#     yield
+
 
 @app.get("/openapi/aggregate.json")
 async def openapi_aggregate():

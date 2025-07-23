@@ -78,3 +78,4 @@ class VerifyOtpResponse(BaseModel):
     cibil_report: Optional[dict] = None
 
 
+
