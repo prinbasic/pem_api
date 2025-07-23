@@ -55,6 +55,8 @@ async def get_combined_openapi():
     combined_components = {"schemas": {}}
 
     for spec in specs:
+        if not spec or not isinstance(spec, dict):  # ✅ fix here
+            continue
         combined_paths.update(spec.get("paths", {}))
         components = spec.get("components", {}).get("schemas", {})
         combined_components["schemas"].update(components)
