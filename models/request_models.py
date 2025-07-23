@@ -62,7 +62,7 @@ class LoanInputRequest(BaseModel):
 class SendOTPRequest(BaseModel):
     phone_number: str
 
-class VerifyOTPRequest(BaseModel):
+class VerifyOTPtrans(BaseModel):
     phone_number: str = Field(..., example="9876543210")
     otp: str = Field(..., example="123456")
     pan_number: Optional[str] = Field(None, example="ABCDE1234F")
