@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
+from fastapi.responses import JSONResponse
 from routes import cibil_routes, lender_routes, trans_routes
 import httpx
 import asyncio
@@ -68,8 +69,15 @@ async def get_combined_openapi():
 
 @app.get("/openapi/aggregate.json")
 async def openapi_aggregate():
-    return await get_combined_openapi()
-
+    spec = await get_combined_openapi()
+    return JSONResponse(
+        content=spec,
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+    )
 @app.get("/docs/aggregate", include_in_schema=False)
 async def aggregated_swagger_ui():
     timestamp = int(datetime.now().timestamp())  # generate a unique query param
