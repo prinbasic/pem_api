@@ -254,7 +254,7 @@ def initiate_cibil_score(data: cibilRequest):
             # Send file to external API
             with open(tmpfile_path, 'rb') as f:
                 files = {'file': f}
-                resp = requests.post("https://dev-api.orbit.basichomeloan.com/ai/generate_cibil_report", files=files)
+                resp = requests.post("https://dev-api.orbit.basichomeloan.com/api_v1/generate_cibil_report", files=files)
                 resp.raise_for_status()
                 return resp.json()
 
@@ -745,7 +745,7 @@ async def send_and_verify_pan(phone_number: str, otp: str, pan_number: str):
                         tmpfile_path = tmpfile.name
                     with open(tmpfile_path, 'rb') as f:
                         files = {'file': f}
-                        resp = requests.post("https://dev-api.orbit.basichomeloan.com/ai/generate_credit_report", files=files)
+                        resp = requests.post("https://dev-api.orbit.basichomeloan.com/api_v1/generate_credit_report", files=files)
                         resp.raise_for_status()
                         return resp.json()
                 except Exception as e:

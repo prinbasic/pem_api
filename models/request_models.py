@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
+from typing import Optional, Any, Literal
 
 class LoanFormData(BaseModel):
     name: str
@@ -69,3 +70,14 @@ class SendOTPRequest(BaseModel):
 class VerifyOTPRequest(BaseModel):
     phone_number: str
     otp: str
+
+class VerifyOtpResponse(BaseModel):
+    consent: Literal["Y", "N"] = Field(..., description="Y if OTP verified and downstream data obtained; N otherwise.")
+    message: str
+    phone_number: Optional[str] = None
+    pan_number: Optional[str] = None
+    pan_supreme: Optional[Any] = Field(None, description="PAN Supreme API raw response.")
+    cibil_report: Optional[Any] = Field(None, description="CIBIL report raw response or error.")
+
+
+
