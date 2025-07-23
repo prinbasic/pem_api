@@ -5,6 +5,7 @@ from routes import cibil_routes, lender_routes, trans_routes
 import httpx
 import asyncio
 import yaml
+from datetime import datetime
 
 app = FastAPI()
 
@@ -64,13 +65,6 @@ async def get_combined_openapi():
         "components": combined_components
     }
 
-# @asynccontextmanager
-# async def lifespan(app: FastAPI):
-#     # Reset OpenAPI schema cache at startup
-#     app.openapi_schema = None
-#     app.openapi()
-#     yield
-
 
 @app.get("/openapi/aggregate.json")
 async def openapi_aggregate():
@@ -78,8 +72,11 @@ async def openapi_aggregate():
 
 @app.get("/docs/aggregate", include_in_schema=False)
 async def aggregated_swagger_ui():
-    return get_swagger_ui_html(openapi_url="/openapi/aggregate.json", title="Combined API Docs")
-
+    timestamp = int(datetime.now().timestamp())  # generate a unique query param
+    return get_swagger_ui_html(
+        openapi_url=f"/openapi/aggregate.json?t={timestamp}",
+        title="Combined API Docs"
+    )
 @app.get("/redoc/aggregate", include_in_schema=False)
 async def aggregated_redoc():
     return get_redoc_html(openapi_url="/openapi/aggregate.json", title="Combined API Docs")
