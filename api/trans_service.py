@@ -165,8 +165,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
         mobile_to_prefill_payload = {
             "client_ref_num": client_ref_num,
             "mobile_no": phone_number,
-            "name_lookup": 1,
-            "name_fallback": 1
+            "name_lookup": 1
         }
 
         mobile_to_prefill_resp = await client.post(
