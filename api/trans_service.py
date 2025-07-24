@@ -20,7 +20,11 @@ def generate_ref_num(prefix="BBA"):
     suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     return f"{prefix}{timestamp}{suffix}"
 
-async def verify_otp_and_pan(phone_number: str, otp: str, pan_number: str = None):
+async def verify_otp_and_pan(phone_number: str,
+    otp: str,
+    pan_number: str = None,
+    first_name: str = None,
+    last_name: str = None):
     async with httpx.AsyncClient(timeout=60.0) as client:
         try:
             # Step 1: OTP Verification
@@ -37,7 +41,9 @@ async def verify_otp_and_pan(phone_number: str, otp: str, pan_number: str = None
             # Step 2: Fetch PAN and CIBIL Flow
             fetch_data = await trans_bank_fetch_flow(
                 phone_number=phone_number if not pan_number else None,
-                pan_number=pan_number
+                pan_number=pan_number,
+                first_name=first_name,
+                last_name=last_name
             )
 
             return {
@@ -355,15 +361,11 @@ async def trans_bank_fetch_flow(phone_number: str = None, pan_number: str = None
                 "LegalCopyStatus": "Accept",
                 "UserConsentForDataSharing": True
             }
-            print("✅ CIBIL Payload successfully created", flush=True)
-            print(f"cibil report payload: {cibil_payload}", flush=True)
         except Exception as e:
-            print("❌ Unable to create CIBIL payload:", e)
             raise HTTPException(status_code=500, detail="CIBIL payload creation failed")
 
         cibil_resp = await client.post(CIBIL_URL, headers=HEADERS, json=cibil_payload)
         cibil_data = cibil_resp.json()
-        print(f"✅ CIBIL Report Data: {cibil_data}")
 
         return {
             "pan_number": final_pan_number,
