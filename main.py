@@ -6,7 +6,6 @@ import httpx
 import asyncio
 import yaml
 from datetime import datetime
-import urllib.parse
 
 app = FastAPI()
 
@@ -34,7 +33,7 @@ app.include_router(trans_routes.router, prefix="/cibil")
 SERVICE_URLS = [
     "http://127.0.0.1:8000/openapi.json",
     "http://3.6.21.243:8001/openapi.json",
-    "http://3.6.21.243:9000/openapi.json",
+    "http://3.6.21.243:9000/ai/openapi.json",
     "http://3.6.21.243:5000/openapi.json"
 ]
 
@@ -54,27 +53,8 @@ async def get_combined_openapi():
     combined_paths = {}
     combined_components = {"schemas": {}}
 
-    for idx, spec in enumerate(specs):
-        # Derive base path from the OpenAPI URL
-        parsed_url = urllib.parse.urlparse(SERVICE_URLS[idx])
-        base_path = "/" + "/".join(parsed_url.path.strip("/").split("/")[:-1])
-        base_path = "" if base_path == "/" else base_path
-
-        paths = spec.get("paths", {})
-        for path, methods in paths.items():
-            # Prefix the path with base_path to avoid collisions
-            new_path = f"{base_path}{path}"
-
-            # Adjust operationId to avoid duplicates
-            updated_methods = {}
-            for method, operation in methods.items():
-                operation_id = operation.get("operationId", f"{method}_{path.strip('/').replace('/', '_')}")
-                operation["operationId"] = f"{base_path.strip('/') or 'root'}_{operation_id}"
-                updated_methods[method] = operation
-
-            combined_paths[new_path] = updated_methods
-
-        # Merge components.schemas
+    for spec in specs:
+        combined_paths.update(spec.get("paths", {}))
         components = spec.get("components", {}).get("schemas", {})
         combined_components["schemas"].update(components)
 
