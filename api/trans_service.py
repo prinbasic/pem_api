@@ -198,6 +198,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
         print(f"🔍 PAN Supreme API Response: {pan_supreme_data}")
 
         if pan_supreme_data.get("status") != "1":
+            print(final_pan_number)
             raise HTTPException(
                 status_code=400,
                 detail=f"PAN Supreme verification failed: {pan_supreme_data.get('message', 'No message')}"
