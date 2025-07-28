@@ -234,11 +234,12 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                 "LegalCopyStatus": "Accept",
                 "UserConsentForDataSharing": True
             }
+            print("cibil payload", cibil_payload)
         except Exception:
             raise HTTPException(status_code=500, detail="CIBIL payload creation failed")
 
-        print(cibil_payload)
         cibil_resp = await client.post(CIBIL_URL, headers=HEADERS, json=cibil_payload)
+        print(cibil_payload)
         cibil_data = cibil_resp.json()
 
         return {
