@@ -206,6 +206,10 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
 
         pan_details = pan_supreme_data["result"]
         print(f"✅ PAN Supreme Details: {pan_details}")
+        if pan_details["gender"] == "M":
+            gender = "MALE"
+        else:
+            gender = "FEMALE"
 
         # CIBIL Payload
         try:
@@ -221,7 +225,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                     },
                     "Address": {
                         "StreetAddress": pan_details["address"]["address_line_1"],
-                        "City": pan_details["address"]["state"],
+                        "City": pan_details["address"]["address_line_5"],
                         "PostalCode": pan_details["address"]["pin_code"],
                         "Region": 20,
                         "AddressType": 1
@@ -229,7 +233,8 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                     "EmailID": pan_details.get("email") or "",
                     "DateOfBirth": pan_details["dob"],
                     "PhoneNumber": {"Number": phone_number},
-                    "Gender": pan_details["gender"]
+                    
+                    "Gender": gender
                 },
                 "LegalCopyStatus": "Accept",
                 "UserConsentForDataSharing": True
