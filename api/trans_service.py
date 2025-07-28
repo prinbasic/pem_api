@@ -1,10 +1,11 @@
-from fastapi import HTTPException, requests
+from fastapi import HTTPException
 from datetime import datetime
 import random
 import string
 import httpx
 import tempfile
 import json
+import requests
 OTP_BASE_URL = "https://dev-api.orbit.basichomeloan.com/api_v1"
 MOBILE_TO_PAN_URL = "https://sandbox-api.trusthub.in/mobile-to-pan"
 MOBILE_TO_PREFILL_URL = "https://sandbox-api.trusthub.in/mobile-to-prefill-2"
@@ -258,9 +259,11 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                     json.dump(cibil_data, tmpfile)
                     tmpfile.flush()
                     tmpfile_path = tmpfile.name
-
-                # call AI logic or return tmpfile_path for next processing
-                return {"tempfile_path": tmpfile_path}
+                with open(tmpfile_path, 'rb') as f:
+                        files = {'file': f}
+                        resp = requests.post("https://dev-api.orbit.basichomeloan.com/ai/generate_credit_report", files=files)
+                        resp.raise_for_status()
+                        return resp.json()
 
             except Exception as e:
                 return {"error": f"Intelligence report generation failed: {str(e)}"}
