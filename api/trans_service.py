@@ -116,7 +116,13 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
 
         cibil_data = cibil_resp.json()
 
-        score = intell_response.get("credit_score", {}).get("credit_score")
+        cibil_score = (
+                cibil_data.get("cibil_report", {})
+                .get("cibilData", {})
+                .get("GetCustomerAssetsResponse", {})
+                .get("GetCustomerAssetsSuccess", {})
+                .get("riskScore")
+            )
 
         try:
             conn = get_db_connection()
@@ -144,7 +150,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                     pan_details.get("address", {}).get("pin_code"),
                     pan_details.get("email", None),
                     cibil_data,
-                    score,
+                    cibil_score,
                     datetime.now(timezone.utc).isoformat()
                 ))
                 conn.commit()
