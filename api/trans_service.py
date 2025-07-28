@@ -245,7 +245,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
         cibil_resp = await client.post(CIBIL_URL, headers=HEADERS, json=cibil_payload)
         print("🔁 Sent Payload:", cibil_payload)
 
-        cibil_data = await cibil_resp.json()
+        cibil_data = cibil_resp.json()
         print("📥 CIBIL Response:", cibil_data)
 
         # AI-generated report
