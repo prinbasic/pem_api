@@ -74,6 +74,6 @@ class VerifyOtpResponse(BaseModel):
     pan_number: Optional[str] = None
     pan_supreme: Optional[dict] = None
     cibil_report: Optional[dict] = None
-
+    intell_report: Optional[dict[str, Any]]
 
 
