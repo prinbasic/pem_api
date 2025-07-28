@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional
+from typing import Optional, Dict, Any
 from typing import Optional, Any, Literal
 
 class LoanFormData(BaseModel):
@@ -72,8 +72,11 @@ class VerifyOtpResponse(BaseModel):
     message: str
     phone_number: Optional[str] = None
     pan_number: Optional[str] = None
-    pan_supreme: Optional[dict] = None
-    cibil_report: Optional[dict] = None
-    intell_report: Optional[dict[str, Any]]
+    pan_supreme: Optional[Dict[str, Any]] = None
+    cibil_report: Optional[Dict[str, Any]] = None
+    intell_report: Optional[Dict[str, Any]] = None  # ✅ mark as Optional
+
+    class Config:
+        orm_mode = True
 
 
