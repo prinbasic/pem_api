@@ -206,42 +206,39 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
 
         pan_details = pan_supreme_data["result"]
         print(f"✅ PAN Supreme Details: {pan_details}")
-        if pan_details["gender"] == "M":
-            gender = "MALE"
-        else:
-            gender = "FEMALE"
 
         # CIBIL Payload
         try:
             cibil_payload = {
                 "CustomerInfo": {
                     "Name": {
-                        "Forename": pan_details["first_name"],
-                        "Surname": pan_details["last_name"]
+                        "Forename": pan_details.get("first_name", "").strip(),
+                        "Surname": pan_details.get("last_name", "").strip()
                     },
                     "IdentificationNumber": {
                         "IdentifierName": "TaxId",
-                        "Id": final_pan_number
+                        "Id": final_pan_number.strip()
                     },
                     "Address": {
-                        "StreetAddress": pan_details["address"]["address_line_1"],
-                        "City": pan_details["address"]["address_line_5"],
-                        "PostalCode": pan_details["address"]["pin_code"],
+                        "StreetAddress": pan_details["address"].get("address_line_1", "").strip(),
+                        "City": pan_details["address"].get("address_line_5", "").strip(),  # BOKARO
+                        "PostalCode": int(pan_details["address"].get("pin_code", 0)),
                         "Region": 20,
                         "AddressType": 1
                     },
-                    "EmailID": pan_details.get("email") or "",
-                    "DateOfBirth": pan_details["dob"],
-                    "PhoneNumber": {"Number": phone_number},
-                    
-                    "Gender": gender
+                    "EmailID": pan_details.get("email", "").strip(),
+                    "DateOfBirth": pan_details.get("dob", "").strip(),  # Format: YYYY-MM-DD
+                    "PhoneNumber": {
+                        "Number": int(phone_number)
+                    },
+                    "Gender": "Male" if pan_details["gender"].upper() == "M" else "Female"
                 },
                 "LegalCopyStatus": "Accept",
                 "UserConsentForDataSharing": True
             }
             print("cibil payload", cibil_payload)
-        except Exception:
-            raise HTTPException(status_code=500, detail="CIBIL payload creation failed")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"CIBIL payload creation failed: {str(e)}")
 
         cibil_resp = await client.post(CIBIL_URL, headers=HEADERS, json=cibil_payload)
         print(cibil_payload)
