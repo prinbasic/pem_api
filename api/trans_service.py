@@ -1,8 +1,10 @@
-from fastapi import HTTPException
+from fastapi import HTTPException, requests
 from datetime import datetime
 import random
 import string
 import httpx
+import tempfile
+import json
 OTP_BASE_URL = "https://dev-api.orbit.basichomeloan.com/api_v1"
 MOBILE_TO_PAN_URL = "https://sandbox-api.trusthub.in/mobile-to-pan"
 MOBILE_TO_PREFILL_URL = "https://sandbox-api.trusthub.in/mobile-to-prefill-2"
@@ -241,13 +243,35 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
             raise HTTPException(status_code=500, detail=f"CIBIL payload creation failed: {str(e)}")
 
         cibil_resp = await client.post(CIBIL_URL, headers=HEADERS, json=cibil_payload)
-        print(cibil_payload)
-        cibil_data = cibil_resp.json()
+        print("🔁 Sent Payload:", cibil_payload)
+
+        cibil_data = await cibil_resp.json()
+        print("📥 CIBIL Response:", cibil_data)
+
+        # AI-generated report
+        def intell_report():
+            try:
+                if cibil_data.get("status") == "500":
+                    return {"error": "No raw cibil data found"}
+
+                with tempfile.NamedTemporaryFile(mode='w+', suffix='.json', delete=False) as tmpfile:
+                    json.dump(cibil_data, tmpfile)
+                    tmpfile.flush()
+                    tmpfile_path = tmpfile.name
+
+                # call AI logic or return tmpfile_path for next processing
+                return {"tempfile_path": tmpfile_path}
+
+            except Exception as e:
+                return {"error": f"Intelligence report generation failed: {str(e)}"}
+
+        intell_response = intell_report()
 
         return {
             "pan_number": final_pan_number,
             "pan_supreme": pan_supreme_data,
-            "cibil_report": cibil_data
+            "cibil_report": cibil_data,
+            "intell_report": intell_response
         }
 
 async def verify_otp_and_pan(phone_number: str, otp: str):
