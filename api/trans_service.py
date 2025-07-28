@@ -300,7 +300,7 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                 "pan_number": fetch_data.get("pan_number"),
                 "pan_supreme": fetch_data.get("pan_supreme"),
                 "cibil_report": fetch_data.get("cibil_report"),
-                "intell_report":fetch_data.get("intell_response")
+                "intell_report":fetch_data.get("intell_report")
             }
 
         except Exception as e:
