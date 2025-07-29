@@ -116,13 +116,41 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
 
         cibil_data = cibil_resp.json()
 
-        cibil_score = (
-                cibil_data.get("cibil_report", {})
-                .get("cibilData", {})
-                .get("GetCustomerAssetsResponse", {})
-                .get("GetCustomerAssetsSuccess", {})
-                .get("riskScore")
-            )
+        # cibil_score = (
+        #         cibil_data.get("cibil_report", {})
+        #         .get("cibilData", {})
+        #         .get("GetCustomerAssetsResponse", {})
+        #         .get("GetCustomerAssetsSuccess", {})
+        #         .get("riskScore")
+        #     )
+
+        customer_data = (
+            cibil_data.get("cibil_report", {})
+            .get("cibilData", {})
+            .get("GetCustomerAssetsResponse", {})
+            .get("GetCustomerAssetsSuccess", {})
+        )
+
+        # Extract required fields
+        pan_number = customer_data.get("pan")
+        name = customer_data.get("fullName")
+        mobile_number = customer_data.get("mobile")
+        gender = customer_data.get("gender")
+        dob = customer_data.get("dob")
+        email = customer_data.get("email")
+        pincode = customer_data.get("pincode")
+        credit_score = customer_data.get("riskScore")
+
+        user_info = {
+            "pan_number": pan_number,
+            "name": name,
+            "mobile_number": mobile_number,
+            "gender": gender,
+            "dob": dob,
+            "email": email,
+            "pincode": pincode,
+            "credit_score": credit_score,
+        }
 
         try:
             conn = get_db_connection()
@@ -161,68 +189,10 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
 
         cibil_report = cibil_data.get("cibil_report", {}).get("cibilData", {})
 
-        pan_number = (
-            cibil_report
-            .get("cibilReportHeader", {})
-            .get("taxId")
-        )
-
-        name = (
-            cibil_report
-            .get("cibilReportHeader", {})
-            .get("consumerName")
-        )
-
-        mobile_number = (
-            cibil_report
-            .get("cibilContactInfoList", [{}])[0]
-            .get("contactPhoneNumber")
-        )
-
-        gender = (
-            cibil_report
-            .get("cibilReportHeader", {})
-            .get("gender")
-        )
-
-        dob = (
-            cibil_report
-            .get("cibilReportHeader", {})
-            .get("dateOfBirth")
-        )
-
-        email = (
-            cibil_report
-            .get("cibilContactInfoList", [{}])[0]
-            .get("emailId")
-        )
-
-        pincode = (
-            cibil_report
-            .get("cibilAddressList", [{}])[0]
-            .get("pincode")
-        )
-
-        credit_score = (
-            cibil_report
-            .get("cibilScoreList", [{}])[0]
-            .get("riskScore")
-        )
+        
 
 
-
-        user_info = {
-            "pan_number": pan_number,
-            "name": name,
-            "mobile_number": mobile_number,
-            "gender": gender,
-            "dob": dob,
-            "email": email,
-            "pincode": pincode,
-            "credit_score": credit_score,
-        }
-
-        print(user_info)
+    
 
         # AI-generated report
         # def intell_report():
@@ -298,7 +268,8 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                 "pan_number": fetch_data.get("pan_number"),
                 "pan_supreme": fetch_data.get("pan_supreme"),
                 "cibil_report": fetch_data.get("cibil_report"),
-                "intell_report":fetch_data.get("intell_report")
+                # "intell_report":fetch_data.get("intell_report")
+                "user_info":fetch_data.get("profile_detail")
             }
 
         except Exception as e:

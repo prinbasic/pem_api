@@ -1,4 +1,4 @@
-"cibil_report": {
+{"cibil_report": {
         "message": "CIBIL Report generated successfully",
         "cibilData": {
             "GetCustomerAssetsResponse": {
@@ -6560,4 +6560,4 @@
             }
         },
         "htmlUrl": "https://myscore.cibil.com/CreditView/webtokenasset.page?enterprise=JunoonCapita&pcc=credit_report_cibil_pjeqzKxWRdyLrRKkacsl&webtoken=yf-bakDmph5dshHtlcfdTrkvZ99kKIP7gQuepyHGJoJmAUjNUz7svmLjqZYiR60p5R7AIaYp1DKASiVZ4wa4Iuaotx7gxqXLPgXV_5W4eAGciPt0RN_jqL_C7qMyob-h"
-    }
+    }}
