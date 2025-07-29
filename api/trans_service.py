@@ -120,8 +120,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
        
         try:
             borrower = (
-                cibil_data.get("cibil_report", {})
-                .get("cibilData", {})
+                cibil_data.get("cibilData", {})
                 .get("GetCustomerAssetsResponse", {})
                 .get("GetCustomerAssetsSuccess", {})
                 .get("Asset", {})
