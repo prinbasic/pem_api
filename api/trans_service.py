@@ -124,33 +124,50 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                 .get("riskScore")
             )
 
-        # customer_data = (
-        #     cibil_data.get("cibil_report", {})
-        #     .get("cibilData", {})
-        #     .get("GetCustomerAssetsResponse", {})
-        #     .get("GetCustomerAssetsSuccess", {})
-        # )
+        try:
+            borrower = (
+                data["cibil_report"]["cibilData"]["GetCustomerAssetsResponse"]
+                ["GetCustomerAssetsSuccess"]["Asset"]["TrueLinkCreditReport"]["Borrower"]
+            )
+            
+            # PAN number
+            identifiers = borrower["IdentifierPartition"]["Identifier"]
+            pan = final_pan_number
 
-        # # Extract required fields
-        # pan_number = customer_data.get("pan")
-        # name = customer_data.get("fullName")
-        # mobile_number = customer_data.get("mobile")
-        # gender = customer_data.get("gender")
-        # dob = customer_data.get("dob")
-        # email = customer_data.get("email")
-        # pincode = customer_data.get("pincode")
-        # credit_score = customer_data.get("riskScore")
+            # Name
+            name = borrower["BorrowerName"]["Name"]["Forename"]
 
-        # user_info = {
-        #     "pan_number": pan_number,
-        #     "name": name,
-        #     "mobile_number": mobile_number,
-        #     "gender": gender,
-        #     "dob": dob,
-        #     "email": email,
-        #     "pincode": pincode,
-        #     "credit_score": credit_score,
-        # }
+            # Mobile number (first one)
+            mobile_number = borrower["BorrowerTelephone"][0]["PhoneNumber"]["Number"]
+
+            # Gender
+            gender = borrower.get("Gender")
+
+            # Date of Birth
+            dob = borrower["Birth"]["date"]
+
+            # Email (first one)
+            email = borrower["EmailAddress"][0]["Email"]
+
+            # Pincode (from first address block)
+            pincode = borrower["BorrowerAddress"][0]["CreditAddress"].get("PostalCode")
+
+            # Credit Score
+            cibil_score = borrower["CreditScore"].get("riskScore")
+
+            # Output
+            print("PAN Number:", pan)
+            print("Name:", name)
+            print("Mobile Number:", mobile_number)
+            print("Gender:", gender)
+            print("DOB:", dob)
+            print("Email:", email)
+            print("Pincode:", pincode)
+            print("Credit Score:", cibil_score)
+        except Exception as e:
+            print("Error extracting data:", e)
+
+        user_info = [pan, name, mobile_number, gender, dob, email, pincode, cibil_score]
 
         try:
             conn = get_db_connection()
@@ -187,12 +204,6 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
         except Exception as log_err:
             print("❌ Error logging cibil data:", log_err)
 
-        cibil_report = cibil_data.get("cibil_report", {}).get("cibilData", {})
-
-        
-
-
-    
 
         # AI-generated report
         # def intell_report():
@@ -242,7 +253,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
             "pan_supreme": pan_supreme_data,
             "cibil_report": cibil_data,
             # "intell_report": intell_response
-            # "profile_detail": user_info
+            "profile_detail": user_info
         }
 
 
@@ -269,6 +280,7 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                 "pan_supreme": fetch_data.get("pan_supreme"),
                 "cibil_report": fetch_data.get("cibil_report"),
                 # "intell_report":fetch_data.get("intell_report")
+                "user_info": fetch_data.get("user_info"),
             }
 
         except Exception as e:
