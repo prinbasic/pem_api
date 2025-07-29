@@ -4,6 +4,7 @@ import random
 import string
 import httpx
 import tempfile
+import traceback 
 import json
 import requests
 from db_client import get_db_connection  # make sure this is imported
@@ -125,55 +126,59 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
             )
 
         try:
+            print("🔍 Navigating to Borrower object...")
             borrower = (
                 cibil_data["cibil_report"]["cibilData"]["GetCustomerAssetsResponse"]
                 ["GetCustomerAssetsSuccess"]["Asset"]["TrueLinkCreditReport"]["Borrower"]
             )
+            print("✅ Borrower object found.")
 
-            # PAN
+            print("🔍 Extracting PAN...")
+            identifiers = borrower.get("IdentifierPartition", {}).get("Identifier", [])
             pan = next(
-                (i["ID"]["Id"] for i in borrower["IdentifierPartition"]["Identifier"] if i["ID"]["IdentifierName"] == "TaxId"),
-                None
+                (i.get("ID", {}).get("Id") for i in identifiers if i.get("ID", {}).get("IdentifierName") == "TaxId"),
+                final_pan_number
             )
+            print(f"✅ PAN: {pan}")
 
-            # Name
-            name = borrower["BorrowerName"]["Name"]["Forename"]
+            print("🔍 Extracting Name...")
+            name = borrower.get("BorrowerName", {}).get("Name", {}).get("Forename", "")
+            print(f"✅ Name: {name}")
 
-            # Mobile
-            mobile_number = borrower["BorrowerTelephone"][0]["PhoneNumber"]["Number"]
+            print("🔍 Extracting Mobile Number...")
+            phones = borrower.get("BorrowerTelephone", [])
+            mobile_number = phones[0]["PhoneNumber"]["Number"] if phones else phone_number
+            print(f"✅ Mobile Number: {mobile_number}")
 
-            # Gender
-            gender = borrower["Gender"]
+            print("🔍 Extracting Gender...")
+            gender = borrower.get("Gender", "")
+            print(f"✅ Gender: {gender}")
 
-            # DOB
-            dob = borrower["Birth"]["date"]
+            print("🔍 Extracting DOB...")
+            dob = borrower.get("Birth", {}).get("date", "")
+            print(f"✅ DOB: {dob}")
 
-            # Email
-            email = borrower["EmailAddress"][0]["Email"]
+            print("🔍 Extracting Email...")
+            emails = borrower.get("EmailAddress", [])
+            email = emails[0]["Email"] if emails else pan_details.get("email", "")
+            print(f"✅ Email: {email}")
 
-            # Pincode
-            pincode = borrower["BorrowerAddress"][0]["CreditAddress"]["PostalCode"]
+            print("🔍 Extracting Pincode...")
+            addresses = borrower.get("BorrowerAddress", [])
+            pincode = addresses[0]["CreditAddress"].get("PostalCode") if addresses else pan_details.get("address", {}).get("pin_code")
+            print(f"✅ Pincode: {pincode}")
 
-            # Credit Score
-            cibil_score = borrower["CreditScore"]["riskScore"]
-
-
-            # Credit Score
+            print("🔍 Extracting Credit Score...")
             cibil_score = borrower.get("CreditScore", {}).get("riskScore", cibil_score)
+            print(f"✅ Credit Score: {cibil_score}")
 
-            print("📦 Extracted Profile:")
-            print("PAN Number:", pan)
-            print("Name:", name)
-            print("Mobile Number:", mobile_number)
-            print("Gender:", gender)
-            print("DOB:", dob)
-            print("Email:", email)
-            print("Pincode:", pincode)
-            print("Credit Score:", cibil_score)
+            user_info = [pan, name, mobile_number, gender, dob, email, pincode, cibil_score]
 
         except Exception as e:
-            print("❌ Error extracting data:", e)
-            # Fallback values
+            print("❌ Exception occurred during deep data extraction:")
+            traceback.print_exc()
+
+            # Fallbacks to prevent null return
             pan = final_pan_number
             name = f"{pan_details.get('first_name', '')} {pan_details.get('last_name', '')}".strip()
             mobile_number = phone_number
@@ -183,7 +188,9 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
             pincode = pan_details.get("address", {}).get("pin_code", "")
             cibil_score = cibil_score or "0"
 
-        user_info = [pan, name, mobile_number, gender, dob, email, pincode, cibil_score]
+            user_info = [pan, name, mobile_number, gender, dob, email, pincode, cibil_score]
+            print("ℹ️ Used fallback values for user_info.")
+            user_info = [pan, name, mobile_number, gender, dob, email, pincode, cibil_score]
         try:
             conn = get_db_connection()
             with conn.cursor() as cur:
