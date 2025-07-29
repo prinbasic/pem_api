@@ -125,32 +125,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                 .get("riskScore")
             )
         
-        try:
-            print("🔍 Dumping available keys under 'cibil_report'")
-            print(json.dumps(cibil_data.get("cibil_report", {}), indent=2)[:3000])  # Trim large output
-
-            # Now check how far the path goes
-            path1 = cibil_data.get("cibil_report", {}).get("cibilData", {})
-            path2 = path1.get("GetCustomerAssetsResponse", {})
-            path3 = path2.get("GetCustomerAssetsSuccess", {})
-
-            print("✅ Available path so far:")
-            print("  cibilData keys:", list(path1.keys()))
-            print("  GetCustomerAssetsResponse keys:", list(path2.keys()))
-            print("  GetCustomerAssetsSuccess keys:", list(path3.keys()))
-
-            # Check if 'Asset' or 'TrueLinkCreditReport' or 'Borrower' is even present
-            asset = path3.get("Asset", {})
-            print("  Asset keys:", list(asset.keys()) if isinstance(asset, dict) else asset)
-
-            report = asset.get("TrueLinkCreditReport", {})
-            print("  TrueLinkCreditReport keys:", list(report.keys()) if isinstance(report, dict) else report)
-
-            borrower = report.get("Borrower")
-            if not borrower:
-                print("❌ 'Borrower' not found in the expected path.")
-        except Exception as e:
-            print("❌ Exception occurred while checking cibil_report path:", str(e))
+        print(cibil_score)
 
         # try:
         #     print("🔍 Navigating to Borrower object...")
