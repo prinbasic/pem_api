@@ -139,16 +139,34 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                 .get("Borrower", {})
             )
 
+            dob = borrower.get("Birth", {}).get("date")
+            print(dob)
+            credit_score =  borrower.get("CreditScore", {}).get("riskScore")
+            print(credit_score)
+            email =  borrower.get("EmailAddress", [{}])[0].get("Email")
+            print(email)
+            Gender =  borrower.get("Gender"),
+            print(Gender)
+            pan_number =  borrower.get("IdentifierPartition", {}).get("Identifier", [{}])[1].get("ID", {}).get("Id"),
+            print(pan_number)
+            pincode =  borrower.get("BorrowerAddress", [{}])[0].get("CreditAddress", {}).get("PostalCode"),
+            print(pincode)
+            name =  borrower.get("BorrowerName", {}).get("Name", {}).get("Forename"),
+            print(name)
+            phone =  phone_number
+            print(phone)
+
             user_details = {
-                "dob": borrower.get("Birth", {}).get("date"),
-                "credit_score": borrower.get("CreditScore", {}).get("riskScore"),
-                "email": borrower.get("EmailAddress", [{}])[0].get("Email"),
-                "gender": borrower.get("Gender"),
-                "pan_number": borrower.get("IdentifierPartition", {}).get("Identifier", [{}])[1].get("ID", {}).get("Id"),
-                "pincode": borrower.get("BorrowerAddress", [{}])[0].get("CreditAddress", {}).get("PostalCode"),
-                "name": borrower.get("BorrowerName", {}).get("Name", {}).get("Forename"),
-                "phone": phone_number
+                "dob":dob,
+                "credit_score": credit_score,
+                "email": email,
+                "gender": Gender,
+                "pan_number": pan_number,
+                "pincode": pincode,
+                "name": name,
+                "phone": phone
             }
+
 
         except Exception as e:
             print(f"❌ Error extracting user details: {e}")
