@@ -169,8 +169,9 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
             "email": cibil_data.get("cibilContactInfoList", [{}])[0].get("emailId"),
             "pincode": cibil_data.get("cibilAddressList", [{}])[0].get("pincode"),
             "credit_score": cibil_data.get("cibilScoreList", [{}])[0].get("riskScore"),
-}
+        }
 
+        print(extracted_data)
 
         # AI-generated report
         # def intell_report():
