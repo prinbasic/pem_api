@@ -138,6 +138,8 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                 "phone": phone_number
             }
 
+            print(user_details)
+
 
         except Exception as e:
             print(f"❌ Error extracting user details: {e}")
@@ -168,7 +170,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                     pan_details.get("address", {}).get("pin_code"),
                     pan_details.get("email", None),
                     json.dumps(cibil_data),
-                    cibil_score,
+                    user_details.get("credit_score"),
                     datetime.now(timezone.utc).isoformat()
                 ))
                 conn.commit()
@@ -253,7 +255,7 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                 "pan_supreme": fetch_data.get("pan_supreme"),
                 "cibil_report": fetch_data.get("cibil_report"),
                 # "intell_report":fetch_data.get("intell_report")
-                "user_info": fetch_data.get("user_info"),
+                "user_info": fetch_data.get("profile_detail"),
             }
 
         except Exception as e:
