@@ -126,7 +126,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
 
         try:
             borrower = (
-                data["cibil_report"]["cibilData"]["GetCustomerAssetsResponse"]
+                cibil_data["cibil_report"]["cibilData"]["GetCustomerAssetsResponse"]
                 ["GetCustomerAssetsSuccess"]["Asset"]["TrueLinkCreditReport"]["Borrower"]
             )
             
