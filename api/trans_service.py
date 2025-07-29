@@ -156,7 +156,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
             cibil_score = borrower["CreditScore"].get("riskScore")
 
             # Output
-            print("PAN Number:", pan)
+            # print("PAN Number:", pan)
             print("Name:", name)
             print("Mobile Number:", mobile_number)
             print("Gender:", gender)
@@ -167,7 +167,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
         except Exception as e:
             print("Error extracting data:", e)
 
-        user_info = [pan, name, mobile_number, gender, dob, email, pincode, cibil_score]
+        user_info = [final_pan_number, name, mobile_number, gender, dob, email, pincode, cibil_score]
 
         try:
             conn = get_db_connection()
