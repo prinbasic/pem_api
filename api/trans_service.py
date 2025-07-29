@@ -220,7 +220,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
             "pan_supreme": pan_supreme_data,
             "cibil_report": cibil_data,
             # "intell_report": intell_response
-            "profile detail": extracted_data
+            "profile_detail": extracted_data
         }
 
 
