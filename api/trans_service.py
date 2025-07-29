@@ -116,68 +116,41 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
 
         cibil_data = cibil_resp.json()
 
-        # cibil_score = (
-        #         cibil_data.get("cibil_report", {})
-        #         .get("cibilData", {})
-        #         .get("GetCustomerAssetsResponse", {})
-        #         .get("GetCustomerAssetsSuccess", {})
-        #         .get("riskScore")
-        #     )
-
-        try:
-            borrower = (
-                cibil_data["cibil_report"]["cibilData"]["GetCustomerAssetsResponse"]
-                ["GetCustomerAssetsSuccess"]["Asset"]["TrueLinkCreditReport"]["Borrower"]
+        cibil_score = (
+                cibil_data.get("cibil_report", {})
+                .get("cibilData", {})
+                .get("GetCustomerAssetsResponse", {})
+                .get("GetCustomerAssetsSuccess", {})
+                .get("riskScore")
             )
-            
-            # PAN number
-            identifiers = borrower["IdentifierPartition"]["Identifier"]
-            pan_number = next((i["ID"]["Id"] for i in identifiers if i["ID"]["IdentifierName"] == "TaxId"), None)
 
-            # Name
-            name = borrower["BorrowerName"]["Name"]["Forename"]
+        # customer_data = (
+        #     cibil_data.get("cibil_report", {})
+        #     .get("cibilData", {})
+        #     .get("GetCustomerAssetsResponse", {})
+        #     .get("GetCustomerAssetsSuccess", {})
+        # )
 
-            # Mobile number (first one)
-            mobile_number = borrower["BorrowerTelephone"][0]["PhoneNumber"]["Number"]
+        # # Extract required fields
+        # pan_number = customer_data.get("pan")
+        # name = customer_data.get("fullName")
+        # mobile_number = customer_data.get("mobile")
+        # gender = customer_data.get("gender")
+        # dob = customer_data.get("dob")
+        # email = customer_data.get("email")
+        # pincode = customer_data.get("pincode")
+        # credit_score = customer_data.get("riskScore")
 
-            # Gender
-            gender = borrower.get("Gender")
-
-            # Date of Birth
-            dob = borrower["Birth"]["date"]
-
-            # Email (first one)
-            email = borrower["EmailAddress"][0]["Email"]
-
-            # Pincode (from first address block)
-            pincode = borrower["BorrowerAddress"][0]["CreditAddress"].get("PostalCode")
-
-            # Credit Score
-            cibil_score = borrower["CreditScore"].get("riskScore")
-
-            # Output
-            print("PAN Number:", pan_number)
-            print("Name:", name)
-            print("Mobile Number:", mobile_number)
-            print("Gender:", gender)
-            print("DOB:", dob)
-            print("Email:", email)
-            print("Pincode:", pincode)
-            print("Credit Score:", cibil_score)
-
-        except Exception as e:
-            print("Error extracting data:", e)
-
-        user_info = {
-            "pan_number": pan_number,
-            "name": name,
-            "mobile_number": mobile_number,
-            "gender": gender,
-            "dob": dob,
-            "email": email,
-            "pincode": pincode,
-            "cibil_score": cibil_score,
-        }
+        # user_info = {
+        #     "pan_number": pan_number,
+        #     "name": name,
+        #     "mobile_number": mobile_number,
+        #     "gender": gender,
+        #     "dob": dob,
+        #     "email": email,
+        #     "pincode": pincode,
+        #     "credit_score": credit_score,
+        # }
 
         try:
             conn = get_db_connection()
@@ -269,7 +242,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
             "pan_supreme": pan_supreme_data,
             "cibil_report": cibil_data,
             # "intell_report": intell_response
-            "profile_detail": user_info
+            # "profile_detail": user_info
         }
 
 
@@ -296,7 +269,6 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                 "pan_supreme": fetch_data.get("pan_supreme"),
                 "cibil_report": fetch_data.get("cibil_report"),
                 # "intell_report":fetch_data.get("intell_report")
-                "user_info":fetch_data.get("profile_detail")
             }
 
         except Exception as e:
