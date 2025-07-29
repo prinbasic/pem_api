@@ -132,7 +132,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
             
             # PAN number
             identifiers = borrower["IdentifierPartition"]["Identifier"]
-            pan = final_pan_number
+            pan = next((i["ID"]["Id"] for i in identifiers if i["ID"]["IdentifierName"] == "TaxId"), None)
 
             # Name
             name = borrower["BorrowerName"]["Name"]["Forename"]
