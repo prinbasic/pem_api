@@ -126,39 +126,37 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
 
         try:
             borrower = (
-                cibil_data.get("cibil_report", {})
-                .get("cibilData", {})
-                .get("GetCustomerAssetsResponse", {})
-                .get("GetCustomerAssetsSuccess", {})
-                .get("Asset", {})
-                .get("TrueLinkCreditReport", {})
-                .get("Borrower", {})
+                cibil_data["cibil_report"]["cibilData"]["GetCustomerAssetsResponse"]
+                ["GetCustomerAssetsSuccess"]["Asset"]["TrueLinkCreditReport"]["Borrower"]
             )
 
-            # Extract PAN
-            identifiers = borrower.get("IdentifierPartition", {}).get("Identifier", [])
-            pan = next((i.get("ID", {}).get("Id") for i in identifiers if i.get("ID", {}).get("IdentifierName") == "TaxId"), final_pan_number)
+            # PAN
+            pan = next(
+                (i["ID"]["Id"] for i in borrower["IdentifierPartition"]["Identifier"] if i["ID"]["IdentifierName"] == "TaxId"),
+                None
+            )
 
             # Name
-            name = borrower.get("BorrowerName", {}).get("Name", {}).get("Forename", "")
+            name = borrower["BorrowerName"]["Name"]["Forename"]
 
-            # Mobile number (first one)
-            phones = borrower.get("BorrowerTelephone", [])
-            mobile_number = phones[0]["PhoneNumber"]["Number"] if phones else phone_number
+            # Mobile
+            mobile_number = borrower["BorrowerTelephone"][0]["PhoneNumber"]["Number"]
 
             # Gender
-            gender = borrower.get("Gender", "")
+            gender = borrower["Gender"]
 
-            # Date of Birth
-            dob = borrower.get("Birth", {}).get("date", "")
+            # DOB
+            dob = borrower["Birth"]["date"]
 
-            # Email (first one)
-            emails = borrower.get("EmailAddress", [])
-            email = emails[0]["Email"] if emails else pan_details.get("email", "")
+            # Email
+            email = borrower["EmailAddress"][0]["Email"]
 
             # Pincode
-            addresses = borrower.get("BorrowerAddress", [])
-            pincode = addresses[0]["CreditAddress"].get("PostalCode") if addresses else pan_details.get("address", {}).get("pin_code")
+            pincode = borrower["BorrowerAddress"][0]["CreditAddress"]["PostalCode"]
+
+            # Credit Score
+            cibil_score = borrower["CreditScore"]["riskScore"]
+
 
             # Credit Score
             cibil_score = borrower.get("CreditScore", {}).get("riskScore", cibil_score)
