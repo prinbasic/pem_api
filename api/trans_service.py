@@ -126,37 +126,45 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
 
         try:
             borrower = (
-                cibil_data["cibil_report"]["cibilData"]["GetCustomerAssetsResponse"]
-                ["GetCustomerAssetsSuccess"]["Asset"]["TrueLinkCreditReport"]["Borrower"]
+                cibil_data.get("cibil_report", {})
+                .get("cibilData", {})
+                .get("GetCustomerAssetsResponse", {})
+                .get("GetCustomerAssetsSuccess", {})
+                .get("Asset", {})
+                .get("TrueLinkCreditReport", {})
+                .get("Borrower", {})
             )
-            
-            # PAN number
-            identifiers = borrower["IdentifierPartition"]["Identifier"]
-            # pan = next((i["ID"]["Id"] for i in identifiers if i["ID"]["IdentifierName"] == "TaxId"), None)
+
+            # Extract PAN
+            identifiers = borrower.get("IdentifierPartition", {}).get("Identifier", [])
+            pan = next((i.get("ID", {}).get("Id") for i in identifiers if i.get("ID", {}).get("IdentifierName") == "TaxId"), final_pan_number)
 
             # Name
-            name = borrower["BorrowerName"]["Name"]["Forename"]
+            name = borrower.get("BorrowerName", {}).get("Name", {}).get("Forename", "")
 
             # Mobile number (first one)
-            mobile_number = borrower["BorrowerTelephone"][0]["PhoneNumber"]["Number"]
+            phones = borrower.get("BorrowerTelephone", [])
+            mobile_number = phones[0]["PhoneNumber"]["Number"] if phones else phone_number
 
             # Gender
-            gender = borrower.get("Gender")
+            gender = borrower.get("Gender", "")
 
             # Date of Birth
-            dob = borrower["Birth"]["date"]
+            dob = borrower.get("Birth", {}).get("date", "")
 
             # Email (first one)
-            email = borrower["EmailAddress"][0]["Email"]
+            emails = borrower.get("EmailAddress", [])
+            email = emails[0]["Email"] if emails else pan_details.get("email", "")
 
-            # Pincode (from first address block)
-            pincode = borrower["BorrowerAddress"][0]["CreditAddress"].get("PostalCode")
+            # Pincode
+            addresses = borrower.get("BorrowerAddress", [])
+            pincode = addresses[0]["CreditAddress"].get("PostalCode") if addresses else pan_details.get("address", {}).get("pin_code")
 
             # Credit Score
-            cibil_score = borrower["CreditScore"].get("riskScore")
+            cibil_score = borrower.get("CreditScore", {}).get("riskScore", cibil_score)
 
-            # Output
-            # print("PAN Number:", pan)
+            print("📦 Extracted Profile:")
+            print("PAN Number:", pan)
             print("Name:", name)
             print("Mobile Number:", mobile_number)
             print("Gender:", gender)
@@ -164,11 +172,20 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
             print("Email:", email)
             print("Pincode:", pincode)
             print("Credit Score:", cibil_score)
+
         except Exception as e:
-            print("Error extracting data:", e)
+            print("❌ Error extracting data:", e)
+            # Fallback values
+            pan = final_pan_number
+            name = f"{pan_details.get('first_name', '')} {pan_details.get('last_name', '')}".strip()
+            mobile_number = phone_number
+            gender = "Male" if pan_details.get("gender", "").upper() == "M" else "Female"
+            dob = pan_details.get("dob", "")
+            email = pan_details.get("email", "")
+            pincode = pan_details.get("address", {}).get("pin_code", "")
+            cibil_score = cibil_score or "0"
 
-        user_info = [final_pan_number, name, mobile_number, gender, dob, email, pincode, cibil_score]
-
+        user_info = [pan, name, mobile_number, gender, dob, email, pincode, cibil_score]
         try:
             conn = get_db_connection()
             with conn.cursor() as cur:
