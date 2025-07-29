@@ -74,7 +74,7 @@ class VerifyOtpResponse(BaseModel):
     pan_number: Optional[str] = None
     pan_supreme: Optional[Dict[str, Any]] = None
     cibil_report: Optional[Dict[str, Any]] = None
-    intell_report: Optional[Dict[str, Any]] = None  # ✅ mark as Optional
+    # intell_report: Optional[Dict[str, Any]] = None  # ✅ mark as Optional
 
     class Config:
         orm_mode = True

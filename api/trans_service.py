@@ -160,55 +160,67 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
             print("❌ Error logging cibil data:", log_err)
 
 
+        extracted_data = {
+            "pan_number": cibil_data.get("cibilReportHeader", {}).get("taxId"),
+            "name": cibil_data.get("cibilReportHeader", {}).get("consumerName"),
+            "mobile_number": cibil_data.get("cibilContactInfoList", [{}])[0].get("contactPhoneNumber"),
+            "gender": cibil_data.get("cibilReportHeader", {}).get("gender"),
+            "dob": cibil_data.get("cibilReportHeader", {}).get("dateOfBirth"),
+            "email": cibil_data.get("cibilContactInfoList", [{}])[0].get("emailId"),
+            "pincode": cibil_data.get("cibilAddressList", [{}])[0].get("pincode"),
+            "credit_score": cibil_data.get("cibilScoreList", [{}])[0].get("riskScore"),
+}
+
 
         # AI-generated report
-        def intell_report():
-            try:
-                if cibil_data.get("status") == "500":
-                    return {"error": "No raw cibil data found"}
+        # def intell_report():
+        #     try:
+        #         if cibil_data.get("status") == "500":
+        #             return {"error": "No raw cibil data found"}
 
-                with tempfile.NamedTemporaryFile(mode='w+', suffix='.json', delete=False) as tmpfile:
-                    json.dump(cibil_data, tmpfile)
-                    tmpfile.flush()
-                    tmpfile_path = tmpfile.name
-                with open(tmpfile_path, 'rb') as f:
-                        files = {'file': f}
-                        resp = requests.post("https://dev-api.orbit.basichomeloan.com/ai/generate_credit_report", files=files)
-                        resp.raise_for_status()
-                        return resp.json()
+        #         with tempfile.NamedTemporaryFile(mode='w+', suffix='.json', delete=False) as tmpfile:
+        #             json.dump(cibil_data, tmpfile)
+        #             tmpfile.flush()
+        #             tmpfile_path = tmpfile.name
+        #         with open(tmpfile_path, 'rb') as f:
+        #                 files = {'file': f}
+        #                 resp = requests.post("https://dev-api.orbit.basichomeloan.com/ai/generate_credit_report", files=files)
+        #                 resp.raise_for_status()
+        #                 return resp.json()
 
-            except Exception as e:
-                return {"error": f"Intelligence report generation failed: {str(e)}"}
+        #     except Exception as e:
+        #         return {"error": f"Intelligence report generation failed: {str(e)}"}
 
-        intell_response = intell_report()
-        # Check if intell_response is a dictionary and serialize it
-        if isinstance(intell_response, dict):
-            serialized_intell_response = json.dumps(intell_response)
-            print("Serialized intell_response:", serialized_intell_response)  # Debugging
-        try:
-            # Insert the serialized response into the database
-            conn = get_db_connection()
-            with conn.cursor() as cur:
-                cur.execute("""
-                    UPDATE user_cibil_logs
-                    SET intell_report = %s
-                    WHERE pan = %s
-                """, (
-                    serialized_intell_response,  # Pass the serialized JSON
-                    final_pan_number  # The pan number to identify the row to update
-                ))
-                conn.commit()
+        # intell_response = intell_report()
+        # # Check if intell_response is a dictionary and serialize it
+        # if isinstance(intell_response, dict):
+        #     serialized_intell_response = json.dumps(intell_response)
+        #     print("Serialized intell_response:", serialized_intell_response)  # Debugging
+        # try:
+        #     # Insert the serialized response into the database
+        #     conn = get_db_connection()
+        #     with conn.cursor() as cur:
+        #         cur.execute("""
+        #             UPDATE user_cibil_logs
+        #             SET intell_report = %s
+        #             WHERE pan = %s
+        #         """, (
+        #             serialized_intell_response,  # Pass the serialized JSON
+        #             final_pan_number  # The pan number to identify the row to update
+        #         ))
+        #         conn.commit()
 
-            conn.close()
-            print("✅ Cibil log saved to database.")
-        except Exception as log_err:
-            print("❌ Error logging cibil data:", log_err)
+        #     conn.close()
+        #     print("✅ Cibil log saved to database.")
+        # except Exception as log_err:
+        #     print("❌ Error logging cibil data:", log_err)
 
         return {
             "pan_number": final_pan_number,
             "pan_supreme": pan_supreme_data,
             "cibil_report": cibil_data,
-            "intell_report": intell_response
+            # "intell_report": intell_response
+            "profile detail": extracted_data
         }
 
 
