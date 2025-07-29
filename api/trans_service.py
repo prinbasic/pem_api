@@ -159,19 +159,70 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
         except Exception as log_err:
             print("❌ Error logging cibil data:", log_err)
 
+        cibil_report = cibil_data.get("cibil_report", {}).get("cibilData", {})
 
-        extracted_data = {
-            "pan_number": cibil_data.get("cibilReportHeader", {}).get("taxId"),
-            "name": cibil_data.get("cibilReportHeader", {}).get("consumerName"),
-            "mobile_number": cibil_data.get("cibilContactInfoList", [{}])[0].get("contactPhoneNumber"),
-            "gender": cibil_data.get("cibilReportHeader", {}).get("gender"),
-            "dob": cibil_data.get("cibilReportHeader", {}).get("dateOfBirth"),
-            "email": cibil_data.get("cibilContactInfoList", [{}])[0].get("emailId"),
-            "pincode": cibil_data.get("cibilAddressList", [{}])[0].get("pincode"),
-            "credit_score": cibil_data.get("cibilScoreList", [{}])[0].get("riskScore"),
+        pan_number = (
+            cibil_report
+            .get("cibilReportHeader", {})
+            .get("taxId")
+        )
+
+        name = (
+            cibil_report
+            .get("cibilReportHeader", {})
+            .get("consumerName")
+        )
+
+        mobile_number = (
+            cibil_report
+            .get("cibilContactInfoList", [{}])[0]
+            .get("contactPhoneNumber")
+        )
+
+        gender = (
+            cibil_report
+            .get("cibilReportHeader", {})
+            .get("gender")
+        )
+
+        dob = (
+            cibil_report
+            .get("cibilReportHeader", {})
+            .get("dateOfBirth")
+        )
+
+        email = (
+            cibil_report
+            .get("cibilContactInfoList", [{}])[0]
+            .get("emailId")
+        )
+
+        pincode = (
+            cibil_report
+            .get("cibilAddressList", [{}])[0]
+            .get("pincode")
+        )
+
+        credit_score = (
+            cibil_report
+            .get("cibilScoreList", [{}])[0]
+            .get("riskScore")
+        )
+
+
+
+        user_info = {
+            "pan_number": pan_number,
+            "name": name,
+            "mobile_number": mobile_number,
+            "gender": gender,
+            "dob": dob,
+            "email": email,
+            "pincode": pincode,
+            "credit_score": credit_score,
         }
 
-        print(extracted_data)
+        print(user_info)
 
         # AI-generated report
         # def intell_report():
@@ -221,7 +272,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
             "pan_supreme": pan_supreme_data,
             "cibil_report": cibil_data,
             # "intell_report": intell_response
-            "profile_detail": extracted_data
+            "profile_detail": user_info
         }
 
 
