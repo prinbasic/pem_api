@@ -124,73 +124,101 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                 .get("GetCustomerAssetsSuccess", {})
                 .get("riskScore")
             )
-
+        
         try:
-            print("🔍 Navigating to Borrower object...")
-            borrower = (
-                cibil_data["cibil_report"]["cibilData"]["GetCustomerAssetsResponse"]
-                ["GetCustomerAssetsSuccess"]["Asset"]["TrueLinkCreditReport"]["Borrower"]
-            )
-            print("✅ Borrower object found.")
+            print("🔍 Dumping available keys under 'cibil_report'")
+            print(json.dumps(cibil_data.get("cibil_report", {}), indent=2)[:3000])  # Trim large output
 
-            print("🔍 Extracting PAN...")
-            identifiers = borrower.get("IdentifierPartition", {}).get("Identifier", [])
-            pan = next(
-                (i.get("ID", {}).get("Id") for i in identifiers if i.get("ID", {}).get("IdentifierName") == "TaxId"),
-                final_pan_number
-            )
-            print(f"✅ PAN: {pan}")
+            # Now check how far the path goes
+            path1 = cibil_data.get("cibil_report", {}).get("cibilData", {})
+            path2 = path1.get("GetCustomerAssetsResponse", {})
+            path3 = path2.get("GetCustomerAssetsSuccess", {})
 
-            print("🔍 Extracting Name...")
-            name = borrower.get("BorrowerName", {}).get("Name", {}).get("Forename", "")
-            print(f"✅ Name: {name}")
+            print("✅ Available path so far:")
+            print("  cibilData keys:", list(path1.keys()))
+            print("  GetCustomerAssetsResponse keys:", list(path2.keys()))
+            print("  GetCustomerAssetsSuccess keys:", list(path3.keys()))
 
-            print("🔍 Extracting Mobile Number...")
-            phones = borrower.get("BorrowerTelephone", [])
-            mobile_number = phones[0]["PhoneNumber"]["Number"] if phones else phone_number
-            print(f"✅ Mobile Number: {mobile_number}")
+            # Check if 'Asset' or 'TrueLinkCreditReport' or 'Borrower' is even present
+            asset = path3.get("Asset", {})
+            print("  Asset keys:", list(asset.keys()) if isinstance(asset, dict) else asset)
 
-            print("🔍 Extracting Gender...")
-            gender = borrower.get("Gender", "")
-            print(f"✅ Gender: {gender}")
+            report = asset.get("TrueLinkCreditReport", {})
+            print("  TrueLinkCreditReport keys:", list(report.keys()) if isinstance(report, dict) else report)
 
-            print("🔍 Extracting DOB...")
-            dob = borrower.get("Birth", {}).get("date", "")
-            print(f"✅ DOB: {dob}")
-
-            print("🔍 Extracting Email...")
-            emails = borrower.get("EmailAddress", [])
-            email = emails[0]["Email"] if emails else pan_details.get("email", "")
-            print(f"✅ Email: {email}")
-
-            print("🔍 Extracting Pincode...")
-            addresses = borrower.get("BorrowerAddress", [])
-            pincode = addresses[0]["CreditAddress"].get("PostalCode") if addresses else pan_details.get("address", {}).get("pin_code")
-            print(f"✅ Pincode: {pincode}")
-
-            print("🔍 Extracting Credit Score...")
-            cibil_score = borrower.get("CreditScore", {}).get("riskScore", cibil_score)
-            print(f"✅ Credit Score: {cibil_score}")
-
-            user_info = [pan, name, mobile_number, gender, dob, email, pincode, cibil_score]
-
+            borrower = report.get("Borrower")
+            if not borrower:
+                print("❌ 'Borrower' not found in the expected path.")
         except Exception as e:
-            print("❌ Exception occurred during deep data extraction:")
-            traceback.print_exc()
+            print("❌ Exception occurred while checking cibil_report path:", str(e))
 
-            # Fallbacks to prevent null return
-            pan = final_pan_number
-            name = f"{pan_details.get('first_name', '')} {pan_details.get('last_name', '')}".strip()
-            mobile_number = phone_number
-            gender = "Male" if pan_details.get("gender", "").upper() == "M" else "Female"
-            dob = pan_details.get("dob", "")
-            email = pan_details.get("email", "")
-            pincode = pan_details.get("address", {}).get("pin_code", "")
-            cibil_score = cibil_score or "0"
+        # try:
+        #     print("🔍 Navigating to Borrower object...")
+        #     borrower = (
+        #         cibil_data["cibil_report"]["cibilData"]["GetCustomerAssetsResponse"]
+        #         ["GetCustomerAssetsSuccess"]["Asset"]["TrueLinkCreditReport"]["Borrower"]
+        #     )
+        #     print("✅ Borrower object found.")
 
-            user_info = [pan, name, mobile_number, gender, dob, email, pincode, cibil_score]
-            print("ℹ️ Used fallback values for user_info.")
-            user_info = [pan, name, mobile_number, gender, dob, email, pincode, cibil_score]
+        #     print("🔍 Extracting PAN...")
+        #     identifiers = borrower.get("IdentifierPartition", {}).get("Identifier", [])
+        #     pan = next(
+        #         (i.get("ID", {}).get("Id") for i in identifiers if i.get("ID", {}).get("IdentifierName") == "TaxId"),
+        #         final_pan_number
+        #     )
+        #     print(f"✅ PAN: {pan}")
+
+        #     print("🔍 Extracting Name...")
+        #     name = borrower.get("BorrowerName", {}).get("Name", {}).get("Forename", "")
+        #     print(f"✅ Name: {name}")
+
+        #     print("🔍 Extracting Mobile Number...")
+        #     phones = borrower.get("BorrowerTelephone", [])
+        #     mobile_number = phones[0]["PhoneNumber"]["Number"] if phones else phone_number
+        #     print(f"✅ Mobile Number: {mobile_number}")
+
+        #     print("🔍 Extracting Gender...")
+        #     gender = borrower.get("Gender", "")
+        #     print(f"✅ Gender: {gender}")
+
+        #     print("🔍 Extracting DOB...")
+        #     dob = borrower.get("Birth", {}).get("date", "")
+        #     print(f"✅ DOB: {dob}")
+
+        #     print("🔍 Extracting Email...")
+        #     emails = borrower.get("EmailAddress", [])
+        #     email = emails[0]["Email"] if emails else pan_details.get("email", "")
+        #     print(f"✅ Email: {email}")
+
+        #     print("🔍 Extracting Pincode...")
+        #     addresses = borrower.get("BorrowerAddress", [])
+        #     pincode = addresses[0]["CreditAddress"].get("PostalCode") if addresses else pan_details.get("address", {}).get("pin_code")
+        #     print(f"✅ Pincode: {pincode}")
+
+        #     print("🔍 Extracting Credit Score...")
+        #     cibil_score = borrower.get("CreditScore", {}).get("riskScore", cibil_score)
+        #     print(f"✅ Credit Score: {cibil_score}")
+
+        #     user_info = [pan, name, mobile_number, gender, dob, email, pincode, cibil_score]
+
+        # except Exception as e:
+        #     print("❌ Exception occurred during deep data extraction:")
+        #     traceback.print_exc()
+
+        #     # Fallbacks to prevent null return
+        #     pan = final_pan_number
+        #     name = f"{pan_details.get('first_name', '')} {pan_details.get('last_name', '')}".strip()
+        #     mobile_number = phone_number
+        #     gender = "Male" if pan_details.get("gender", "").upper() == "M" else "Female"
+        #     dob = pan_details.get("dob", "")
+        #     email = pan_details.get("email", "")
+        #     pincode = pan_details.get("address", {}).get("pin_code", "")
+        #     cibil_score = cibil_score or "0"
+
+        #     user_info = [pan, name, mobile_number, gender, dob, email, pincode, cibil_score]
+        #     print("ℹ️ Used fallback values for user_info.")
+        #     user_info = [pan, name, mobile_number, gender, dob, email, pincode, cibil_score]
+        
         try:
             conn = get_db_connection()
             with conn.cursor() as cur:
