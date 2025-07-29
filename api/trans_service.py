@@ -124,22 +124,49 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
         #         .get("riskScore")
         #     )
 
-        customer_data = (
-            cibil_data.get("cibil_report", {})
-            .get("cibilData", {})
-            .get("GetCustomerAssetsResponse", {})
-            .get("GetCustomerAssetsSuccess", {})
-        )
+        try:
+            borrower = (
+                cibil_data["cibil_report"]["cibilData"]["GetCustomerAssetsResponse"]
+                ["GetCustomerAssetsSuccess"]["Asset"]["TrueLinkCreditReport"]["Borrower"]
+            )
+            
+            # PAN number
+            identifiers = borrower["IdentifierPartition"]["Identifier"]
+            pan_number = next((i["ID"]["Id"] for i in identifiers if i["ID"]["IdentifierName"] == "TaxId"), None)
 
-        # Extract required fields
-        pan_number = customer_data.get("pan")
-        name = customer_data.get("fullName")
-        mobile_number = customer_data.get("mobile")
-        gender = customer_data.get("gender")
-        dob = customer_data.get("dob")
-        email = customer_data.get("email")
-        pincode = customer_data.get("pincode")
-        credit_score = customer_data.get("riskScore")
+            # Name
+            name = borrower["BorrowerName"]["Name"]["Forename"]
+
+            # Mobile number (first one)
+            mobile_number = borrower["BorrowerTelephone"][0]["PhoneNumber"]["Number"]
+
+            # Gender
+            gender = borrower.get("Gender")
+
+            # Date of Birth
+            dob = borrower["Birth"]["date"]
+
+            # Email (first one)
+            email = borrower["EmailAddress"][0]["Email"]
+
+            # Pincode (from first address block)
+            pincode = borrower["BorrowerAddress"][0]["CreditAddress"].get("PostalCode")
+
+            # Credit Score
+            cibil_score = borrower["CreditScore"].get("riskScore")
+
+            # Output
+            print("PAN Number:", pan_number)
+            print("Name:", name)
+            print("Mobile Number:", mobile_number)
+            print("Gender:", gender)
+            print("DOB:", dob)
+            print("Email:", email)
+            print("Pincode:", pincode)
+            print("Credit Score:", cibil_score)
+
+        except Exception as e:
+            print("Error extracting data:", e)
 
         user_info = {
             "pan_number": pan_number,
@@ -149,7 +176,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
             "dob": dob,
             "email": email,
             "pincode": pincode,
-            "credit_score": credit_score,
+            "cibil_score": cibil_score,
         }
 
         try:
