@@ -127,19 +127,21 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                 .get("Borrower", {})
             )
 
+            dob_raw = borrower.get("Birth", {}).get("date", "")
+            dob = dob_raw.split("+")[0] if "+" in dob_raw else dob_raw
+
             user_details = {
-                "dob": borrower.get("Birth", {}).get("date"),
-                "credit_score" :  borrower.get("CreditScore", {})["riskScore"],
-                "email" :  borrower.get("EmailAddress", [{}])[0].get("Email"),
-                "Gender" :  borrower.get("Gender"),
-                "pan_number":  borrower.get("IdentifierPartition", {}).get("Identifier", [{}])[1].get("ID", {}).get("Id"),
-                "pincode" :  borrower.get("BorrowerAddress", [{}])[0].get("CreditAddress", {}).get("PostalCode"),
-                "name" :  borrower.get("BorrowerName", {}).get("Name", {}).get("Forename"),
+                "dob": dob,
+                "credit_score": borrower.get("CreditScore", {}).get("riskScore"),
+                "email": borrower.get("EmailAddress", [{}])[0].get("Email"),
+                "gender": borrower.get("Gender"),
+                "pan_number": borrower.get("IdentifierPartition", {}).get("Identifier", [{}])[1].get("ID", {}).get("Id"),
+                "pincode": borrower.get("BorrowerAddress", [{}])[0].get("CreditAddress", {}).get("PostalCode"),
+                "name": borrower.get("BorrowerName", {}).get("Name", {}).get("Forename"),
                 "phone": phone_number
             }
 
             print(user_details)
-
 
         except Exception as e:
             print(f"❌ Error extracting user details: {e}")
