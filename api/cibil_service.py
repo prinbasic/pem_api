@@ -595,17 +595,18 @@ STATE_CODE_MAP = {
 async def send_and_verify_pan(phone_number: str, otp: str , pan_number: str):
     async with httpx.AsyncClient(timeout=60.0) as client:
         try:
-            # Step 1: OTP Verification
-            print(f"🔍 Verifying OTP for {phone_number} with OTP: {otp}")
-            verify_response = await client.post(
-                f"{OTP_BASE_URL}/otp_verify",
-                json={"phone_number": phone_number, "otp": otp}
-            )
-            verify_data = verify_response.json()
-            print(f"✅ OTP Verify Response [{verify_response.status_code}]: {verify_data}")
-            if verify_response.status_code != 200 or not verify_data.get("success"):
-                return {"consent": "N", "message": "OTP verification failed"}
-
+            if otp != "NA":
+                print(f"🔍 Verifying OTP for {phone_number} with OTP: {otp}")
+                verify_response = await client.post(
+                    f"{OTP_BASE_URL}/otp_verify",
+                    json={"phone_number": phone_number, "otp": otp}
+                )
+                verify_data = verify_response.json()
+                print(f"✅ OTP Verify Response [{verify_response.status_code}]: {verify_data}")
+                if verify_response.status_code != 200 or not verify_data.get("success"):
+                    return {"consent": "N", "message": "OTP verification failed"}
+            else:
+                print("✅ Skipping OTP verification since already done.")
             # Step 2: PAN Fetch
             print(f"🔗 Fetching PAN details for: {pan_number}")
             pan_response = await client.post(
