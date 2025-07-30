@@ -275,7 +275,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                 raise HTTPException(status_code=400, detail="PAN not available for fallback.")
             
             # Fake OTP to skip verification
-            dummy_verified_otp = "SKIP"
+            dummy_verified_otp = "NA"
 
             # Call fallback function with PAN + phone, and dummy OTP
             fallback_result = await send_and_verify_pan(
