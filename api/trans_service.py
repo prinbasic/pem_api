@@ -52,20 +52,20 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
         mobile_to_prefill_data = mobile_to_prefill_resp.json()
         print("📋 Full Mobile to Prefill API Response:", mobile_to_prefill_data)
         
-        result = mobile_to_prefill_data.get("result")
+        # result = mobile_to_prefill_data.get("result")
 
-        if not result or not isinstance(result, dict) or not result.get("pan"):
-            raise HTTPException(
-                status_code=400,
-                detail=f"PAN number not returned in Mobile to Prefill response. Raw response: {mobile_to_prefill_data}"
-            )
-
-
-        # if not mobile_to_prefill_data.get("result") or not mobile_to_prefill_data["result"].get("pan"):
+        # if not result or not isinstance(result, dict) or not result.get("pan"):
         #     raise HTTPException(
         #         status_code=400,
-        #         detail="PAN number not returned in Mobile to Prefill response."
+        #         detail=f"PAN number not returned in Mobile to Prefill response. Raw response: {mobile_to_prefill_data}"
         #     )
+
+
+        if not mobile_to_prefill_data.get("result") or not mobile_to_prefill_data["result"].get("pan"):
+            raise HTTPException(
+                status_code=400,
+                detail="PAN number not returned in Mobile to Prefill response."
+            )
 
         final_pan_number = mobile_to_prefill_data["result"]["pan"]
         print(f"✅ Extracted PAN number: {final_pan_number}")
