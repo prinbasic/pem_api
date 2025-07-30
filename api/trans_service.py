@@ -128,10 +128,19 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
             )
 
             dob_raw = borrower.get("Birth", {}).get("date", "")
-            dob = dob_raw.split("+")[0] if "+" in dob_raw else dob_raw
+            dob_clean = dob_raw.split("+")[0] if "+" in dob_raw else dob_raw
+
+            # Convert to dd-mm-yyyy format
+            dob_formatted = ""
+            if dob_clean:
+                try:
+                    dob_obj = datetime.strptime(dob_clean, "%Y-%m-%d")
+                    dob_formatted = dob_obj.strftime("%d-%m-%Y")
+                except ValueError:
+                    dob_formatted = dob_clean  # fallback in case parsing fails
 
             user_details = {
-                "dob": dob,
+                "dob": dob_formatted,
                 "credit_score": borrower.get("CreditScore", {}).get("riskScore"),
                 "email": borrower.get("EmailAddress", [{}])[0].get("Email"),
                 "gender": borrower.get("Gender"),
