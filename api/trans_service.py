@@ -12,7 +12,7 @@ from db_client import get_db_connection  # make sure this is imported
 from datetime import datetime, timezone
 import os
 from dotenv import load_dotenv
-from cibil_service import send_and_verify_pan
+from api.cibil_service import send_and_verify_pan
 
 load_dotenv()
 
