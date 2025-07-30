@@ -286,6 +286,6 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
             }
 
         except Exception as e:
-            raise HTTPException(status_code=200, detail=f"Verification and data fetch failed: {str(e)}")
+            raise HTTPException(status_code=200, detail=f"{str(e)}")
 
 
