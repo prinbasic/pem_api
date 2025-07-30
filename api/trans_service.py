@@ -9,14 +9,19 @@ import json
 import requests
 from db_client import get_db_connection  # make sure this is imported
 from datetime import datetime, timezone
-OTP_BASE_URL = "https://dev-api.orbit.basichomeloan.com/api_v1"
-MOBILE_TO_PAN_URL = "https://sandbox-api.trusthub.in/mobile-to-pan"
-MOBILE_TO_PREFILL_URL = "https://sandbox-api.trusthub.in/mobile-to-prefill-2"
-PAN_SUPREME_URL = "https://sandbox-api.trusthub.in/pan-supreme"
-# PAN_SUPREME_URL = "https://api.trusthub.in/pan-supreme"
-CIBIL_URL = "https://sandbox-api.trusthub.in/cibil-report"
+import os
+from dotenv import load_dotenv
 
-API_KEY = "nrqfVLG9zM1Hg66gyV78I53ju91sEHEpcawO9Cs6"
+load_dotenv()
+
+OTP_BASE_URL = os.getenv("OTP_BASE_URL")
+MOBILE_TO_PAN_URL = os.getenv("MOBILE_TO_PAN_URL")
+MOBILE_TO_PREFILL_URL = os.getenv("MOBILE_TO_PREFILL_URL")
+PAN_SUPREME_URL = os.getenv("PAN_SUPREME_URL")
+# PAN_SUPREME_URL = os.getenv("PAN_SUPREME_URL")
+CIBIL_URL = os.getenv("CIBIL_URL")
+
+API_KEY = os.getenv("API_KEY")
 HEADERS = {
     "x-api-key": API_KEY,
     "Content-Type": "application/json; charset=utf-8"

@@ -17,16 +17,19 @@ import requests
 import json
 import httpx
 import traceback
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
 
-API_1_URL = "https://dev-pemnew.basichomeloan.com/api/v1/cibilScore/InitiatecibilScoreRequest"
-API_2_URL = "https://dev-pemnew.basichomeloan.com/api/v1/cibilScore/CustomerConsentOtpVerification"
-API_3_URL = "https://dev-pemnew.basichomeloan.com/api/v1/cibilScore/GetCustomerConsentDataByTranId"
-API_4_URL = "https://dev-pemnew.basichomeloan.com/api/v1/cibilScore/GetCreditScoreByPanApiUseOnly"
-GRIDLINES_PAN_URL = "https://api.gridlines.io/pan-api/fetch-detailed"
-GRIDLINES_API_KEY = "FD0SgdtM6KIw8p2sJYv7ObMuvuezZLw7"
-OTP_BASE_URL = "https://dev-api.orbit.basichomeloan.com/api_v1"
-BUREAU_PROFILE_URL = "https://api.gridlines.io/profile-api/bureau/fetch-profile"
+API_1_URL = os.getenv("API_1_URL")
+API_2_URL = os.getenv("API_2_URL")
+API_3_URL = os.getenv("API_3_URL")
+API_4_URL = os.getenv("API_4_URL")
+GRIDLINES_PAN_URL = os.getenv("GRIDLINES_PAN_URL")
+GRIDLINES_API_KEY = os.getenv("GRIDLINES_API_KEY")
+OTP_BASE_URL = os.getenv("OTP_BASE_URL")
+BUREAU_PROFILE_URL = os.getenv("BUREAU_PROFILE_URL")
 
 cibil_request_cache = {}
 
