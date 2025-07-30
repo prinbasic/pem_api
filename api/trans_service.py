@@ -49,7 +49,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
 )
 
         print(f"🔍 Mobile to Prefill API Response Status [{mobile_to_prefill_resp.status_code}]")
-        mobile_to_prefill_data = await mobile_to_prefill_resp.json()
+        mobile_to_prefill_data = mobile_to_prefill_resp.json()
         print("📋 Full Mobile to Prefill API Response:", mobile_to_prefill_data)
 
         # Check if message is "no record found"
