@@ -150,7 +150,9 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
             print(f"✅ PAN Supreme Details: {pan_details}")
 
             state_name = pan_details.get("address", {}).get("state", "").strip()
+            print(state_name)
             region_code = STATE_CODE_MAPPING.get(state_name, 97)  # default to 97 for "Other Territory"
+            print(region_code)
 
             # CIBIL Payload
             try:
