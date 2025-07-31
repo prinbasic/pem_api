@@ -166,6 +166,32 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                     except ValueError:
                         dob_formatted = dob_clean  # fallback in case parsing fails
 
+                print("................................................................................................ userdetail")
+
+                dob = dob_formatted
+                print("DOB:", dob)
+
+                credit_score = borrower.get("CreditScore", {}).get("riskScore")
+                print("Credit Score:", credit_score)
+
+                email = borrower.get("EmailAddress", [{}])[0].get("Email", "")
+                print("Email:", email)
+
+                gender = borrower.get("Gender", "")
+                print("Gender:", gender)
+
+                pan_number = borrower.get("IdentifierPartition", {}).get("Identifier", [{}])[1].get("ID", {}).get("Id", "")
+                print("PAN Number:", pan_number)
+
+                pincode = borrower.get("BorrowerAddress", [{}])[0].get("CreditAddress", {}).get("PostalCode", "")
+                print("Pincode:", pincode)
+
+                name = borrower.get("BorrowerName", {}).get("Name", {}).get("Forename", "")
+                print("Name:", name)
+
+                phone = phone_number
+                print("Phone Number:", phone)
+
                 user_details = {
                     "dob": dob_formatted,
                     "credit_score": borrower.get("CreditScore", {}).get("riskScore"),
