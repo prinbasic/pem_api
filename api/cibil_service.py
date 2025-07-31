@@ -759,10 +759,21 @@ async def send_and_verify_pan(phone_number: str, otp: str , pan_number: str):
             #     print("✅ Cibil log saved to database.")
             # except Exception as log_err:
             #     print("❌ Error logging cibil data:", log_err)
+            dob_raw = data.get("profile_data", {}).get("personal_information", {}).get("date_of_birth", "")
+            dob_clean = dob_raw.split("+")[0] if "+" in dob_raw else dob_raw
+
+            # Convert to dd-mm-yyyy format
+            dob_formatted = ""
+            if dob_clean:
+                try:
+                    dob_obj = datetime.strptime(dob_clean, "%Y-%m-%d")
+                    dob_formatted = dob_obj.strftime("%d-%m-%Y")
+                except ValueError:
+                    dob_formatted = dob_clean  # fallback in case parsing fails
             
             user_details = {
                 "dob": data.get("profile_data", {}).get("personal_information", {}).get("date_of_birth", ""),
-                "credit_score": data.get("cibilScore", ""),
+                "credit_score": data.get("score_detail",[{}])[0].get("value", ""),
                 "email": data.get("profile_data", {}).get("email", [{}])[0].get("value", ""),
                 "gender": data.get("profile_data", {}).get("personal_information", {}).get("gender", ""),
                 "pan_number": data.get("profile_data", {}).get("national_document_data", {}).get("pan", [{}])[0].get("value", ""),
