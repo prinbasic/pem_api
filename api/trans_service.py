@@ -29,6 +29,50 @@ HEADERS = {
     "Content-Type": "application/json; charset=utf-8"
 }
 
+STATE_CODE_MAPPING = {
+    "Jammu & Kashmir": 1,
+    "Himachal Pradesh": 2,
+    "Punjab": 3,
+    "Chandigarh": 4,
+    "Uttarakhand": 5,
+    "Haryana": 6,
+    "Delhi": 7,
+    "Rajasthan": 8,
+    "Uttar Pradesh": 9,
+    "Bihar": 10,
+    "Sikkim": 11,
+    "Arunachal Pradesh": 12,
+    "Nagaland": 13,
+    "Manipur": 14,
+    "Mizoram": 15,
+    "Tripura": 16,
+    "Meghalaya": 17,
+    "Assam": 18,
+    "West Bengal": 19,
+    "Jharkhand": 20,
+    "Odisha": 21,
+    "Chhattisgarh": 22,
+    "Madhya Pradesh": 23,
+    "Gujarat": 24,
+    "Daman and Diu": 25,  # pre-2020
+    "Dadra & Nagar Haveli and Daman & Diu": 26,  # post-2020
+    "Maharashtra": 27,
+    "Andhra Pradesh": 28,  # pre-bifurcation
+    "Karnataka": 29,
+    "Goa": 30,
+    "Lakshadweep": 31,
+    "Kerala": 32,
+    "Tamil Nadu": 33,
+    "Puducherry": 34,
+    "Andaman & Nicobar Islands": 35,
+    "Telangana": 36,
+    "Andhra Pradesh (new)": 37,
+    "Ladakh": 38,
+    "Other Territory": 97,
+    "Centre / Central Jurisdiction": 99
+}
+
+
 def generate_ref_num(prefix="BBA"):
     timestamp = datetime.now().strftime("%d%m%y")
     suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
@@ -105,6 +149,9 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
             pan_details = pan_supreme_data["result"]
             print(f"✅ PAN Supreme Details: {pan_details}")
 
+            state_name = pan_details.get("address", {}).get("state", "").strip()
+            region_code = STATE_CODE_MAPPING.get(state_name, 97)  # default to 97 for "Other Territory"
+
             # CIBIL Payload
             try:
                 cibil_payload = {
@@ -121,7 +168,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                             "StreetAddress": pan_details["address"].get("address_line_1", "").strip(),
                             "City": pan_details["address"].get("address_line_5", "").strip(),  # BOKARO
                             "PostalCode": int(pan_details["address"].get("pin_code", 0)),
-                            "Region": 20,
+                            "Region": region_code,
                             "AddressType": 1
                         },
                         "EmailID": pan_details.get("email", "").strip(),
