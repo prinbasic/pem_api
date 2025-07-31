@@ -151,7 +151,10 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
 
             state_name = pan_details.get("address", {}).get("state", "").strip()
             print(state_name)
-            region_code = STATE_CODE_MAPPING.get(state_name, 97)  # default to 97 for "Other Territory"
+
+            region_code_int = STATE_CODE_MAPPING.get(state_name, 97)  # default to 97 for "Other Territory"
+            region_code = f"{region_code_int:02}"  # zero-pad if less than 10
+
             print(region_code)
 
             # CIBIL Payload
@@ -284,7 +287,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                         pan_details.get("address", {}).get("pin_code"),
                         pan_details.get("email", None),
                         json.dumps(cibil_data),
-                        user_details.get("credit_score"),
+                        # user_details.get(""),
                         datetime.now(timezone.utc).isoformat()
                     ))
                     conn.commit()

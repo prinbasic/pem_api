@@ -772,7 +772,7 @@ async def send_and_verify_pan(phone_number: str, otp: str , pan_number: str):
                     dob_formatted = dob_clean  # fallback in case parsing fails
             
             user_details = {
-                "dob": data.get("profile_data", {}).get("personal_information", {}).get("date_of_birth", ""),
+                "dob": dob_formatted,
                 # "credit_score": data.get("score_detail",[{}])[0].get("value", ""),
                 "credit_score": score,
                 "email": data.get("profile_data", {}).get("email", [{}])[0].get("value", ""),
