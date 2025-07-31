@@ -168,42 +168,42 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
 
                 print("................................................................................................ userdetail")
 
-                dob = dob_formatted
-                print("DOB:", dob)
+                # dob = dob_formatted
+                # print("DOB:", dob)
 
-                credit_score = borrower.get("CreditScore", {}).get("riskScore")
-                print("Credit Score:", credit_score)
+                # credit_score = borrower.get("CreditScore", {}).get("riskScore")
+                # print("Credit Score:", credit_score)
 
-                email = borrower.get("EmailAddress", [{}])[0].get("Email", "")
-                print("Email:", email)
+                # email = borrower.get("EmailAddress", [{}])[0].get("Email", "")
+                # print("Email:", email)
 
-                gender = borrower.get("Gender", "")
-                print("Gender:", gender)
+                # gender = borrower.get("Gender", "")
+                # print("Gender:", gender)
 
-                pan_number = borrower.get("IdentifierPartition", {}).get("Identifier", [{}])[1].get("ID", {}).get("Id", "")
-                print("PAN Number:", pan_number)
+                # pan_number = borrower.get("IdentifierPartition", {}).get("Identifier", [{}])[1].get("ID", {}).get("Id", "")
+                # print("PAN Number:", pan_number)
 
-                pincode = borrower.get("BorrowerAddress", [{}])[0].get("CreditAddress", {}).get("PostalCode", "")
-                print("Pincode:", pincode)
+                # pincode = borrower.get("BorrowerAddress", [{}])[0].get("CreditAddress", {}).get("PostalCode", "")
+                # print("Pincode:", pincode)
 
-                name = borrower.get("BorrowerName", {}).get("Name", {}).get("Forename", "")
-                print("Name:", name)
+                # name = borrower.get("BorrowerName", {}).get("Name", {}).get("Forename", "")
+                # print("Name:", name)
 
-                phone = phone_number
-                print("Phone Number:", phone)
+                # phone = phone_number
+                # print("Phone Number:", phone)
 
-                user_details = {
-                    "dob": dob_formatted,
-                    "credit_score": borrower.get("CreditScore", {}).get("riskScore"),
-                    "email": borrower.get("EmailAddress", [{}])[0].get("Email"),
-                    "gender": borrower.get("Gender"),
-                    "pan_number": borrower.get("IdentifierPartition", {}).get("Identifier", [{}])[1].get("ID", {}).get("Id"),
-                    "pincode": borrower.get("BorrowerAddress", [{}])[0].get("CreditAddress", {}).get("PostalCode"),
-                    "name": borrower.get("BorrowerName", {}).get("Name", {}).get("Forename"),
-                    "phone": phone_number
-                }
+                # user_details = {
+                #     "dob": dob_formatted,
+                #     "credit_score": borrower.get("CreditScore", {}).get("riskScore"),
+                #     "email": borrower.get("EmailAddress", [{}])[0].get("Email"),
+                #     "gender": borrower.get("Gender"),
+                #     "pan_number": borrower.get("IdentifierPartition", {}).get("Identifier", [{}])[1].get("ID", {}).get("Id"),
+                #     "pincode": borrower.get("BorrowerAddress", [{}])[0].get("CreditAddress", {}).get("PostalCode"),
+                #     "name": borrower.get("BorrowerName", {}).get("Name", {}).get("Forename"),
+                #     "phone": phone_number
+                # }
 
-                print(user_details)
+                # print(user_details)
 
             except Exception as e:
                 print(f"❌ Error extracting user details: {e}")
@@ -292,7 +292,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                 "pan_supreme": pan_supreme_data,
                 "cibil_report": cibil_data,
                 # "intell_report": intell_response
-                "profile_detail": user_details
+                # "profile_detail": user_details
             }
     except Exception as e:
         print(f"⚠️ TransBank failed: {str(e)}. Trying fallback via Ongrid...")
@@ -545,7 +545,7 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                 "pan_supreme": fetch_data.get("pan_supreme"),
                 "cibil_report": fetch_data.get("cibil_report"),
                 # "intell_report":fetch_data.get("intell_report")
-                "user_info": fetch_data.get("profile_detail"),
+                # "user_info": fetch_data.get("profile_detail"),
             }
 
         except Exception as e:
