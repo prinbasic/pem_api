@@ -773,7 +773,8 @@ async def send_and_verify_pan(phone_number: str, otp: str , pan_number: str):
             
             user_details = {
                 "dob": data.get("profile_data", {}).get("personal_information", {}).get("date_of_birth", ""),
-                "credit_score": data.get("score_detail",[{}])[0].get("value", ""),
+                # "credit_score": data.get("score_detail",[{}])[0].get("value", ""),
+                "credit_score": score,
                 "email": data.get("profile_data", {}).get("email", [{}])[0].get("value", ""),
                 "gender": data.get("profile_data", {}).get("personal_information", {}).get("gender", ""),
                 "pan_number": data.get("profile_data", {}).get("national_document_data", {}).get("pan", [{}])[0].get("value", ""),
