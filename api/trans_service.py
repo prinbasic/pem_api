@@ -168,14 +168,14 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
 
                 print("................................................................................................ userdetail")
 
-                # dob = dob_formatted
-                # print("DOB:", dob)
+                dob = dob_formatted
+                print("DOB:", dob)
 
-                # credit_score = borrower.get("CreditScore", {}).get("riskScore")
-                # print("Credit Score:", credit_score)
+                credit_score = borrower.get("CreditScore", {}).get("riskScore")
+                print("Credit Score:", credit_score)
 
-                # email = borrower.get("EmailAddress", [{}])[0].get("Email", "")
-                # print("Email:", email)
+                email = borrower.get("EmailAddress", [{}]).get("Email", "")
+                print("Email:", email)
 
                 # gender = borrower.get("Gender", "")
                 # print("Gender:", gender)
