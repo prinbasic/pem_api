@@ -346,29 +346,29 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
     except Exception as e:
         print(f"⚠️ TransBank failed: {str(e)}. Trying fallback via Ongrid...")
 
-        # try:
-        #     # PAN already fetched from earlier step
-        #     if not final_pan_number:
-        #         raise HTTPException(status_code=400, detail="PAN not available for fallback.")
+        try:
+            # PAN already fetched from earlier step
+            if not final_pan_number:
+                raise HTTPException(status_code=400, detail="PAN not available for fallback.")
             
-        #     # Fake OTP to skip verification
-        #     dummy_verified_otp = "NA"
+            # Fake OTP to skip verification
+            dummy_verified_otp = "NA"
 
-        #     # Call fallback function with PAN + phone, and dummy OTP
-        #     fallback_result = await send_and_verify_pan(
-        #         phone_number=phone_number,
-        #         otp=dummy_verified_otp,   # skipped inside logic
-        #         pan_number=final_pan_number
-        #     )
+            # Call fallback function with PAN + phone, and dummy OTP
+            fallback_result = await send_and_verify_pan(
+                phone_number=phone_number,
+                otp=dummy_verified_otp,   # skipped inside logic
+                pan_number=final_pan_number
+            )
 
-        #     return {
-        #         "fallback_used": True,
-        #         **fallback_result
-        #     }
+            return {
+                "fallback_used": True,
+                **fallback_result
+            }
 
-        # except Exception as fallback_error:
-        #     print("❌ Ongrid fallback also failed:", fallback_error)
-            # raise HTTPException(status_code=200, detail=f"Both TransBank and Ongrid failed: {str(fallback_error)}")
+        except Exception as fallback_error:
+            print("❌ Ongrid fallback also failed:", fallback_error)
+            raise HTTPException(status_code=200, detail=f"Both TransBank and Ongrid failed: {str(fallback_error)}")
 
 # async def trans_bank_fetch_flow(phone_number: str, pan_number: Optional[str] = None) -> dict:
 #     try:
@@ -588,13 +588,17 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
 
             return {
                 "consent": "Y",
-                "message": "OTP verified and data fetched successfully",
+                "message": fetch_data.get("message", "OTP verified and data fetched successfully"),
                 "phone_number": phone_number,
-                "pan_number": fetch_data.get("pan_number"),
-                "pan_supreme": fetch_data.get("pan_supreme"),
-                "cibil_report": fetch_data.get("cibil_report"),
-                # "intell_report":fetch_data.get("intell_report")
-                # "user_info": fetch_data.get("profile_detail"),
+                "cibilScore": fetch_data.get("cibilScore"),
+                "transId": fetch_data.get("transId"),
+                "raw": fetch_data.get("raw"),
+                "approvedLenders": fetch_data.get("approvedLenders"),
+                "moreLenders": fetch_data.get("moreLenders"),
+                "emi_data": fetch_data.get("emi_data"),
+                "data": fetch_data.get("data"),
+                # "intell_response": fetch_data.get("intell_response"),
+                "user_details": fetch_data.get("user_details"),
             }
 
         except Exception as e:

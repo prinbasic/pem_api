@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from typing import Optional, Any, Literal
 
 class LoanFormData(BaseModel):
@@ -71,12 +71,16 @@ class VerifyOtpResponse(BaseModel):
     consent: str
     message: str
     phone_number: Optional[str] = None
-    pan_number: Optional[str] = None
-    pan_supreme: Optional[Dict[str, Any]] = None
-    cibil_report: Optional[Dict[str, Any]] = None
-    # intell_report: Optional[Dict[str, Any]] = None  # ✅ mark as Optional
-    # user_info: Optional[Dict[str, Any]] = None
-
+    cibilScore: Optional[int] = None
+    transId: Optional[str] = None
+    raw: Optional[Dict[str, Any]] = None
+    approvedLenders: Optional[List[Dict[str, Any]]] = None
+    moreLenders: Optional[List[Dict[str, Any]]] = None
+    emi_data: Optional[Dict[str, Any]] = None
+    data: Optional[Dict[str, Any]] = None
+    # intell_response: Optional[Dict[str, Any]] = None
+    user_details: Optional[Dict[str, Any]] = None
+    
     class Config:
         orm_mode = True
 
