@@ -256,6 +256,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
 
             except Exception as e:
                 print(f"❌ Error extracting user details: {e}")
+                raise HTTPException(status_code=500, detail=f"CIBIL extraction failed: {str(e)}")
 
             try:
                 conn = get_db_connection()
