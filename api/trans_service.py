@@ -251,7 +251,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                 user_details = {
                     "dob": dob_formatted,
                     "credit_score": borrower.get("CreditScore", {}).get("riskScore"),
-                    "email": borrower.get("EmailAddress", [{}])[0].get("Email"),
+                    "email": borrower.get("EmailAddress", [{}]).get("Email", ""),
                     "gender": borrower.get("Gender"),
                     "pan_number": borrower.get("IdentifierPartition", {}).get("Identifier", [{}])[1].get("ID", {}).get("Id"),
                     "pincode": borrower.get("BorrowerAddress", [{}])[0].get("CreditAddress", {}).get("PostalCode"),
