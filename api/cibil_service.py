@@ -704,61 +704,61 @@ async def send_and_verify_pan(phone_number: str, otp: str , pan_number: str):
                 print("❌ Error logging cibil data:", log_err)
 
             # Debugging the raw_report_data retrieval process
-            print(f"Fetching raw CIBIL data for PAN {pan_number}")
-            try:
-                conn = get_db_connection()
-                with conn.cursor() as cur:
-                    cur.execute("""
-                        SELECT raw_report FROM user_cibil_logs WHERE pan = %s ORDER BY created_at DESC LIMIT 1
-                    """, (pan_number,))
-                    result = cur.fetchone()
-                conn.close()
-                # print(f"Raw CIBIL Data: {result}")
-                raw_report_data = result
-            except Exception as e:
-                print("❌ Error fetching raw report:", e)
+            # print(f"Fetching raw CIBIL data for PAN {pan_number}")
+            # try:
+            #     conn = get_db_connection()
+            #     with conn.cursor() as cur:
+            #         cur.execute("""
+            #             SELECT raw_report FROM user_cibil_logs WHERE pan = %s ORDER BY created_at DESC LIMIT 1
+            #         """, (pan_number,))
+            #         result = cur.fetchone()
+            #     conn.close()
+            #     # print(f"Raw CIBIL Data: {result}")
+            #     raw_report_data = result
+            # except Exception as e:
+            #     print("❌ Error fetching raw report:", e)
 
             # AI-generated report
-            def intell_report():
-                try:
-                    if not raw_report_data:
-                        return {"error": "No raw cibil data found"}
-                    with tempfile.NamedTemporaryFile(mode='w+', suffix='.json', delete=False) as tmpfile:
-                        json.dump(raw_report_data, tmpfile)
-                        tmpfile_path = tmpfile.name
-                    with open(tmpfile_path, 'rb') as f:
-                        files = {'file': f}
-                        resp = requests.post("https://dev-api.orbit.basichomeloan.com/ai/generate_credit_report", files=files)
-                        resp.raise_for_status()
-                        return resp.json()
-                except Exception as e:
-                    return {"error": str(e)}
+            # def intell_report():
+            #     try:
+            #         if not raw_report_data:
+            #             return {"error": "No raw cibil data found"}
+            #         with tempfile.NamedTemporaryFile(mode='w+', suffix='.json', delete=False) as tmpfile:
+            #             json.dump(raw_report_data, tmpfile)
+            #             tmpfile_path = tmpfile.name
+            #         with open(tmpfile_path, 'rb') as f:
+            #             files = {'file': f}
+            #             resp = requests.post("https://dev-api.orbit.basichomeloan.com/ai/generate_credit_report", files=files)
+            #             resp.raise_for_status()
+            #             return resp.json()
+            #     except Exception as e:
+            #         return {"error": str(e)}
 
-            intell_response = intell_report()
+            # intell_response = intell_report()
 
-            try:
-                # Check if intell_response is a dictionary and serialize it
-                if isinstance(intell_response, dict):
-                    serialized_intell_response = json.dumps(intell_response)
-                    print("Serialized intell_response:", serialized_intell_response)  # Debugging
+            # try:
+            #     # Check if intell_response is a dictionary and serialize it
+            #     if isinstance(intell_response, dict):
+            #         serialized_intell_response = json.dumps(intell_response)
+            #         print("Serialized intell_response:", serialized_intell_response)  # Debugging
 
-                # Insert the serialized response into the database
-                conn = get_db_connection()
-                with conn.cursor() as cur:
-                    cur.execute("""
-                        UPDATE user_cibil_logs
-                        SET intell_report = %s
-                        WHERE pan = %s
-                    """, (
-                        serialized_intell_response,  # Pass the serialized JSON
-                        pan_number  # The pan number to identify the row to update
-                    ))
-                    conn.commit()
+            #     # Insert the serialized response into the database
+            #     conn = get_db_connection()
+            #     with conn.cursor() as cur:
+            #         cur.execute("""
+            #             UPDATE user_cibil_logs
+            #             SET intell_report = %s
+            #             WHERE pan = %s
+            #         """, (
+            #             serialized_intell_response,  # Pass the serialized JSON
+            #             pan_number  # The pan number to identify the row to update
+            #         ))
+            #         conn.commit()
 
-                conn.close()
-                print("✅ Cibil log saved to database.")
-            except Exception as log_err:
-                print("❌ Error logging cibil data:", log_err)
+            #     conn.close()
+            #     print("✅ Cibil log saved to database.")
+            # except Exception as log_err:
+            #     print("❌ Error logging cibil data:", log_err)
             
 
             return {
@@ -770,7 +770,7 @@ async def send_and_verify_pan(phone_number: str, otp: str , pan_number: str):
                 "moreLenders": remaining_lenders,
                 "emi_data": emi_data,
                 "data": data,
-                "intell_response": intell_response
+                # "intell_response": intell_response
             }
 
         except Exception as e:
