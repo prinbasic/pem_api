@@ -611,13 +611,13 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                 "phone_number": phone_number,
                 "cibilScore": fetch_data.get("cibilScore"),
                 "transId": fetch_data.get("transId"),
-                "raw": fetch_data.get("raw"),
+                "raw": fetch_data.get("raw") or fetch_data.get("cibil_data"),
                 "approvedLenders": fetch_data.get("approvedLenders"),
                 "moreLenders": fetch_data.get("moreLenders"),
                 "emi_data": fetch_data.get("emi_data"),
-                "data": fetch_data.get("data"),
+                "data": fetch_data.get("data") or fetch_data.get("cibil_data"),
                 # "intell_response": fetch_data.get("intell_response"),
-                "user_details": fetch_data.get("user_details"),
+                "user_details": fetch_data.get("user_details") or fetch_data.get("profile_detail"),
             }
 
         except Exception as e:
