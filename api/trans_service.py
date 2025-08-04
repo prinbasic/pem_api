@@ -605,20 +605,19 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
             print("fetch data", fetch_data)
 
             return {
-                "consent": "Y",
-                "pan": fetch_data.get("pan_number"),
-                "message": fetch_data.get("message", "OTP verified and data fetched successfully"),
-                "phone_number": phone_number,
-                "cibilScore": fetch_data.get("cibilScore"),
-                "transId": fetch_data.get("transId"),
-                "raw": fetch_data.get("raw") or fetch_data.get("cibil_data"),
-                "approvedLenders": fetch_data.get("approvedLenders"),
-                "moreLenders": fetch_data.get("moreLenders"),
-                "emi_data": fetch_data.get("emi_data"),
-                "data": fetch_data.get("data") or fetch_data.get("cibil_data"),
-                # "intell_response": fetch_data.get("intell_response"),
-                "user_details": fetch_data.get("user_details") or fetch_data.get("profile_detail"),
-            }
+                    "consent": "Y",
+                    "pan": fetch_data.get("pan_number"),
+                    "message": fetch_data.get("message", "OTP verified and data fetched successfully"),
+                    "phone_number": phone_number,
+                    "cibilScore": fetch_data.get("cibilScore") or fetch_data.get("profile_detail", {}).get("credit_score"),
+                    "transId": fetch_data.get("transId") or fetch_data.get("cibil_report", {}).get("transaction_id"),
+                    "raw": fetch_data.get("raw") or fetch_data.get("cibil_data") or fetch_data.get("cibil_report"),
+                    "approvedLenders": fetch_data.get("approvedLenders") or [],
+                    "moreLenders": fetch_data.get("moreLenders") or [],
+                    "emi_data": fetch_data.get("emi_data") or {},
+                    "data": fetch_data.get("data") or fetch_data.get("cibil_data") or fetch_data.get("cibil_report"),
+                    "user_details": fetch_data.get("user_details") or fetch_data.get("profile_detail"),
+                }
 
         except Exception as e:
             raise HTTPException(status_code=200, detail=f"{str(e)}")
