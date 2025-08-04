@@ -178,7 +178,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                             "StreetAddress": pan_details["address"].get("address_line_1", "").strip(),
                             "City": pan_details["address"].get("address_line_5", "").strip(),  # BOKARO
                             "PostalCode": int(pan_details["address"].get("pin_code", 0)),
-                            "Region": int(region_code),
+                            "Region": region_code,
                             "AddressType": 1
                         },
                         "EmailID": pan_details.get("email", "").strip(),
