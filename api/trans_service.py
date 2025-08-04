@@ -358,7 +358,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                 "pan_supreme": pan_supreme_data,
                 "cibil_report": cibil_data,
                 # "intell_report": intell_response
-                # "profile_detail": user_details
+                "profile_detail": user_details
             }
     except Exception as e:
         print(f"⚠️ TransBank failed: {str(e)}. Trying fallback via Ongrid...")
@@ -605,6 +605,7 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
 
             return {
                 "consent": "Y",
+                "pan": fetch_data.get("pan_number"),
                 "message": fetch_data.get("message", "OTP verified and data fetched successfully"),
                 "phone_number": phone_number,
                 "cibilScore": fetch_data.get("cibilScore"),
