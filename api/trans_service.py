@@ -223,6 +223,14 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                     except ValueError:
                         dob_formatted = dob_clean  # fallback in case parsing fails
 
+                email_data = borrower.get("EmailAddress", {})
+                if isinstance(email_data, dict):  # Case when EmailAddress is a dict
+                    email = email_data.get("Email", "")
+                elif isinstance(email_data, list) and len(email_data) > 0:  # Case when it's a list
+                    email = email_data[0].get("Email", "")
+                else:
+                    email = ""
+
                 print("................................................................................................ userdetail")
 
                 dob = dob_formatted
@@ -231,7 +239,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                 credit_score = borrower.get("CreditScore", {}).get("riskScore")
                 print("Credit Score:", credit_score)
 
-                email = borrower.get("EmailAddress", [{}]).get("Email", "")
+                email = email
                 print("Email:", email)
 
                 gender = borrower.get("Gender", "")
