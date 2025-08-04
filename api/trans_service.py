@@ -602,6 +602,7 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                 return {"consent": "N", "message": "OTP verification failed"}
 
             fetch_data = await trans_bank_fetch_flow(phone_number=phone_number)
+            print("fetch data", fetch_data)
 
             return {
                 "consent": "Y",
