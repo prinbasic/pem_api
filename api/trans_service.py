@@ -171,8 +171,13 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                             "Id": final_pan_number.strip()
                         },
                         "Address": {
-                            "StreetAddress": pan_details["address"].get("address_line_1", "").strip(),
-                            "City": pan_details["address"].get("address_line_5", "").strip(),  # BOKARO
+                            # "StreetAddress": pan_details["address"].get("address_line_1", "").strip(),
+                            # "City": pan_details["address"].get("address_line_5", "").strip(),  # BOKARO
+                            # "PostalCode": int(pan_details["address"].get("pin_code", 0)),
+                            # "Region": region_code,
+                            # "AddressType": 1
+                            "StreetAddress": "plot no. 266/c",
+                            "City": "BOKARO",  # BOKARO
                             "PostalCode": int(pan_details["address"].get("pin_code", 0)),
                             "Region": region_code,
                             "AddressType": 1
