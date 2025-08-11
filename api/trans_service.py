@@ -260,7 +260,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                     "gender": borrower.get("Gender"),
                     "pan_number": borrower.get("IdentifierPartition", {}).get("Identifier", [{}])[1].get("ID", {}).get("Id"),
                     "pincode": borrower.get("BorrowerAddress", [{}])[0].get("CreditAddress", {}).get("PostalCode"),
-                    "name": borrower.get("BorrowerName", {}).get("Name", {}).get("Forename") + borrower.get("BorrowerName", {}).get("Name", {}).get("Surname"),
+                    "name": borrower.get("BorrowerName", {}).get("Name", {}).get("Forename") +" " + borrower.get("BorrowerName", {}).get("Name", {}).get("Surname"),
                     "phone": phone_number
                 }
 
