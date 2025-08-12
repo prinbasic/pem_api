@@ -252,7 +252,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                 pincode = borrower.get("BorrowerAddress", [{}])[0].get("CreditAddress", {}).get("PostalCode", "")
                 print("Pincode:", pincode)
 
-                name = borrower.get("BorrowerName", {}).get("Name", {}).get("Forename", "")
+                name = borrower.get("BorrowerName", {}).get("Name", {}).get("Forename") +" " + borrower.get("BorrowerName", {}).get("Name", {}).get("Surname")
                 print("Name:", name)
 
                 phone = phone_number
@@ -360,7 +360,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                 "cibil_report": cibil_data,
                 # "intell_report": intell_response
                 "profile_detail": user_details,
-                "source": "Cibil"
+                "source": "cibil"
             }
     except Exception as e:
         print(f"⚠️ TransBank failed: {str(e)}. Trying fallback via Ongrid...")
