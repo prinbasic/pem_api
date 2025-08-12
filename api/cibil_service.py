@@ -794,7 +794,8 @@ async def send_and_verify_pan(phone_number: str, otp: str , pan_number: str):
                 "emi_data": emi_data,
                 "data": data,
                 # "intell_response": intell_response
-                "user_details": user_details
+                "user_details": user_details,
+                "source": "Equifax"
             }
 
         except Exception as e:

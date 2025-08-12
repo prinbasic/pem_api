@@ -80,6 +80,7 @@ class VerifyOtpResponse(BaseModel):
     data: Optional[Dict[str, Any]] = None
     # intell_response: Optional[Dict[str, Any]] = None
     user_details: Optional[Dict[str, Any]] = None
+    source: str
     
     class Config:
         orm_mode = True

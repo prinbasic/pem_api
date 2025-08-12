@@ -265,7 +265,6 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                     "gender": gender,
                     "pan_number": pan_number,
                     "pincode": pincode,
-                    '''need to add a fallback for this api as things are must  and foramtting does matters'''
                     "name": name,
                     "phone": phone_number
                 }
@@ -360,7 +359,8 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                 "pan_supreme": pan_supreme_data,
                 "cibil_report": cibil_data,
                 # "intell_report": intell_response
-                "profile_detail": user_details
+                "profile_detail": user_details,
+                "source": "Cibil"
             }
     except Exception as e:
         print(f"⚠️ TransBank failed: {str(e)}. Trying fallback via Ongrid...")
