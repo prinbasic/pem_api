@@ -260,12 +260,13 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
 
                 user_details = {
                     "dob": dob_formatted,
-                    "credit_score": borrower.get("CreditScore", {}).get("riskScore"),
-                    "email": borrower.get("EmailAddress", [{}]).get("Email", ""),
-                    "gender": borrower.get("Gender"),
-                    "pan_number": borrower.get("IdentifierPartition", {}).get("Identifier", [{}])[1].get("ID", {}).get("Id"),
-                    "pincode": borrower.get("BorrowerAddress", [{}])[0].get("CreditAddress", {}).get("PostalCode"),
-                    "name": borrower.get("BorrowerName", {}).get("Name", {}).get("Forename") +" " + borrower.get("BorrowerName", {}).get("Name", {}).get("Surname"),
+                    "credit_score": credit_score,
+                    "email": email,
+                    "gender": gender,
+                    "pan_number": pan_number,
+                    "pincode": pincode,
+                    '''need to add a fallback for this api as things are must  and foramtting does matters'''
+                    "name": name,
                     "phone": phone_number
                 }
 
