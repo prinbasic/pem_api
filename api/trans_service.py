@@ -619,6 +619,7 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                     "emi_data": fetch_data.get("emi_data") or {},
                     "data": fetch_data.get("data") or fetch_data.get("cibil_data") or fetch_data.get("cibil_report"),
                     "user_details": fetch_data.get("user_details") or fetch_data.get("profile_detail"),
+                     "source": fetch_data.get("source") or "cibil",   # <-- REQUIRED by your model
                 }
 
         except Exception as e:
