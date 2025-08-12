@@ -301,7 +301,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                         pan_details.get("address", {}).get("pin_code"),
                         pan_details.get("email", None),
                         json.dumps(cibil_data),
-                        user_details.get(""),
+                        user_details.get("credit_score"),
                         datetime.now(timezone.utc).isoformat()
                     ))
                     conn.commit()
