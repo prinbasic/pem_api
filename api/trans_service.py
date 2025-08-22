@@ -79,6 +79,137 @@ def generate_ref_num(prefix="BBA"):
     return f"{prefix}{timestamp}{suffix}"
 
 
+STATUS_MEANING = {
+    "0": "Current / no DPD",
+    "1": "30+ DPD",
+    "2": "60+ DPD",
+    "3": "90+ DPD",
+    "STD": "Standard / performing",
+    "SMA": "Special Mention Account",
+    "SUB": "Sub-standard",
+    "DBT": "Doubtful",
+    "LSS": "Loss",
+    "XXX": "No data reported",
+}
+
+def _parse_dt(dt_str: Optional[str]) -> Optional[datetime]:
+    """Parse dates like '2025-08-05+05:30' or '2025-08-05' to aware UTC datetime."""
+    if not dt_str or not isinstance(dt_str, str):
+        return None
+    try:
+        # datetime.fromisoformat handles offsets like +05:30
+        dt = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+    except Exception:
+        try:
+            # fallback: strip offset if present
+            base = dt_str.split("+")[0]
+            return datetime.strptime(base, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        except Exception:
+            return None
+
+def _to_num(val: Any) -> Optional[float]:
+    """Convert numeric strings like '-1', '14481', '3,48,334' to float; treat '-1' as None."""
+    if val is None:
+        return None
+    if isinstance(val, (int, float)):
+        return float(val) if val >= 0 else None
+    if isinstance(val, str):
+        s = val.strip().replace(",", "")
+        try:
+            f = float(s)
+            return f if f >= 0 else None
+        except Exception:
+            return None
+    return None
+
+def _iter_tradelines(obj: Any):
+    """
+    Recursively traverse the JSON to yield tradeline-like dicts.
+    We recognize entries that either:
+      - have a 'Tradeline' key (wrapper objects), or
+      - look like a tradeline (have GrantedTrade & creditorName).
+    """
+    if isinstance(obj, dict):
+        if "Tradeline" in obj and isinstance(obj["Tradeline"], dict):
+            yield obj["Tradeline"]
+        else:
+            # direct shape
+            if "GrantedTrade" in obj and "creditorName" in obj:
+                yield obj
+        for v in obj.values():
+            yield from _iter_tradelines(v)
+    elif isinstance(obj, list):
+        for it in obj:
+            yield from _iter_tradelines(it)
+
+def extract_latest_emi_last_n_days(cibil_data: Dict[str, Any], days: int = 30) -> List[Dict[str, Any]]:
+    """
+    Extract per-tradeline latest EMI/repayment signal within the last `days`.
+    Looks at MonthlyPayStatus dates and dateLastPayment.
+    """
+    now_utc = datetime.now(timezone.utc)
+    cutoff = now_utc - timedelta(days=days)
+    out: List[Dict[str, Any]] = []
+
+    for tl in _iter_tradelines(cibil_data):
+        gt = tl.get("GrantedTrade", {}) if isinstance(tl, dict) else {}
+        ph = gt.get("PayStatusHistory", {}) if isinstance(gt, dict) else {}
+        mps = ph.get("MonthlyPayStatus", [])
+        if isinstance(mps, dict):
+            # sometimes API returns single object
+            mps = [mps]
+
+        # find latest MonthlyPayStatus within window
+        latest_mps_rec: Optional[Dict[str, Any]] = None
+        for rec in mps:
+            dt = _parse_dt(rec.get("date"))
+            if dt and dt >= cutoff and dt <= now_utc:
+                if (latest_mps_rec is None) or (_parse_dt(latest_mps_rec.get("date")) or datetime.min.replace(tzinfo=timezone.utc)) < dt:
+                    latest_mps_rec = rec
+
+        # last payment check
+        dlp_dt = _parse_dt(gt.get("dateLastPayment"))
+        dlp_in_window = dlp_dt is not None and cutoff <= dlp_dt <= now_utc
+
+        # include tradeline if there is any signal in window
+        if latest_mps_rec is None and not dlp_in_window:
+            continue
+
+        status_raw = latest_mps_rec.get("status") if latest_mps_rec else None
+        emi_amount = _to_num(gt.get("EMIAmount"))
+        actual_payment_amount = _to_num(gt.get("actualPaymentAmount"))
+        current_balance = _to_num(tl.get("currentBalance"))
+
+        out.append({
+            "creditorName": tl.get("creditorName"),
+            "accountTypeSymbol": tl.get("AccountType", {}).get("symbol") or tl.get("CreditType", {}).get("symbol") or tl.get("accountTypeSymbol"),
+            "accountNumber": tl.get("accountNumber"),
+            "emi_amount": emi_amount,
+            "last_emi_month": latest_mps_rec.get("date") if latest_mps_rec else None,
+            "monthly_status_raw": status_raw,
+            "monthly_status_meaning": STATUS_MEANING.get(status_raw, "Unknown") if status_raw else None,
+            "dateLastPayment": gt.get("dateLastPayment"),
+            "last_payment_amount": actual_payment_amount,
+            "currentBalance": current_balance,
+            "open_or_closed": ("Closed" if tl.get("currentBalance") in ("0", 0) or tl.get("dateClosed") else "Open"),
+        })
+
+    # Sort most recent first by max(last_emi_month, dateLastPayment)
+    def _key(rec):
+        a = _parse_dt(rec.get("last_emi_month"))
+        b = _parse_dt(rec.get("dateLastPayment"))
+        return max([d for d in (a, b) if d is not None] or [datetime.min.replace(tzinfo=timezone.utc)], key=lambda x: x)
+
+    out.sort(key=_key, reverse=True)
+    return out
+
+
+
+
+
 async def trans_bank_fetch_flow(phone_number: str) -> dict:
     final_pan_number = None
     try:
@@ -353,14 +484,15 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
             #     print("✅ Cibil log saved to database.")
             # except Exception as log_err:
             #     print("❌ Error logging cibil data:", log_err)
-
+            latest_emi_30d = extract_latest_emi_last_n_days(cibil_data, days=30)
             return {
                 "pan_number": final_pan_number,
                 "pan_supreme": pan_supreme_data,
                 "cibil_report": cibil_data,
                 # "intell_report": intell_response
                 "profile_detail": user_details,
-                "source": "cibil"
+                "source": "cibil",
+                "emi_data": latest_emi_30d
             }
     except Exception as e:
         print(f"⚠️ TransBank failed: {str(e)}. Trying fallback via Ongrid...")
@@ -619,7 +751,8 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                     "emi_data": fetch_data.get("emi_data") or {},
                     "data": fetch_data.get("data") or fetch_data.get("cibil_data") or fetch_data.get("cibil_report"),
                     "user_details": fetch_data.get("user_details") or fetch_data.get("profile_detail"),
-                     "source": fetch_data.get("source") or "cibil",   # <-- REQUIRED by your model
+                    "source": fetch_data.get("source") or "cibil",   # <-- REQUIRED by your model
+                    "emi_data": fetch_data.get("emi_data")
                 }
 
         except Exception as e:
