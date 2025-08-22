@@ -489,7 +489,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                 # "intell_report": intell_response
                 "profile_detail": user_details,
                 "source": "cibil",
-                "emi_data": json.dumps(latest_emi_30d, ensure_ascii=False)
+                "emi_data": latest_emi_30d
             }
     except Exception as e:
         print(f"⚠️ TransBank failed: {str(e)}. Trying fallback via Ongrid...")
