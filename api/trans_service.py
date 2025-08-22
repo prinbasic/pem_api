@@ -207,9 +207,6 @@ def extract_latest_emi_last_n_days(cibil_data: Dict[str, Any], days: int = 30) -
     return out
 
 
-
-
-
 async def trans_bank_fetch_flow(phone_number: str) -> dict:
     final_pan_number = None
     try:
@@ -492,7 +489,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                 # "intell_report": intell_response
                 "profile_detail": user_details,
                 "source": "cibil",
-                "emi_data": latest_emi_30d
+                "emi_data": json.dumps(latest_emi_30d, ensure_ascii=False)
             }
     except Exception as e:
         print(f"⚠️ TransBank failed: {str(e)}. Trying fallback via Ongrid...")
