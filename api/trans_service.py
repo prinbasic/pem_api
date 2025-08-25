@@ -381,7 +381,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                 print("Pincode:", pincode)
 
                 # name = borrower.get("BorrowerName", {}).get("Name", {}).get("Forename") +" " + borrower.get("BorrowerName", {}).get("Name", {}).get("Surname")
-                name = mobile_to_prefill_data.get(result).get(name)
+                name = mobile_to_prefill_data.get("result").get("name")
                 print("Name:", name)
 
                 phone = phone_number
