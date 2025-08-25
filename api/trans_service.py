@@ -237,7 +237,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                 print(f"❌ Failed to parse mobile_to_prefill_resp JSON: {e}")
                 print(f"❌ Raw Response Content: {mobile_to_prefill_resp.content}")
             print("📋 Full Mobile to Prefill API Response:", mobile_to_prefill_data)
-
+                    
             # Check if message is "no record found"
             message = mobile_to_prefill_data.get("message", "").lower()
             if message == "no record found":
@@ -380,7 +380,8 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                 pincode = borrower.get("BorrowerAddress", [{}])[0].get("CreditAddress", {}).get("PostalCode", "")
                 print("Pincode:", pincode)
 
-                name = borrower.get("BorrowerName", {}).get("Name", {}).get("Forename") +" " + borrower.get("BorrowerName", {}).get("Name", {}).get("Surname")
+                # name = borrower.get("BorrowerName", {}).get("Name", {}).get("Forename") +" " + borrower.get("BorrowerName", {}).get("Name", {}).get("Surname")
+                name = mobile_to_prefill_data.get(result).get(name)
                 print("Name:", name)
 
                 phone = phone_number
