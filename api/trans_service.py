@@ -330,6 +330,58 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
 
             print(f"cibil data : {cibil_data}")
 
+            # ---- Compute sum of active EMIs (no dateClosed and currentBalance != "0") ----
+            tlp = (
+                cibil_data.get("cibilData", {})
+                        .get("GetCustomerAssetsResponse", {})
+                        .get("GetCustomerAssetsSuccess", {})
+                        .get("Asset", {})
+                        .get("TrueLinkCreditReport", {})
+                        .get("TradeLinePartition")
+            )
+
+            # Normalize to a list
+            if tlp is None:
+                tradelines = []
+            elif isinstance(tlp, list):
+                tradelines = tlp
+            elif isinstance(tlp, dict):
+                tradelines = [tlp]
+            else:
+                tradelines = []
+
+            active_total = 0.0
+            seen = set()  # optional de-dup by (subscriberCode, accountNumber)
+
+            for item in tradelines:
+                t = item.get("Tradeline", {}) if isinstance(item, dict) else {}
+                g = t.get("GrantedTrade", {}) if isinstance(t, dict) else {}
+
+                # active if not closed and currentBalance != "0"
+                if t.get("dateClosed"):
+                    continue
+                if str(t.get("currentBalance", "")).strip() == "0":
+                    continue
+
+                emi_raw = g.get("EMIAmount")
+                if emi_raw in (None, "", "-1", "-1.00"):
+                    continue
+
+                # to float
+                try:
+                    emi_val = float(str(emi_raw).replace(",", "").strip())
+                except Exception:
+                    emi_val = None
+
+                if emi_val and emi_val > 0:
+                    key = (t.get("subscriberCode"), t.get("accountNumber"))
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    active_total += emi_val
+
+            active_emi_sum = max(active_total, 0.0)  # clamp negatives to 0
+
             try:
                 borrower = (
                     cibil_data.get("cibilData", {})
@@ -490,7 +542,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                 # "intell_report": intell_response
                 "profile_detail": user_details,
                 "source": "cibil",
-                # "emi_data": latest_emi_30d
+                "emi_data": active_emi_sum
             }
     except Exception as e:
         print(f"⚠️ TransBank failed: {str(e)}. Trying fallback via Ongrid...")
@@ -755,7 +807,7 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                     "data": fetch_data.get("data") or fetch_data.get("cibil_data") or fetch_data.get("cibil_report"),
                     "user_details": fetch_data.get("user_details") or fetch_data.get("profile_detail"),
                     "source": fetch_data.get("source") or "cibil",   # <-- REQUIRED by your model
-                    # "emi_data": emi_data
+                    "emi_data": emi_data
                 }
 
         except Exception as e:
