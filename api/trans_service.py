@@ -481,7 +481,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
             #     print("✅ Cibil log saved to database.")
             # except Exception as log_err:
             #     print("❌ Error logging cibil data:", log_err)
-            latest_emi_30d = extract_latest_emi_last_n_days(cibil_data, days=30)
+            # latest_emi_30d = extract_latest_emi_last_n_days(cibil_data, days=30)
             return {
                 "pan_number": final_pan_number,
                 "pan_supreme": pan_supreme_data,
@@ -489,7 +489,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                 # "intell_report": intell_response
                 "profile_detail": user_details,
                 "source": "cibil",
-                "emi_data": latest_emi_30d
+                # "emi_data": latest_emi_30d
             }
     except Exception as e:
         print(f"⚠️ TransBank failed: {str(e)}. Trying fallback via Ongrid...")
@@ -754,7 +754,7 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                     "data": fetch_data.get("data") or fetch_data.get("cibil_data") or fetch_data.get("cibil_report"),
                     "user_details": fetch_data.get("user_details") or fetch_data.get("profile_detail"),
                     "source": fetch_data.get("source") or "cibil",   # <-- REQUIRED by your model
-                    "emi_data": emi_data
+                    # "emi_data": emi_data
                 }
 
         except Exception as e:
