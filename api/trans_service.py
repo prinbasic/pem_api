@@ -735,6 +735,11 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
             fetch_data = await trans_bank_fetch_flow(phone_number=phone_number)
             print("fetch data", fetch_data)
 
+            try:
+                emi_data =  fetch_data.get("emi_data")
+            except:
+                emi_data =  None
+
             return {
                     "consent": "Y",
                     "pan": fetch_data.get("pan_number"),
@@ -749,7 +754,7 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                     "data": fetch_data.get("data") or fetch_data.get("cibil_data") or fetch_data.get("cibil_report"),
                     "user_details": fetch_data.get("user_details") or fetch_data.get("profile_detail"),
                     "source": fetch_data.get("source") or "cibil",   # <-- REQUIRED by your model
-                    "emi_data": fetch_data.get("emi_data")
+                    "emi_data": emi_data
                 }
 
         except Exception as e:
