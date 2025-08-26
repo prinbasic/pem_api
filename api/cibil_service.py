@@ -663,7 +663,7 @@ async def send_and_verify_pan(phone_number: str, otp: str , pan_number: str):
             raw = bureau_json
             approved_lenders = []
             remaining_lenders = []
-            emi_data = {}
+            # emi_data = {}
             data = bureau_json.get("data")
             raw_report_data = None
 
@@ -792,7 +792,7 @@ async def send_and_verify_pan(phone_number: str, otp: str , pan_number: str):
                 "raw": raw,
                 "approvedLenders": approved_lenders,
                 "moreLenders": remaining_lenders,
-                "emi_data": emi_data,
+                # "emi_data": emi_data,
                 "data": data,
                 # "intell_response": intell_response
                 "emi_data": emi_data,
