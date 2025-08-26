@@ -126,7 +126,6 @@ async def fetch_lenders_using_score(form: LoanFormData):
     
 
 
-@router.post("/ai/generate-credit-report", tags=["credit"])
-async def generate_credit_report(req: IntellReq):
-    return await intell_report_from_json(req.report)
-
+@router.post("/intell-report", tags=["credit"])
+async def intell_report_endpoint(report: dict = Body(...)):
+    return await intell_report_from_json(report)

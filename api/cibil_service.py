@@ -3,6 +3,7 @@ from datetime import datetime
 from fastapi import HTTPException, Body
 from time import sleep
 import io
+from typing import Dict
 from models.request_models import LoanFormData
 from api.log_utils import log_user_cibil_data
 from api.signature import get_signature_headers
@@ -959,15 +960,13 @@ async def fetch_lenders_and_emi(data: LoanFormData):
 
 
 
-async def intell_report_from_json(raw_report_data: dict) -> dict:
-    if not raw_report_data:
-        return {"error": "No raw cibil data found"}
+async def intell_report_from_json(report: Dict) -> dict:
+    """Accepts a bureau report as a dict, sends it as a JSON file to Orbit AI, and returns the JSON response."""
+    if not isinstance(report, dict) or not report:
+        raise HTTPException(status_code=400, detail="Body must be a non-empty JSON object")
 
-    # Convert dict -> JSON bytes and send as a file field
-    data_bytes = json.dumps(raw_report_data, ensure_ascii=False).encode("utf-8")
-    files = {
-        "file": ("report.json", io.BytesIO(data_bytes), "application/json")
-    }
+    data_bytes = json.dumps(report, ensure_ascii=False, default=str).encode("utf-8")
+    files = {"file": ("report.json", io.BytesIO(data_bytes), "application/json")}
 
     try:
         async with httpx.AsyncClient(timeout=60) as client:
@@ -978,6 +977,4 @@ async def intell_report_from_json(raw_report_data: dict) -> dict:
         raise HTTPException(status_code=e.response.status_code,
                             detail=f"Orbit API error: {e.response.text}")
     except Exception as e:
-        raise HTTPException(status_code=500,
-                            detail=f"Failed to generate report: {str(e)}")
-
+        raise HTTPException(status_code=500, detail=f"Failed to generate report: {str(e)}")
