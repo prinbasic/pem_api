@@ -801,7 +801,7 @@ async def send_and_verify_pan(phone_number: str, otp: str , pan_number: str):
             }
 
         except Exception as e:
-            print("❌ Exception occurred while verifying PAN/Bureau:")
+            print("❌ Exception occurred while verifying PAN/Bureau:", e)
             traceback.print_exc()
             raise HTTPException(status_code=500, detail="Server error during PAN/cibil process")
 
