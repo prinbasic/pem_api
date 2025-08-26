@@ -956,3 +956,27 @@ async def fetch_lenders_and_emi(data: LoanFormData):
         "emi_data": emi_data
     }
 
+
+
+async def intell_report_from_json(raw_report_data: dict) -> dict:
+    if not raw_report_data:
+        return {"error": "No raw cibil data found"}
+
+    # Convert dict -> JSON bytes and send as a file field
+    data_bytes = json.dumps(raw_report_data, ensure_ascii=False).encode("utf-8")
+    files = {
+        "file": ("report.json", io.BytesIO(data_bytes), "application/json")
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=60) as client:
+            resp = await client.post("https://dev-api.orbit.basichomeloan.com/ai/generate_credit_report", files=files)
+        resp.raise_for_status()
+        return resp.json()
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=e.response.status_code,
+                            detail=f"Orbit API error: {e.response.text}")
+    except Exception as e:
+        raise HTTPException(status_code=500,
+                            detail=f"Failed to generate report: {str(e)}")
+

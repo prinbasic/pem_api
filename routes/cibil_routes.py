@@ -3,10 +3,10 @@ from models.request_models import LoanFormData, cibilRequest
 from api.cibil_service import (
     initiate_cibil_score,
     verify_otp_and_fetch_score,
-    poll_consent_and_fetch,send_and_verify_pan, send_otp_to_user, resend_otp_to_user, fetch_lenders_and_emi
+    poll_consent_and_fetch,send_and_verify_pan, send_otp_to_user, resend_otp_to_user, fetch_lenders_and_emi, intell_report_from_json
 )
 from api.log_utils import log_user_cibil_data
-from models.request_models import cibilOTPRequest,PhoneNumberRequest,PANRequest, LoanFormData
+from models.request_models import cibilOTPRequest,PhoneNumberRequest,PANRequest, LoanFormData, IntellReq
 import httpx
 router = APIRouter()
 
@@ -123,3 +123,10 @@ async def fetch_lenders_using_score(form: LoanFormData):
     except Exception as e:
         print("❌ Exception in fetch_lenders_using_score:", e)
         raise HTTPException(status_code=500, detail="Failed to fetch lender and EMI data")
+    
+
+
+@router.post("/ai/generate-credit-report", tags=["credit"])
+async def generate_credit_report(req: IntellReq):
+    return await intell_report_from_json(req.report)
+

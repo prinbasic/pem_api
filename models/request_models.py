@@ -87,3 +87,6 @@ class VerifyOtpResponse(BaseModel):
         orm_mode = True
 
 
+class IntellReq(BaseModel):
+    report: dict   # the JSON object you receive in the body
+
