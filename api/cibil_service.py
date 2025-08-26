@@ -972,9 +972,39 @@ async def intell_report_from_json(report: Dict) -> dict:
         async with httpx.AsyncClient(timeout=60) as client:
             resp = await client.post("https://dev-api.orbit.basichomeloan.com/ai/generate_credit_report", files=files)
         resp.raise_for_status()
-        return resp.json()
+        data = resp.json()
+        pan = data.get("user_details").get("pan")
+
+        #intell response logging
+        try:
+            # Check if intell_response is a dictionary and serialize it
+            if isinstance(data, dict):
+                serialized_intell_response = json.dumps(data)
+                print("Serialized intell_response:", serialized_intell_response)  # Debugging
+
+            # Insert the serialized response into the database
+            conn = get_db_connection()
+            with conn.cursor() as cur:
+                cur.execute("""
+                    UPDATE user_cibil_logs
+                    SET intell_report = %s
+                    WHERE pan = %s
+                """, (
+                    serialized_intell_response,  # Pass the serialized JSON
+                    pan  # The pan number to identify the row to update
+                ))
+                conn.commit()
+
+            conn.close()
+            print("✅ Cibil log saved to database.")
+        except Exception as log_err:
+            print("❌ Error logging cibil data:", log_err)
+
+        return data
     except httpx.HTTPStatusError as e:
         raise HTTPException(status_code=e.response.status_code,
                             detail=f"Orbit API error: {e.response.text}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate report: {str(e)}")
+    
+
