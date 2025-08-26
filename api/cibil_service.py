@@ -2,6 +2,7 @@ import json, requests
 from datetime import datetime
 from fastapi import HTTPException, Body
 from time import sleep
+import io
 from models.request_models import LoanFormData
 from api.log_utils import log_user_cibil_data
 from api.signature import get_signature_headers
