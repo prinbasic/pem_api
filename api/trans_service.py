@@ -462,8 +462,8 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                     cur.execute("""
                         INSERT INTO user_cibil_logs (
                             pan, dob, name, phone, location, email,
-                            raw_report, cibil_score, created_at
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            raw_report, cibil_score, created_at, monthly_emi
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         ON CONFLICT (pan)
                         DO UPDATE SET
                             dob = EXCLUDED.dob,
