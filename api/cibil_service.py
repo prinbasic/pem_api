@@ -783,6 +783,7 @@ async def send_and_verify_pan(phone_number: str, otp: str , pan_number: str):
                 "phone": data.get("profile_data", {}).get("phone", [{}])[0].get("value", "")
             }
 
+            emi_data = raw.get("Tradeline").get("profile_data").get("account_detail").get("account_summary").get("total_monthly_payment_amount")
 
             return {
                 "message": "Credit score available. Report and lenders fetched.",
@@ -794,6 +795,7 @@ async def send_and_verify_pan(phone_number: str, otp: str , pan_number: str):
                 "emi_data": emi_data,
                 "data": data,
                 # "intell_response": intell_response
+                "emi_data": emi_data,
                 "user_details": user_details,
                 "source": "Equifax"
             }
