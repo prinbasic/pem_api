@@ -661,6 +661,7 @@ async def send_and_verify_pan(phone_number: str, otp: str , pan_number: str):
             # 🧠 Optional: Prepare dummy/empty values to return as placeholders
             trans = bureau_json.get("transaction_id", "")
             raw = bureau_json
+            print("raw", raw)
             approved_lenders = []
             remaining_lenders = []
             # emi_data = {}
