@@ -694,7 +694,7 @@ async def send_and_verify_pan(phone_number: str, otp: str , pan_number: str):
                             email = EXCLUDED.email,
                             raw_report = EXCLUDED.raw_report,
                             cibil_score = EXCLUDED.cibil_score,
-                            created_at = EXCLUDED.created_at
+                            created_at = EXCLUDED.created_at,
                             monthly_emi = EXCLUDED.monthly_emi
                     """, (
                         pan_data.get("data", {}).get("pan_data", {}).get("document_id"),

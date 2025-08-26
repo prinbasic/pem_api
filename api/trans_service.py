@@ -473,7 +473,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                             email = EXCLUDED.email,
                             raw_report = EXCLUDED.raw_report,
                             cibil_score = EXCLUDED.cibil_score,
-                            created_at = EXCLUDED.created_at
+                            created_at = EXCLUDED.created_at,
                             monthly_emi = EXCLUDED.monthly_emi
                     """, (
                         pan_details.get("pan"),
