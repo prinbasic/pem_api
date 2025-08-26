@@ -668,6 +668,14 @@ async def send_and_verify_pan(phone_number: str, otp: str , pan_number: str):
             data = bureau_json.get("data")
             raw_report_data = None
 
+            # --- Active EMI sum from the bureau profile response ---
+            try:
+                acct_summary = (raw.get("data") or {}).get("profile_data", {}).get("account_summary", {})  # <- correct path
+                mpa_str = (acct_summary.get("total_monthly_payment_amount") or "0").replace(",", "")
+                active_emi_sum = max(0.0, float(mpa_str))  # clamp negatives to 0
+            except Exception:
+                active_emi_sum = 0.0
+
 
             try:
                 conn = get_db_connection()
@@ -687,6 +695,7 @@ async def send_and_verify_pan(phone_number: str, otp: str , pan_number: str):
                             raw_report = EXCLUDED.raw_report,
                             cibil_score = EXCLUDED.cibil_score,
                             created_at = EXCLUDED.created_at
+                            monthly_emi = EXCLUDED.monthly_emi
                     """, (
                         pan_data.get("data", {}).get("pan_data", {}).get("document_id"),
                         pan_data.get("data", {}).get("pan_data", {}).get("date_of_birth"),
@@ -697,6 +706,7 @@ async def send_and_verify_pan(phone_number: str, otp: str , pan_number: str):
                         json.dumps(raw),
                         score,
                         datetime.now(timezone.utc),
+                        active_emi_sum
                     ))
                     conn.commit()
                 conn.close()
@@ -784,13 +794,7 @@ async def send_and_verify_pan(phone_number: str, otp: str , pan_number: str):
                 "phone": data.get("profile_data", {}).get("phone", [{}])[0].get("value", "")
             }
 
-            # --- Active EMI sum from the bureau profile response ---
-            try:
-                acct_summary = (raw.get("data") or {}).get("profile_data", {}).get("account_summary", {})  # <- correct path
-                mpa_str = (acct_summary.get("total_monthly_payment_amount") or "0").replace(",", "")
-                active_emi_sum = max(0.0, float(mpa_str))  # clamp negatives to 0
-            except Exception:
-                active_emi_sum = 0.0
+            
             return {
                 "message": "Credit score available. Report and lenders fetched.",
                 "cibilScore": score,

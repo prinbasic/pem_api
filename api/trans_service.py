@@ -474,6 +474,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                             raw_report = EXCLUDED.raw_report,
                             cibil_score = EXCLUDED.cibil_score,
                             created_at = EXCLUDED.created_at
+                            monthly_emi = EXCLUDED.monthly_emi
                     """, (
                         pan_details.get("pan"),
                         pan_details.get("dob"),
@@ -483,7 +484,8 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                         pan_details.get("email", None),
                         json.dumps(cibil_data),
                         user_details.get("credit_score"),
-                        datetime.now(timezone.utc).isoformat()
+                        datetime.now(timezone.utc).isoformat(),
+                        active_emi_sum
                     ))
                     conn.commit()
                 conn.close()
