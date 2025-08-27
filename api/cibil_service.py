@@ -969,22 +969,25 @@ PRIORITY_ORDER = [
 ]
 
 def _norm(name: str) -> str:
-    return re.sub(r"\s+", " ", (name or "")).strip().lower()
+    """Lowercase, strip punctuation, normalize spacing."""
+    return re.sub(r'[^a-z0-9 ]', '', (name or "").lower()).strip()
 
 def _priority_key(name: str) -> str | None:
     n = _norm(name)
-    if n in {"sbi", "state bank of india"}:
+
+    if "sbi" in n or "state bank of india" in n:
         return "SBI"
-    if n in {"hdfc", "hdfc bank", "hdfc ltd", "hdfc limited"}:
+    if "hdfc" in n:  # covers "hdfc ltd.", "hdfc ltd (housing...)", "hdfc bank"
         return "HDFC"
-    if n in {"icici", "icici bank"}:
+    if "icici" in n:  # covers "icici bank limited", "icici home finance"
         return "ICICI"
-    if n in {"axis", "axis bank"}:
+    if "axis" in n:   # covers "axis bank ltd."
         return "Axis"
-    if n in {"bank of baroda", "bob"}:
+    if "bank of baroda" in n or "bob" in n:
         return "Bank of Baroda"
-    if n in {"canara bank", "canara"}:
+    if "canara" in n:
         return "Canara Bank"
+
     return None
 
 def _idset(xs):
