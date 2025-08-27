@@ -112,7 +112,7 @@ async def combined_otp_pan_flow(payload: PANRequest):
         pan_number=payload.pan_number
     )
 
-@router.post("/cibil/fetch-lenders", tags=["credit"])
+@router.post("/fetch-lenders", tags=["credit"])
 async def fetch_lenders_using_score(form: LoanFormData):
     try:
         result = await fetch_lenders_and_emi(form)
