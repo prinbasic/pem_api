@@ -286,11 +286,21 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
 
             print(region_code)
 
-            if result.get("email") != "":
-                email = result.get("email")
-                print("got email")
-            else:
-                email = pan_details.get("email")
+            EMAIL_SENTINELS = {"", "na", "n/a", "null", "none", "0", "-"}
+
+            def normalize_email(e: str) -> str:
+                s = (e or "").strip().lower()
+                if s in EMAIL_SENTINELS:
+                    return ""
+                # simple, robust RFC-like check
+                return s if re.match(r"^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$", s) else ""
+
+            def pick_email(*candidates) -> str:
+                for c in candidates:
+                    e = normalize_email(c)
+                    if e:
+                        return e
+                return ""  # no valid email found
 
             # CIBIL Payload
             try:
@@ -316,7 +326,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                             "Region": region_code,
                             "AddressType": 1
                         },
-                        "EmailID": pan_details.get("email", "").strip(),
+                        "EmailID": "prince.raj@basichomeloan.com",
                         "DateOfBirth": pan_details.get("dob", "").strip(),  # Format: YYYY-MM-DD
                         "PhoneNumber": {
                             "Number": int(phone_number)
