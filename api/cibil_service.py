@@ -958,6 +958,93 @@ async def fetch_lenders_and_emi(data: LoanFormData):
         "emi_data": emi_data
     }
 
+async def fetch_lenders_apf(propertyName: str):
+    def to_canonical(name: str) -> str:
+        return re.sub(r'[^a-zA-Z0-9]', '', name).lower()
+
+    def clean_lenders(lenders_list):
+        for lender in lenders_list:
+            lender.pop('id', None)
+        return lenders_list
+
+    def convert_uuids(obj):
+        if isinstance(obj, list):
+            return [convert_uuids(item) for item in obj]
+        elif isinstance(obj, dict):
+            return {k: (str(v) if isinstance(v, uuid.UUID) else convert_uuids(v)) for k, v in obj.items()}
+        return obj
+
+    score = 750
+
+    score = None
+    property_name = propertyName
+    canonical_property = to_canonical(property_name)
+    lenders, approved_lenders = [], []
+    
+    # Step 2: Fetch matching lenders by CIBIL
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT id, lender_name, lender_type, home_loan_roi, lap_roi,
+                    home_loan_ltv, remarks, loan_approval_time, processing_time,
+                    minimum_loan_amount, maximum_loan_amount
+                FROM lenders
+                WHERE CAST(LEFT(minimum_credit_score, 3) AS INTEGER) <= %s
+                AND home_loan_roi IS NOT NULL AND home_loan_roi != ''
+                ORDER BY CAST(REPLACE(SPLIT_PART(home_loan_roi, '-', 1), '%%', '') AS FLOAT)
+            """, (score,))
+            rows = cur.fetchall()
+            col_names = [desc[0] for desc in cur.description]
+        conn.close()
+        for row in rows:
+            row_dict = dict(zip(col_names, row))
+            if isinstance(row_dict.get("id"), uuid.UUID):
+                row_dict["id"] = str(row_dict.get("id"))
+            lenders.append(row_dict)
+    except Exception as e:
+        print("❌ Error fetching lenders:", e)
+
+    # Step 3: Fetch approved lenders by canonical name
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT DISTINCT l.id, l.lender_name, l.lender_type, l.home_loan_roi, l.lap_roi,
+                    l.home_loan_ltv, l.remarks, l.loan_approval_time, l.processing_time,
+                    l.minimum_loan_amount, l.maximum_loan_amount
+                FROM approved_projects ap
+                JOIN approved_projects_lenders apl ON apl.project_id = ap.id
+                JOIN lenders l ON l.id = apl.lender_id
+                WHERE LOWER(ap.canonical_name) = LOWER(%s)
+            """, (canonical_property,))
+            rows = cur.fetchall()
+            col_names = [desc[0] for desc in cur.description]
+        conn.close()
+        for row in rows:
+            row_dict = dict(zip(col_names, row))
+            if isinstance(row_dict.get("id"), uuid.UUID):
+                row_dict["id"] = str(row_dict.get("id"))
+            approved_lenders.append(row_dict)
+    except Exception as e:
+        print("❌ Error fetching approved lenders:", e)
+    
+    # Step 4: Filter more lenders
+    approved_ids = {l['id'] for l in approved_lenders}
+    remaining_lenders = [l for l in lenders if l.get('id') not in approved_ids]
+    combined_lenders = approved_lenders + remaining_lenders
+    limited_lenders = combined_lenders[:9]
+
+    # Step 5: Final selection
+    approved_lenders_final = approved_lenders[:5]
+    limited_lenders = approved_lenders_final + remaining_lenders
+
+    return {
+        "message": "Lenders fetched and EMI calculated successfully",
+        "cibilScore": score,
+        "approvedLenders": clean_lenders(approved_lenders_final),
+        "moreLenders": clean_lenders(remaining_lenders),
+    }
 
 
 async def intell_report_from_json(report: Dict) -> dict:
