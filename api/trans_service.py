@@ -286,6 +286,12 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
 
             print(region_code)
 
+            if result.get("email") != "":
+                email = result.get("email")
+                print("got email")
+            else:
+                email = pan_details.get("email")
+
             # CIBIL Payload
             try:
                 cibil_payload = {
@@ -310,7 +316,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                             "Region": region_code,
                             "AddressType": 1
                         },
-                        "EmailID": result.get("email", "").strip(),
+                        "EmailID": (email or "").strip(),
                         "DateOfBirth": pan_details.get("dob", "").strip(),  # Format: YYYY-MM-DD
                         "PhoneNumber": {
                             "Number": int(phone_number)
