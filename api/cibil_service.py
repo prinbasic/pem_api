@@ -889,7 +889,7 @@ async def fetch_lenders_and_emi(data: LoanFormData):
         conn = get_db_connection()
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT l.id, l.lender_name, l.lender_type, l.home_loan_roi, l.lap_roi,
+                SELECT DISTINCT l.id, l.lender_name, l.lender_type, l.home_loan_roi, l.lap_roi,
                     l.home_loan_ltv, l.remarks, l.loan_approval_time, l.processing_time,
                     l.minimum_loan_amount, l.maximum_loan_amount
                 FROM approved_projects ap
