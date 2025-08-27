@@ -125,7 +125,7 @@ async def fetch_lenders_using_score(form: LoanFormData):
         raise HTTPException(status_code=500, detail="Failed to fetch lender and EMI data")
     
 
-@router.post("/cibil/fetchlenders_apf", tags=["credit"])
+@router.post("/fetchlenders_apf", tags=["credit"])
 async def fetch_lenders(propertyName: str):
     try:
         result = await fetch_lenders_apf(propertyName)
