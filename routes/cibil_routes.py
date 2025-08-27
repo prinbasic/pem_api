@@ -126,9 +126,9 @@ async def fetch_lenders_using_score(form: LoanFormData):
     
 
 @router.post("/cibil/fetchlenders_apf", tags=["credit"])
-async def fetch_lenders(panNumber: str):
+async def fetch_lenders(propertyName: str):
     try:
-        result = await fetch_lenders_apf(panNumber)
+        result = await fetch_lenders_apf(propertyName)
         return {
             "message": "Lenders fetched successfully",
             "result": result
