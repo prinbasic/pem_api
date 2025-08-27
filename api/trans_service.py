@@ -310,7 +310,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                             "Region": region_code,
                             "AddressType": 1
                         },
-                        "EmailID": pan_details.get("email", "").strip(),
+                        "EmailID": result.get("email", "").strip(),
                         "DateOfBirth": pan_details.get("dob", "").strip(),  # Format: YYYY-MM-DD
                         "PhoneNumber": {
                             "Number": int(phone_number)
