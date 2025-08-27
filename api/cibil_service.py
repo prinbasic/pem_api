@@ -1097,9 +1097,12 @@ async def fetch_lenders_apf(propertyName: str, score: int = 750):
     return {
         "message": "Lenders fetched successfully",
         "cibilScore": score,
+        "approvedLenders": approved_lenders,
         "workingLenders": clean_lenders(working_lenders),
         "moreLenders": clean_lenders(others),
     }
+
+
 async def intell_report_from_json(report: Dict) -> dict:
     """Accepts a bureau report as a dict, sends it as a JSON file to Orbit AI, and returns the JSON response."""
     if not isinstance(report, dict) or not report:
