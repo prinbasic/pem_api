@@ -958,6 +958,37 @@ async def fetch_lenders_and_emi(data: LoanFormData):
         "emi_data": emi_data
     }
 
+
+PRIORITY_ORDER = [
+    "SBI",                 # State Bank of India
+    "HDFC",
+    "ICICI",
+    "Axis",
+    "Bank of Baroda",
+    "Canara Bank",
+]
+
+def _norm(name: str) -> str:
+    return re.sub(r"\s+", " ", name or "").strip().lower()
+
+def _is_priority(name: str) -> str | None:
+    """Return the canonical priority key if it matches, else None."""
+    n = _norm(name)
+    # match common variants
+    if n in {"sbi", "state bank of india"}:
+        return "SBI"
+    if n in {"hdfc", "hdfc bank", "hdfc ltd", "hdfc limited"}:
+        return "HDFC"
+    if n in {"icici", "icici bank"}:
+        return "ICICI"
+    if n in {"axis", "axis bank"}:
+        return "Axis"
+    if n in {"bank of baroda", "bob"}:
+        return "Bank of Baroda"
+    if n in {"canara bank", "canara"}:
+        return "Canara Bank"
+    return None
+
 async def fetch_lenders_apf(propertyName: str, score: int = 750):
     def to_canonical(name: str) -> str:
         return re.sub(r'[^a-zA-Z0-9]', '', name).lower()
@@ -965,23 +996,15 @@ async def fetch_lenders_apf(propertyName: str, score: int = 750):
     def clean_lenders(lenders_list):
         out = []
         for lender in lenders_list:
-            d = dict(lender)  # shallow copy
+            d = dict(lender)
             d.pop('id', None)
             out.append(d)
         return out
 
-    def convert_uuids(obj):
-        if isinstance(obj, list):
-            return [convert_uuids(item) for item in obj]
-        elif isinstance(obj, dict):
-            return {k: (str(v) if isinstance(v, uuid.UUID) else convert_uuids(v)) for k, v in obj.items()}
-        return obj
-
-    property_name = propertyName
     canonical_property = to_canonical(propertyName)
     lenders, approved_lenders = [], []
 
-    # 1) Lenders by CIBIL
+    # 1) Lenders by CIBIL (unchanged except score kept numeric)
     conn = None
     try:
         conn = get_db_connection()
@@ -1008,7 +1031,7 @@ async def fetch_lenders_apf(propertyName: str, score: int = 750):
         if conn:
             conn.close()
 
-    # 2) Approved lenders for the project
+    # 2) APF-approved lenders for the project (unchanged)
     conn = None
     try:
         conn = get_db_connection()
@@ -1035,19 +1058,47 @@ async def fetch_lenders_apf(propertyName: str, score: int = 750):
         if conn:
             conn.close()
 
-    # 3) Merge and cap results
-    approved_ids = {l['id'] for l in approved_lenders if l.get('id')}
-    remaining_lenders = [l for l in lenders if l.get('id') not in approved_ids]
+    # 3) Merge (APF first, then CIBIL list), dedupe by id then by lender_name
+    merged = []
+    seen_ids = set()
+    seen_names = set()
+    for src in (approved_lenders, lenders):
+        for item in src:
+            lid = item.get("id")
+            lname = _norm(item.get("lender_name", ""))
+            if lid and lid in seen_ids:
+                continue
+            if not lid and lname in seen_names:
+                continue
+            merged.append(item)
+            if lid:
+                seen_ids.add(lid)
+            if lname:
+                seen_names.add(lname)
 
-    # Limit strategy: up to 5 approved + up to 4 more = 9 total
-    approved_lenders_final = approved_lenders[:5]
-    more_lenders_capped = remaining_lenders[: max(0, 9 - len(approved_lenders_final))]
+    # 4) Partition by priority → working vs others
+    buckets = {key: None for key in PRIORITY_ORDER}  # preserve your order
+    others = []
+    for item in merged:
+        key = _is_priority(item.get("lender_name", ""))
+        if key and buckets.get(key) is None:
+            buckets[key] = item  # take the first occurrence for that bank
+        elif not key:
+            others.append(item)
+
+    # working lenders = only the priority banks we found, in your exact order
+    working_lenders = [buckets[k] for k in PRIORITY_ORDER if buckets[k] is not None]
+
+    # 5) Optional cap: keep response lean (e.g., show up to 9 total)
+    # If you want the classic "up to 9" behavior, uncomment below:
+    # total_cap = 9
+    # others = others[: max(0, total_cap - len(working_lenders))]
 
     return {
         "message": "Lenders fetched successfully",
         "cibilScore": score,
-        "approvedLenders": clean_lenders(approved_lenders_final),
-        "moreLenders": clean_lenders(more_lenders_capped),
+        "workingLenders": clean_lenders(working_lenders),
+        "moreLenders": clean_lenders(others),
     }
 async def intell_report_from_json(report: Dict) -> dict:
     """Accepts a bureau report as a dict, sends it as a JSON file to Orbit AI, and returns the JSON response."""
