@@ -978,7 +978,7 @@ async def fetch_lenders_apf(propertyName: str):
 
     score = None
     property_name = propertyName
-    canonical_property = to_canonical(property_name)
+    canonical_property = to_canonical(propertyName)
     lenders, approved_lenders = [], []
     
     # Step 2: Fetch matching lenders by CIBIL
