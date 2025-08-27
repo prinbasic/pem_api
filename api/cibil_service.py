@@ -969,12 +969,10 @@ PRIORITY_ORDER = [
 ]
 
 def _norm(name: str) -> str:
-    return re.sub(r"\s+", " ", name or "").strip().lower()
+    return re.sub(r"\s+", " ", (name or "")).strip().lower()
 
-def _is_priority(name: str) -> str | None:
-    """Return the canonical priority key if it matches, else None."""
+def _priority_key(name: str) -> str | None:
     n = _norm(name)
-    # match common variants
     if n in {"sbi", "state bank of india"}:
         return "SBI"
     if n in {"hdfc", "hdfc bank", "hdfc ltd", "hdfc limited"}:
@@ -989,22 +987,29 @@ def _is_priority(name: str) -> str | None:
         return "Canara Bank"
     return None
 
+def _idset(xs):
+    return {x.get("id") for x in xs if x.get("id")}
+
+def _nameset(xs):
+    return {_norm(x.get("lender_name", "")) for x in xs if x.get("lender_name")}
+
+def _clean_lenders(lenders_list):
+    out = []
+    for lender in lenders_list:
+        d = dict(lender)
+        d.pop('id', None)   # remove id only from payload, not from internal logic
+        out.append(d)
+    return out
+
 async def fetch_lenders_apf(propertyName: str, score: int = 750):
     def to_canonical(name: str) -> str:
         return re.sub(r'[^a-zA-Z0-9]', '', name).lower()
 
-    def clean_lenders(lenders_list):
-        out = []
-        for lender in lenders_list:
-            d = dict(lender)
-            d.pop('id', None)
-            out.append(d)
-        return out
-
     canonical_property = to_canonical(propertyName)
+
     lenders, approved_lenders = [], []
 
-    # 1) Lenders by CIBIL (unchanged except score kept numeric)
+    # 1) LENDERS by CIBIL
     conn = None
     try:
         conn = get_db_connection()
@@ -1031,7 +1036,7 @@ async def fetch_lenders_apf(propertyName: str, score: int = 750):
         if conn:
             conn.close()
 
-    # 2) APF-approved lenders for the project (unchanged)
+    # 2) APF-APPROVED lenders
     conn = None
     try:
         conn = get_db_connection()
@@ -1058,7 +1063,7 @@ async def fetch_lenders_apf(propertyName: str, score: int = 750):
         if conn:
             conn.close()
 
-    # 3) Merge (APF first, then CIBIL list), dedupe by id then by lender_name
+    # 3) MERGE (APF first then CIBIL), dedupe by id and name
     merged = []
     seen_ids = set()
     seen_names = set()
@@ -1076,30 +1081,58 @@ async def fetch_lenders_apf(propertyName: str, score: int = 750):
             if lname:
                 seen_names.add(lname)
 
-    # 4) Partition by priority → working vs others
-    buckets = {key: None for key in PRIORITY_ORDER}  # preserve your order
-    others = []
-    for item in merged:
-        key = _is_priority(item.get("lender_name", ""))
-        if key and buckets.get(key) is None:
-            buckets[key] = item  # take the first occurrence for that bank
-        elif not key:
-            others.append(item)
+    # 4) Build APPROVED (highest precedence)
+    approved_ids = _idset(approved_lenders)
+    approved_names = _nameset(approved_lenders)
 
-    # working lenders = only the priority banks we found, in your exact order
+    # 5) From remaining, pick WORKING (priority banks) in your order
+    buckets = {k: None for k in PRIORITY_ORDER}  # preserve order
+    non_approved_pool = []
+    for item in merged:
+        lid = item.get("id")
+        lname = _norm(item.get("lender_name", ""))
+
+        # exclude anything already in approved
+        if (lid and lid in approved_ids) or (lname and lname in approved_names):
+            continue
+
+        key = _priority_key(item.get("lender_name", ""))
+        if key and buckets[key] is None:
+            buckets[key] = item
+        else:
+            non_approved_pool.append(item)
+
     working_lenders = [buckets[k] for k in PRIORITY_ORDER if buckets[k] is not None]
 
-    # 5) Optional cap: keep response lean (e.g., show up to 9 total)
-    # If you want the classic "up to 9" behavior, uncomment below:
-    # total_cap = 9
-    # others = others[: max(0, total_cap - len(working_lenders))]
+    # 6) MORE LENDERS = merged minus (approved ∪ working)
+    working_ids = _idset(working_lenders)
+    working_names = _nameset(working_lenders)
+
+    more_lenders = []
+    for item in merged:
+        lid = item.get("id")
+        lname = _norm(item.get("lender_name", ""))
+
+        if (lid and lid in approved_ids) or (lname and lname in approved_names):
+            continue
+        if (lid and lid in working_ids) or (lname and lname in working_names):
+            continue
+
+        more_lenders.append(item)
+
+    # 7) Optional cap (e.g., keep response lean: 6 working + up to 3 more = 9)
+    total_cap = 13
+    if len(working_lenders) >= total_cap:
+        more_lenders = []
+    else:
+        more_lenders = more_lenders[: total_cap - len(working_lenders)]
 
     return {
         "message": "Lenders fetched successfully",
         "cibilScore": score,
-        "approvedLenders": approved_lenders,
-        "workingLenders": clean_lenders(working_lenders),
-        "moreLenders": clean_lenders(others),
+        "approvedLenders": _clean_lenders(approved_lenders),
+        "workingLenders": _clean_lenders(working_lenders),
+        "moreLenders": _clean_lenders(more_lenders),
     }
 
 
