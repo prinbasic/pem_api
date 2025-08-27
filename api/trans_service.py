@@ -472,14 +472,16 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                 print(f"❌ Error extracting user details: {e}")
                 raise HTTPException(status_code=500, detail=f"CIBIL extraction failed: {str(e)}")
 
+            consent = "Y"
+
             try:
                 conn = get_db_connection()
                 with conn.cursor() as cur:
                     cur.execute("""
                         INSERT INTO user_cibil_logs (
                             pan, dob, name, phone, location, email,
-                            raw_report, cibil_score, created_at, monthly_emi
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            raw_report, cibil_score, created_at, monthly_emi, consent
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         ON CONFLICT (pan)
                         DO UPDATE SET
                             dob = EXCLUDED.dob,
@@ -490,7 +492,8 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                             raw_report = EXCLUDED.raw_report,
                             cibil_score = EXCLUDED.cibil_score,
                             created_at = EXCLUDED.created_at,
-                            monthly_emi = EXCLUDED.monthly_emi
+                            monthly_emi = EXCLUDED.monthly_emi,
+                            consent: EXCLUDED.consent
                     """, (
                         pan_details.get("pan"),
                         pan_details.get("dob"),
@@ -501,7 +504,8 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                         json.dumps(cibil_data),
                         user_details.get("credit_score"),
                         datetime.now(timezone.utc).isoformat(),
-                        active_emi_sum
+                        active_emi_sum,
+                        consent
                     ))
                     conn.commit()
                 conn.close()
