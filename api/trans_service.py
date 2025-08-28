@@ -354,7 +354,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                         .get("GetCustomerAssetsSuccess", {})
                         .get("Asset", {})
                         .get("TrueLinkCreditReport", {})
-                        .get("TradeLinePartition")
+                        .get("Borrower")
             )
 
             # Normalize to a list

@@ -1,27 +1,57 @@
- curl -X POST https://api.trusthub.in/cibil-report   -H "x-api-key: nrqfVLG9zM1Hg66gyV78I53ju91sEHEpcawO9Cs6"   -H "Content-Type: application/json; charset=utf-8"   -d '{
-            "CustomerInfo": {
-           "Name": {
-              "Forename": "PRINCE",
-              "Surname": "RAJ"
+{
+  "CustomerInfo": {
+    "Name": {
+      "Forename": "PRINCE",
+      "Surname": "RAJ"
+    },
+    "IdentificationNumber": {
+      "IdentifierName": "TaxId",
+      "Id": "DYEPR1604C"
+    },
+    "Address": {
+      "StreetAddress": "plot no. 266/c",
+      "City": "BOKARO",
+      "PostalCode": 827010,
+      "Region": "20",
+      "AddressType": 1
+    },
+    "EmailID": "prince.raj@basichomeloan.com",
+    "DateOfBirth": "1999-12-31",
+    "PhoneNumber": {
+      "Number": 7759054070
+    },
+    "Gender": "Male"
+  },
+  "LegalCopyStatus": "Accept",
+  "UserConsentForDataSharing": True
+
+}
+
+
+curl -X POST https://api.trusthub.in/cibil-report   -H "x-api-key: nrqfVLG9zM1Hg66gyV78I53ju91sEHEpcawO9Cs6"   -H "Content-Type: application/json; charset=utf-8"   -d '{
+           "CustomerInfo": {
+            "Name": {
+               "Forename": "PRINCE",
+               "Surname": "RAJ"
+              },
+              "IdentificationNumber": {
+                  "IdentifierName": "TaxId",
+                "Id": "DYEPR1604C"
+             },
+            "Address": {
+                 "StreetAddress": "plot no. 266/c",
+                  "City": "BOKARO",
+                "PostalCode": 827012,
+                "Region": "20",
+                "AddressType": 1
             },
-            "IdentificationNumber": {
-                "IdentifierName": "TaxId",
-              "Id": "DYEPR1604C"
+            "EmailID": "prince@gmail.com",
+            "DateOfBirth": "1999-12-31",
+            "PhoneNumber": {
+                "Number": 7759054070
             },
-           "Address": {
-                "StreetAddress": "plot no. 266/c",
-               "City": "BOKARO",
-               "PostalCode": 827012,
-               "Region": "20",
-               "AddressType": 1
-           },
-           "EmailID": "rp******01@gmail.com",
-           "DateOfBirth": "1999-12-31",
-           "PhoneNumber": {
-               "Number": 7759054070
-           },
-           "Gender": "Male"
-       },
-       "LegalCopyStatus": "Accept",
-       "UserConsentForDataSharing": true
-       }'
+            "Gender": "Male"
+        },
+        "LegalCopyStatus": "Accept",
+        "UserConsentForDataSharing": true
+                }'
