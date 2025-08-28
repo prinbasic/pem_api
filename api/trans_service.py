@@ -324,7 +324,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                             "StreetAddress": "plot no. 266/c",
                             "City": "BOKARO",  # BOKARO
                             "PostalCode": 827010,
-                            "Region": 20,
+                            "Region": region_code,
                             "AddressType": 1
                         },
                         "EmailID": "prince.raj@basichomeloan.com",
