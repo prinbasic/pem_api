@@ -442,7 +442,8 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                 gender = borrower.get("Gender", "")
                 print("Gender:", gender)
 
-                pan_number = borrower.get("IdentifierPartition", {}).get("Identifier", [{}])[1].get("ID", {}).get("Id", "")
+                # pan_number = borrower.get("IdentifierPartition", {}).get("Identifier", [{}])[1].get("ID", {}).get("Id", "")
+                pan_number = final_pan_number.strip()
                 print("PAN Number:", pan_number)
 
                 pincode = borrower.get("BorrowerAddress", [{}])[0].get("CreditAddress", {}).get("PostalCode", "")
@@ -493,7 +494,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                             cibil_score = EXCLUDED.cibil_score,
                             created_at = EXCLUDED.created_at,
                             monthly_emi = EXCLUDED.monthly_emi,
-                            consent: EXCLUDED.consent
+                            consent = EXCLUDED.consent
                     """, (
                         pan_details.get("pan"),
                         pan_details.get("dob"),
