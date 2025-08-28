@@ -348,7 +348,8 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
 
             # ---- Compute sum of active EMIs (no dateClosed and currentBalance != "0") ----
             tlp = (
-                cibil_data.get("cibilData", {})
+                cibil_data.get("data", {})
+                        .get("cibilData", {})
                         .get("GetCustomerAssetsResponse", {})
                         .get("GetCustomerAssetsSuccess", {})
                         .get("Asset", {})
