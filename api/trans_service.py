@@ -11,6 +11,7 @@ import requests
 from db_client import get_db_connection  # make sure this is imported
 from datetime import datetime, timezone
 import os
+import re
 from dotenv import load_dotenv
 from api.cibil_service import send_and_verify_pan
 
