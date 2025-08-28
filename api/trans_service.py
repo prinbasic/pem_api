@@ -354,7 +354,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                         .get("GetCustomerAssetsSuccess", {})
                         .get("Asset", {})
                         .get("TrueLinkCreditReport", {})
-                        .get("Borrower")
+                        .get("TradeLinePartition")
             )
 
             # Normalize to a list
@@ -401,7 +401,8 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
 
             try:
                 borrower = (
-                    cibil_data.get("cibilData", {})
+                    cibil_data.get("data", {})
+                    .get("cibilData", {})
                     .get("GetCustomerAssetsResponse", {})
                     .get("GetCustomerAssetsSuccess", {})
                     .get("Asset", {})
