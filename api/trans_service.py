@@ -325,7 +325,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                             # "AddressType": 1
                             "StreetAddress": "plot no. 266/c",
                             "City": "BOKARO",  # BOKARO
-                            "PostalCode": 827010,
+                            "PostalCode": int(pan_details["address"].get("pin_code", 0)),
                             "Region": region_code,
                             "AddressType": 1
                         },
