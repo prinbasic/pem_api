@@ -302,6 +302,8 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                     if e:
                         return e
                 return ""  # no valid email found
+            
+            region_dummy = 20
 
             # CIBIL Payload
             try:
@@ -324,7 +326,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                             "StreetAddress": "plot no. 266/c",
                             "City": "BOKARO",  # BOKARO
                             "PostalCode": 827010,
-                            "Region": region_code,
+                            "Region": region_dummy,
                             "AddressType": 1
                         },
                         "EmailID": "prince.raj@basichomeloan.com",
