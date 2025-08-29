@@ -347,6 +347,8 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
 
             cibil_data = cibil_resp.json()
 
+            print(f"cibil data : {cibil_data}")
+
             if cibil_data.get("result").get("status") == "error":
                 raise HTTPException(status_code=500, detail=f"CIBIL extraction failed")
             else:
