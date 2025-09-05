@@ -1143,6 +1143,154 @@ def _clean_lenders(lenders_list):
 #     }
 
 
+# async def fetch_lenders_apf(propertyName: str, score: int = 750):
+#     def to_canonical(name: str) -> str:
+#         return re.sub(r'[^a-zA-Z0-9]', '', name).lower()
+
+#     def parse_roi(roi_str: str):
+#         """
+#         Extract the first numeric value from a ROI string.
+#         Examples:
+#             "7.50 p.a. onwards" -> 7.5
+#             "7.50-8.25%" -> 7.5
+#             "N/A" -> None
+#         """
+#         if not roi_str:
+#             return None
+#         match = re.search(r'\d+(\.\d+)?', roi_str)
+#         return float(match.group()) if match else None
+
+#     canonical_property = to_canonical(propertyName)
+#     lenders, approved_lenders = [], []
+
+#     # --- 1) LENDERS by CIBIL ---
+#     conn = None
+#     try:
+#         conn = get_db_connection()
+#         with conn.cursor() as cur:
+#             cur.execute("""
+#                 SELECT id, lender_name, lender_type, home_loan_roi, lap_roi,
+#                        home_loan_ltv, remarks, loan_approval_time, processing_time,
+#                        minimum_loan_amount, maximum_loan_amount, minimum_credit_score
+#                 FROM lenders
+#                 WHERE CAST(LEFT(minimum_credit_score, 3) AS INTEGER) <= %s
+#                   AND home_loan_roi IS NOT NULL AND home_loan_roi <> ''
+#             """, (score,))
+#             rows = cur.fetchall()
+#             col_names = [desc[0] for desc in cur.description]
+#         for row in rows:
+#             row_dict = dict(zip(col_names, row))
+#             if isinstance(row_dict.get("id"), uuid.UUID):
+#                 row_dict["id"] = str(row_dict["id"])
+#             # parse ROI into float for sorting
+#             row_dict["home_loan_roi_float"] = parse_roi(row_dict.get("home_loan_roi"))
+#             lenders.append(row_dict)
+#         # sort by numeric ROI ascending
+#         lenders.sort(key=lambda x: (x["home_loan_roi_float"] is None, x["home_loan_roi_float"]))
+#     except Exception as e:
+#         print("❌ Error fetching lenders:", e)
+#     finally:
+#         if conn:
+#             conn.close()
+
+#     # --- 2) APF-APPROVED lenders ---
+#     conn = None
+#     try:
+#         conn = get_db_connection()
+#         with conn.cursor() as cur:
+#             cur.execute("""
+#                 SELECT DISTINCT l.id, l.lender_name, l.lender_type, l.home_loan_roi, l.lap_roi,
+#                                 l.home_loan_ltv, l.remarks, l.loan_approval_time, l.processing_time,
+#                                 l.minimum_loan_amount, l.maximum_loan_amount
+#                 FROM approved_projects ap
+#                 JOIN approved_projects_lenders apl ON apl.project_id = ap.id
+#                 JOIN lenders l ON l.id = apl.lender_id
+#                 WHERE ap.canonical_name = %s
+#             """, (canonical_property,))
+#             rows = cur.fetchall()
+#             col_names = [desc[0] for desc in cur.description]
+#         for row in rows:
+#             row_dict = dict(zip(col_names, row))
+#             if isinstance(row_dict.get("id"), uuid.UUID):
+#                 row_dict["id"] = str(row_dict["id"])
+#             row_dict["home_loan_roi_float"] = parse_roi(row_dict.get("home_loan_roi"))
+#             approved_lenders.append(row_dict)
+#         approved_lenders.sort(key=lambda x: (x["home_loan_roi_float"] is None, x["home_loan_roi_float"]))
+#     except Exception as e:
+#         print("❌ Error fetching approved lenders:", e)
+#     finally:
+#         if conn:
+#             conn.close()
+
+#     # --- 3) MERGE (APF first then CIBIL), dedupe by id and name ---
+#     merged = []
+#     seen_ids = set()
+#     seen_names = set()
+#     for src in (approved_lenders, lenders):
+#         for item in src:
+#             lid = item.get("id")
+#             lname = _norm(item.get("lender_name", ""))
+#             if lid and lid in seen_ids:
+#                 continue
+#             if not lid and lname in seen_names:
+#                 continue
+#             merged.append(item)
+#             if lid:
+#                 seen_ids.add(lid)
+#             if lname:
+#                 seen_names.add(lname)
+
+#     # --- 4) Build APPROVED (highest precedence) ---
+#     approved_ids = _idset(approved_lenders)
+#     approved_names = _nameset(approved_lenders)
+
+#     # --- 5) From remaining, pick WORKING (priority banks) ---
+#     buckets = {k: None for k in PRIORITY_ORDER}  # preserve order
+#     non_approved_pool = []
+#     for item in merged:
+#         lid = item.get("id")
+#         lname = _norm(item.get("lender_name", ""))
+#         if (lid and lid in approved_ids) or (lname and lname in approved_names):
+#             continue
+
+#         key = _priority_key(item.get("lender_name", ""))
+#         if key and buckets[key] is None:
+#             buckets[key] = item
+#         else:
+#             non_approved_pool.append(item)
+
+#     working_lenders = [buckets[k] for k in PRIORITY_ORDER if buckets[k] is not None]
+
+#     # --- 6) MORE LENDERS = merged minus (approved ∪ working) ---
+#     working_ids = _idset(working_lenders)
+#     working_names = _nameset(working_lenders)
+
+#     more_lenders = []
+#     for item in merged:
+#         lid = item.get("id")
+#         lname = _norm(item.get("lender_name", ""))
+#         if (lid and lid in approved_ids) or (lname and lname in approved_names):
+#             continue
+#         if (lid and lid in working_ids) or (lname and lname in working_names):
+#             continue
+#         more_lenders.append(item)
+
+#     # --- 7) Optional cap (e.g., 6 working + up to 7 more = 13 total) ---
+#     total_cap = 13
+#     if len(working_lenders) >= total_cap:
+#         more_lenders = []
+#     else:
+#         more_lenders = more_lenders[: total_cap - len(working_lenders)]
+
+#     # --- 8) Clean response ---
+#     return {
+#         "message": "Lenders fetched successfully",
+#         "cibilScore": score,
+#         "approvedLenders": _clean_lenders(approved_lenders),
+#         "workingLenders": _clean_lenders(working_lenders),
+#         "moreLenders": _clean_lenders(more_lenders),
+#     }
+
 async def fetch_lenders_apf(propertyName: str, score: int = 750):
     def to_canonical(name: str) -> str:
         return re.sub(r'[^a-zA-Z0-9]', '', name).lower()
@@ -1178,6 +1326,7 @@ async def fetch_lenders_apf(propertyName: str, score: int = 750):
             """, (score,))
             rows = cur.fetchall()
             col_names = [desc[0] for desc in cur.description]
+
         for row in rows:
             row_dict = dict(zip(col_names, row))
             if isinstance(row_dict.get("id"), uuid.UUID):
@@ -1185,8 +1334,10 @@ async def fetch_lenders_apf(propertyName: str, score: int = 750):
             # parse ROI into float for sorting
             row_dict["home_loan_roi_float"] = parse_roi(row_dict.get("home_loan_roi"))
             lenders.append(row_dict)
-        # sort by numeric ROI ascending
+
+        # sort numerically by ROI ascending
         lenders.sort(key=lambda x: (x["home_loan_roi_float"] is None, x["home_loan_roi_float"]))
+
     except Exception as e:
         print("❌ Error fetching lenders:", e)
     finally:
@@ -1209,13 +1360,16 @@ async def fetch_lenders_apf(propertyName: str, score: int = 750):
             """, (canonical_property,))
             rows = cur.fetchall()
             col_names = [desc[0] for desc in cur.description]
+
         for row in rows:
             row_dict = dict(zip(col_names, row))
             if isinstance(row_dict.get("id"), uuid.UUID):
                 row_dict["id"] = str(row_dict["id"])
             row_dict["home_loan_roi_float"] = parse_roi(row_dict.get("home_loan_roi"))
             approved_lenders.append(row_dict)
+
         approved_lenders.sort(key=lambda x: (x["home_loan_roi_float"] is None, x["home_loan_roi_float"]))
+
     except Exception as e:
         print("❌ Error fetching approved lenders:", e)
     finally:
@@ -1275,14 +1429,19 @@ async def fetch_lenders_apf(propertyName: str, score: int = 750):
             continue
         more_lenders.append(item)
 
-    # --- 7) Optional cap (e.g., 6 working + up to 7 more = 13 total) ---
+    # --- 7) Optional cap ---
     total_cap = 13
     if len(working_lenders) >= total_cap:
         more_lenders = []
     else:
         more_lenders = more_lenders[: total_cap - len(working_lenders)]
 
-    # --- 8) Clean response ---
+    # --- 8) Remove temporary float field before returning ---
+    for lst in (approved_lenders, working_lenders, more_lenders):
+        for l in lst:
+            l.pop("home_loan_roi_float", None)
+
+    # --- 9) Return clean response ---
     return {
         "message": "Lenders fetched successfully",
         "cibilScore": score,
