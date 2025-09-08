@@ -553,7 +553,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
             #             tmpfile_path = tmpfile.name
             #         with open(tmpfile_path, 'rb') as f:
             #                 files = {'file': f}
-            #                 resp = requests.post("https://dev-api.orbit.basichomeloan.com/ai/generate_credit_report", files=files)
+            #                 resp = requests.post("https://api.orbit.basichomeloan.com/ai/generate_credit_report", files=files)
             #                 resp.raise_for_status()
             #                 return resp.json()
 

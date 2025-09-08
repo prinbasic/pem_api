@@ -12,7 +12,7 @@ router = APIRouter()
 
 GRIDLINES_PAN_URL = "https://api.gridlines.io/pan-api/fetch-detailed"
 GRIDLINES_API_KEY = "Zvuio2QALeDhyRB0lzZq9o5SgwjBgXcu"
-OTP_BASE_URL = "https://dev-api.orbit.basichomeloan.com/api_v1"
+OTP_BASE_URL = "https://api.orbit.basichomeloan.com/api_v1"
 
 # 🟢 New Equifax Flow APIs
 @router.post("/initiate-cibil", tags=["credit"])
