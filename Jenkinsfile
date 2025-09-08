@@ -1,5 +1,7 @@
 pipeline {
-    agent any
+    agent {
+        label "${env.BRANCH_NAME == 'dev_main' ? 'dev-agent' : ''}"
+    }
 
     triggers {
         githubPush()  // Trigger build on GitHub push
