@@ -32,9 +32,9 @@ app.include_router(trans_routes.router, prefix="/cibil")
 # List the container Swagger URLs
 SERVICE_URLS = [
     "http://127.0.0.1:8000/openapi.json",
-    "http://3.6.21.243:8001/openapi.json",
-    "http://3.6.21.243:9000/ai/openapi.json",
-    "http://3.6.21.243:5000/openapi.json"
+    "http://127.0.0.1:8001/openapi.json",
+    "http://127.0.0.1:9000/ai/openapi.json",
+    "http://127.0.0.1:5000/openapi.json"
 ]
 
 async def fetch_openapi_spec(url):
