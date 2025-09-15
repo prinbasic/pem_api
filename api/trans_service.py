@@ -617,49 +617,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                 print("❌ Error logging cibil data:", log_err)
 
 
-            # AI-generated report
-            # def intell_report():
-            #     try:
-            #         if cibil_data.get("status") == "500":
-            #             return {"error": "No raw cibil data found"}
-
-            #         with tempfile.NamedTemporaryFile(mode='w+', suffix='.json', delete=False) as tmpfile:
-            #             json.dump(cibil_data, tmpfile)
-            #             tmpfile.flush()
-            #             tmpfile_path = tmpfile.name
-            #         with open(tmpfile_path, 'rb') as f:
-            #                 files = {'file': f}
-            #                 resp = requests.post("https://api.orbit.basichomeloan.com/ai/generate_credit_report", files=files)
-            #                 resp.raise_for_status()
-            #                 return resp.json()
-
-            #     except Exception as e:
-            #         return {"error": f"Intelligence report generation failed: {str(e)}"}
-
-            # intell_response = intell_report()
-            # # Check if intell_response is a dictionary and serialize it
-            # if isinstance(intell_response, dict):
-            #     serialized_intell_response = json.dumps(intell_response)
-            #     print("Serialized intell_response:", serialized_intell_response)  # Debugging
-            # try:
-            #     # Insert the serialized response into the database
-            #     conn = get_db_connection()
-            #     with conn.cursor() as cur:
-            #         cur.execute("""
-            #             UPDATE user_cibil_logs
-            #             SET intell_report = %s
-            #             WHERE pan = %s
-            #         """, (
-            #             serialized_intell_response,  # Pass the serialized JSON
-            #             final_pan_number  # The pan number to identify the row to update
-            #         ))
-            #         conn.commit()
-
-            #     conn.close()
-            #     print("✅ Cibil log saved to database.")
-            # except Exception as log_err:
-            #     print("❌ Error logging cibil data:", log_err)
-            # latest_emi_30d = extract_latest_emi_last_n_days(cibil_data, days=30)
+            
             return {
                 "pan_number": final_pan_number,
                 "pan_supreme": pan_supreme_data,
@@ -670,8 +628,23 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                 "emi_data": active_emi_sum
             }
     except Exception as e:
-        print(f"⚠️ TransBank failed: {str(e)}. Trying fallback via Ongrid...")
+        exc_type, exc_obj, tb = sys.exc_info()
+        fname = tb.tb_frame.f_code.co_filename
+        lineno = tb.tb_lineno
 
+        print("⚠️ TransBank failed")
+        print(f"   Error Type : {exc_type.__name__}")
+        print(f"   Message    : {e}")
+        print(f"   File       : {fname}")
+        print(f"   Line       : {lineno}")
+
+        # Optional: dump recent API responses if you want to see why schema parsing failed
+        if 'mobile_to_prefill_data' in locals():
+            print("   Last Mobile-to-Prefill data:", mobile_to_prefill_data)
+        if 'pan_supreme_data' in locals():
+            print("   Last PAN Supreme data:", pan_supreme_data)
+
+        print("👉 Trying fallback via Ongrid...")
         try:
             # PAN already fetched from earlier step
             if not final_pan_number:
