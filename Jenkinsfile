@@ -1,5 +1,7 @@
 pipeline {
-    agent any
+    agent {
+        label "${env.BRANCH_NAME == 'dev_main' ? 'dev-agent' : ''}"
+    }
 
     triggers {
         githubPush()  // Trigger build on GitHub push
@@ -11,6 +13,7 @@ pipeline {
         DOCKER_REGISTRY = '676206929524.dkr.ecr.ap-south-1.amazonaws.com'  // ECR registry URL
         DOCKER_IMAGE = 'dev-orbit-pem'  // ECR repository and image name
         DOCKER_TAG = "${DOCKER_IMAGE}:${BUILD_NUMBER}"
+        
     }
 
     stages {
