@@ -624,6 +624,7 @@ async def send_and_verify_pan(phone_number: str, otp: str , pan_number: str):
             raw_state = pan_data.get("data", {}).get("pan_data", {}).get("address_data", {}).get("state", "DELHI")
             mapped_state = STATE_CODE_MAP.get(raw_state.upper(), "DL")
 
+
             # Step 3: Bureau Profile
             print("📋 Building Bureau profile payload...")
             bureau_payload = {
