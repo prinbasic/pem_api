@@ -415,12 +415,12 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                     "LegalCopyStatus": "Accept",
                     "UserConsentForDataSharing": True
                 }
-                print("cibil payload", cibil_payload)
+                print(f"cibil payload", cibil_payload)
             except Exception as e:
                 raise HTTPException(status_code=500, detail=f"CIBIL payload creation failed: {str(e)}")
 
             cibil_resp = await client.post(CIBIL_URL, headers=HEADERS, json=cibil_payload)
-
+            print()
             cibil_data = cibil_resp.json()
 
             print(f"cibil data : {cibil_data}")
@@ -695,6 +695,8 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
         except Exception as fallback_error:
             print("❌ Ongrid fallback also failed:", fallback_error)
             raise HTTPException(status_code=200, detail=f"Both TransBank and Ongrid failed: {str(fallback_error)}")
+
+
 
 
 async def verify_otp_and_pan(phone_number: str, otp: str):
