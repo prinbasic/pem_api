@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import string
 import httpx
 import tempfile
-import traceback 
+import traceback, sys
 import json
 import requests
 from db_client import get_db_connection  # make sure this is imported
