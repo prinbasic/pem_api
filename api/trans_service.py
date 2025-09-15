@@ -352,8 +352,8 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                 print(f"✅ Using normalized prefill details: {pan_details}")
 
 
-            pan_details = pan_supreme_data["result"]
-            print(f"✅ PAN Supreme Details: {pan_details}")
+            # pan_details = pan_supreme_data["result"]
+            # print(f"✅ PAN Supreme Details: {pan_details}")
 
             state_name = pan_details.get("address", {}).get("state", "").strip()
             print(state_name)
