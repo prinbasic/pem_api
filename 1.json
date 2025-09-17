@@ -1,77 +1,58 @@
 {
-  "CustomerInfo": {
-    "Name": {
-      "Forename": "PRINCE",
-      "Surname": "RAJ"
-    },
-    "IdentificationNumber": {
-      "IdentifierName": "TaxId",
-      "Id": "DYEPR1604C"
-    },
-    "Address": {
-      "StreetAddress": "plot no. 266/c",
-      "City": "BOKARO",
-      "PostalCode": 827010,
-      "Region": "20",
-      "AddressType": 1
-    },
-    "EmailID": "prince.raj@basichomeloan.com",
-    "DateOfBirth": "1999-12-31",
-    "PhoneNumber": {
-      "Number": 7759054070
-    },
-    "Gender": "Male"
-  },
-  "LegalCopyStatus": "Accept",
-  "UserConsentForDataSharing": True
-
+  "http_response_code": 200,
+  "client_ref_num": "BBA150925YJQ",
+  "request_id": "43c6bdd0-82b0-495b-bd88-c220894d7196",
+  "result_code": 101,
+  "message": "success",
+  "result": {
+    "name": "Prince Raj",
+    "dob": "31-12-1999",
+    "age": "25",
+    "gender": "Male",
+    "pan": "DYEPR1604C",
+    "email": "",
+    "address": [
+      {
+        "first_line_of_address": "HNO 502 KURMIDIH BAZAR,VILLKURMIDIH PSBA",
+        "second_line_of_address": "LIDIH DIST",
+        "third_line_of_address": None,
+        "city": None,
+        "state": "Bihar",
+        "postal_code": "827010",
+        "country_code": "IB",
+        "reported_date": ""
+      },
+      {
+        "first_line_of_address": "S/O: MANOJ KUMAR,502,RLY GOL MARKET,",
+        "second_line_of_address": "RLY COLONY,,BOKARO RLY GOL MARKET",
+        "third_line_of_address": ",BOKARO, 552 JHARKHAND",
+        "city": None,
+        "state": "Jharkhand",
+        "postal_code": "827010",
+        "country_code": "IB",
+        "reported_date": ""
+      },
+      {
+        "first_line_of_address": "S/O: MANOJ KUMAR,502,RLY GOL MARKET,RLY",
+        "second_line_of_address": "COLONY,,BOKARO RLY GOL MARKET ,BOKARO,",
+        "third_line_of_address": "552 JHARKHAND",
+        "city": None,
+        "state": "Jharkhand",
+        "postal_code": "827010",
+        "country_code": "IB",
+        "reported_date": ""
+      },
+      {
+        "first_line_of_address": "S/O: MANOJ KUMAR,502,RLY GOL MARKET,",
+        "second_line_of_address": "RLY COLONY,,BOKARO RLY GOL MARKET",
+        "third_line_of_address": ",BOKARO, 552 JHARKHAND",
+        "city": None,
+        "state": "Jharkhand",
+        "postal_code": "827010",
+        "country_code": "IB",
+        "reported_date": ""
+      }
+    ],
+    "score": "777"
+  }
 }
-
-
-curl -X POST https://api.trusthub.in/cibil-report   -H "x-api-key: nrqfVLG9zM1Hg66gyV78I53ju91sEHEpcawO9Cs6"   -H "Content-Type: application/json; charset=utf-8"   -d '{
-           "CustomerInfo": {
-            "Name": {
-               "Forename": "PRINCE",
-               "Surname": "RAJ"
-              },
-              "IdentificationNumber": {
-                  "IdentifierName": "TaxId",
-                "Id": "DYEPR1604C"
-             },
-            "Address": {
-                 "StreetAddress": "plot no. 266/c",
-                  "City": "BOKARO",
-                "PostalCode": 827012,
-                "Region": "20",
-                "AddressType": 1
-            },
-            "EmailID": "prince@gmail.com",
-            "DateOfBirth": "1999-12-31",
-            "PhoneNumber": {
-                "Number": 7759054070
-            },
-            "Gender": "Male"
-        },
-        "LegalCopyStatus": "Accept",
-        "UserConsentForDataSharing": true
-                }'
-
-curl -X POST https://api.trusthub.in/cibil-report   -H "x-api-key: nrqfVLG9zM1Hg66gyV78I53ju91sEHEpcawO9Cs6"   -H "Content-Type: application/json; charset=utf-8"   -d '{
-           "CustomerInfo": {
-    "Name": { "Forename": "VARUN", "Surname": "MAHAJAN" },
-    "IdentificationNumber": { "IdentifierName": "TaxId", "Id": "AGOPM3647B" },
-    "Address": {
-      "StreetAddress": "plot no. 266/c",
-      "City": "BOKARO",
-      "PostalCode": 122101,
-      "Region": "06",  // ← THIS IS A STRING, SHOULD BE INTEGER
-      "AddressType": 1
-    },
-    "EmailID": "prince.raj@basichomeloan.com",
-    "DateOfBirth": "1981-08-24",
-    "PhoneNumber": { "Number": 7529898989 },
-    "Gender": "Male"
-  },
-  "LegalCopyStatus": "Accept",
-  "UserConsentForDataSharing": true
-                }'

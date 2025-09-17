@@ -671,7 +671,6 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
 
 
 
-
 async def verify_otp_and_pan(phone_number: str, otp: str):
     async with httpx.AsyncClient(timeout=60.0) as client:
         try:
@@ -684,6 +683,93 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
 
             if verify_response.status_code != 200 or not verify_data.get("success"):
                 return {"consent": "N", "message": "OTP verification failed"}
+            
+            try:
+                conn = get_db_connection()
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """
+                        SELECT
+                            pan,
+                            dob,
+                            name,
+                            phone,
+                            location,
+                            email,
+                            raw_report,
+                            cibil_score,
+                            monthly_emi,
+                            consent
+                        FROM user_cibil_logs
+                        WHERE phone = %s
+                          AND created_at >= (NOW() AT TIME ZONE 'utc') - INTERVAL '30 days'
+                        ORDER BY created_at DESC
+                        LIMIT 1
+                        """,
+                        (phone_number,)
+                    )
+                    row = cur.fetchone()
+                conn.close()
+            except Exception as e:
+                print("⚠️ Cache lookup failed:", e)
+                row = None
+
+            if row:
+                (
+                    pan,
+                    dob,
+                    name,
+                    phone_db,
+                    location,
+                    email,
+                    raw_report_json,
+                    cibil_score,
+                    monthly_emi,
+                    consent_db,
+                ) = row
+
+                # parse raw report safely
+                try:
+                    cibil_report = raw_report_json if isinstance(raw_report_json, dict) else json.loads(raw_report_json or "{}")
+                except Exception:
+                    cibil_report = {}
+
+                # try to extract a transaction id if present in the cached report
+                trans_id = (
+                    cibil_report.get("transaction_id")
+                    or cibil_report.get("data", {}).get("transaction_id")
+                    or cibil_report.get("result", {}).get("transaction_id")
+                )
+
+                # user details from cached columns (gender not stored in this table)
+                user_details = {
+                    "dob": dob,
+                    "credit_score": cibil_score,
+                    "email": email,
+                    "gender": "",
+                    "pan_number": pan,
+                    "pincode": location,
+                    "name": name,
+                    "phone": phone_db,
+                }
+
+                # shape the response exactly like your live path
+                return {
+                    "consent": consent_db or "Y",
+                    "pan": pan,
+                    "message": "OTP verified; served from cache (≤30 days)",
+                    "phone_number": phone_number,
+                    "cibilScore": cibil_score,
+                    "transId": trans_id,
+                    "raw": cibil_report,
+                    "approvedLenders": [],
+                    "moreLenders": [],
+                    "emi_data": float(monthly_emi or 0.0),
+                    "data": cibil_report,
+                    "user_details": user_details,
+                    "source": "cache_<=30d",
+                }
+
 
             fetch_data = await trans_bank_fetch_flow(phone_number=phone_number)
             print("fetch data", fetch_data)
