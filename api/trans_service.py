@@ -744,24 +744,18 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                     or cibil_report.get("result", {}).get("transaction_id")
                 )
 
-                # Infer source from report only if DB source is missing/unknown
-                def infer_source_from_report(report: dict, default: str = "unknown") -> str:
-                    d = (report.get("data") or {})
-                    m = (d.get("message") or report.get("message") or d.get("bureau") or report.get("bureau") or "")
-                    cd = d.get("cibilData") or report.get("cibilData")
+                # Only decide from the report when DB source is empty
+                if source == "":
+                    data = cibil_report["data"]  # fixed structure as you said
 
-                    # Normalize
-                    m_l = str(m).strip().lower()
-                    cd_l = str(cd).strip().lower() if cd is not None else ""
-
-                    if m_l == "equifax":
-                        return "equifax"
-                    if cd_l == "cibil" or cd is True:
-                        return "cibil"
-                    return default
-
-                if source in (None, "", "unknown"):
-                    source = infer_source_from_report(cibil_report, default="unknown")
+                    if data["message"] == "Fetched Bureau Profile.":
+                        source = "Equifax"   # or "equifax" if you want lowercase
+                    elif cibil_report.get("cibilData") is True:
+                        source = "Cibil"     # or "cibil"
+                    else:
+                        source = ""          # keep empty if neither condition matches
+                # else: source is already set; leave it as-is
+                    
 
                 # user details from cached columns (gender not stored in this table)
                 user_details = {
