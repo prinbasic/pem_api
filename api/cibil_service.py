@@ -1458,6 +1458,39 @@ async def intell_report_from_json(report: Dict) -> dict:
     if not isinstance(report, dict) or not report:
         raise HTTPException(status_code=400, detail="Body must be a non-empty JSON object")
 
+    pan = report.get("pan_number")
+    # --- Cache fast-path: if PAN present and we have a cached intell_report, return it ---
+    if pan:
+        try:
+            conn = get_db_connection()
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT intell_report
+                    FROM user_cibil_logs
+                    WHERE pan = %s
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                    """,
+                    (pan,),
+                )
+                row = cur.fetchone()
+            conn.close()
+        except Exception as e:
+            print("⚠️ Cache lookup failed:", e)
+            row = None
+
+        if row and row[0]:
+            cached = row[0]
+            try:
+                cached_json = cached if isinstance(cached, dict) else json.loads(cached)
+            except Exception:
+                # If someone stored non-JSON text, still return something useful
+                cached_json = {"raw": cached, "user_details": {"pan": pan}}
+            print(f"⚡ Returning cached intell_report for PAN {pan}")
+            return cached_json
+
+
     data_bytes = json.dumps(report, ensure_ascii=False, default=str).encode("utf-8")
     files = {"file": ("report.json", io.BytesIO(data_bytes), "application/json")}
 
