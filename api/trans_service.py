@@ -715,7 +715,7 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
             except Exception as e:
                 print("⚠️ Cache lookup failed:", e)
                 row = None
-
+            print(row)
             if row:
                 (
                     pan,
@@ -744,18 +744,49 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                     or cibil_report.get("result", {}).get("transaction_id")
                 )
 
-                # Only decide from the report when DB source is empty
-                if source == "":
-                    data = cibil_report["data"]  # fixed structure as you said
+                if cibil_report.get("data").get("cibilData") is True:
+                    print("gotcha")
 
-                    if data["message"] == "Fetched Bureau Profile.":
-                        source = "Equifax"   # or "equifax" if you want lowercase
-                    elif cibil_report.get("cibilData") is True:
-                        source = "Cibil"     # or "cibil"
-                    else:
-                        source = ""          # keep empty if neither condition matches
-                # else: source is already set; leave it as-is
+                # # Only decide from the report when DB source is empty
+                # if source == None:
+                #     data = cibil_report["data"]  # fixed structure as you said
+
+                #     if data["message"] == "Fetched Bureau Profile.":
+                #         source = "Equifax"   # or "equifax" if you want lowercase
+                #     elif data["cibilData"] is True:
+                #         source = "Cibil"     # or "cibil"
+                #     else:
+                #         source = ""          # keep empty if neither condition matches
+                # # else: source is already set; leave it as-is
                     
+                # Only decide from the report when DB source is empty/None
+                if source in (None, ""):
+                    d = cibil_report["data"]          # fixed structure per you
+                    cdata = d.get("cibilData")
+
+                    # --- CIBIL detection (your payload shows cibilData is a dict) ---
+                    if isinstance(cdata, dict):
+                        # Optional: assert it's the expected shape
+                        if "GetCustomerAssetsResponse" in cdata:
+                            source = "cibil"
+                        else:
+                            # still CIBIL if cibilData dict exists
+                            source = "cibil"
+
+                    # Backward-compat for old boolean/string styles
+                    elif cdata is True or (isinstance(cdata, str) and cdata.strip().lower() == "cibil"):
+                        source = "cibil"
+
+                    # --- Equifax detection (message-based) ---
+                    elif d.get("message") == "Fetched Bureau Profile.":
+                        source = "Equifax"
+
+                    else:
+                        source = ""   # or "Unknown" if you prefer
+
+                # guarantee response_model gets a string
+                source = source or ""
+                
 
                 # user details from cached columns (gender not stored in this table)
                 user_details = {
