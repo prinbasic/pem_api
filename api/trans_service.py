@@ -583,8 +583,8 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                     cur.execute("""
                         INSERT INTO user_cibil_logs (
                             pan, dob, name, phone, location, email,
-                            raw_report, cibil_score, created_at, monthly_emi, consent
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            raw_report, cibil_score, created_at, monthly_emi, consent, source
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         ON CONFLICT (pan)
                         DO UPDATE SET
                             dob = EXCLUDED.dob,
@@ -596,7 +596,8 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                             cibil_score = EXCLUDED.cibil_score,
                             created_at = EXCLUDED.created_at,
                             monthly_emi = EXCLUDED.monthly_emi,
-                            consent = EXCLUDED.consent
+                            consent = EXCLUDED.consent,
+                            source = EXCLUDED.source
                     """, (
                         pan_details.get("pan"),
                         pan_details.get("dob"),
@@ -608,7 +609,8 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                         user_details.get("credit_score"),
                         datetime.now(timezone.utc).isoformat(),
                         active_emi_sum,
-                        consent
+                        consent,
+                        "cibil"
                     ))
                     conn.commit()
                 conn.close()
@@ -670,7 +672,6 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
             raise HTTPException(status_code=200, detail=f"Both TransBank and Ongrid failed: {str(fallback_error)}")
 
 
-
 async def verify_otp_and_pan(phone_number: str, otp: str):
     async with httpx.AsyncClient(timeout=60.0) as client:
         try:
@@ -699,7 +700,8 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                             raw_report,
                             cibil_score,
                             monthly_emi,
-                            consent
+                            consent,
+                            source
                         FROM user_cibil_logs
                         WHERE phone = %s
                           AND created_at >= (NOW() AT TIME ZONE 'utc') - INTERVAL '30 days'
@@ -726,6 +728,7 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                     cibil_score,
                     monthly_emi,
                     consent_db,
+                    source
                 ) = row
 
                 # parse raw report safely
@@ -740,6 +743,25 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                     or cibil_report.get("data", {}).get("transaction_id")
                     or cibil_report.get("result", {}).get("transaction_id")
                 )
+
+                # Infer source from report only if DB source is missing/unknown
+                def infer_source_from_report(report: dict, default: str = "unknown") -> str:
+                    d = (report.get("data") or {})
+                    m = (d.get("message") or report.get("message") or d.get("bureau") or report.get("bureau") or "")
+                    cd = d.get("cibilData") or report.get("cibilData")
+
+                    # Normalize
+                    m_l = str(m).strip().lower()
+                    cd_l = str(cd).strip().lower() if cd is not None else ""
+
+                    if m_l == "equifax":
+                        return "equifax"
+                    if cd_l == "cibil" or cd is True:
+                        return "cibil"
+                    return default
+
+                if source in (None, "", "unknown"):
+                    source = infer_source_from_report(cibil_report, default="unknown")
 
                 # user details from cached columns (gender not stored in this table)
                 user_details = {
@@ -767,7 +789,7 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                     "emi_data": float(monthly_emi or 0.0),
                     "data": cibil_report,
                     "user_details": user_details,
-                    "source": "cache_<=30d",
+                    "source": source,
                 }
 
 

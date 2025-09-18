@@ -688,8 +688,8 @@ async def send_and_verify_pan(phone_number: str, otp: str , pan_number: str):
                     cur.execute("""
                         INSERT INTO user_cibil_logs (
                             pan, dob, name, phone, location, email,
-                            raw_report, cibil_score, created_at, monthly_emi, consent
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            raw_report, cibil_score, created_at, monthly_emi, consent, source
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         ON CONFLICT (pan)
                         DO UPDATE SET
                             dob = EXCLUDED.dob,
@@ -701,7 +701,8 @@ async def send_and_verify_pan(phone_number: str, otp: str , pan_number: str):
                             cibil_score = EXCLUDED.cibil_score,
                             created_at = EXCLUDED.created_at,
                             monthly_emi = EXCLUDED.monthly_emi,
-                            consent = EXCLUDED.consent
+                            consent = EXCLUDED.consent,
+                            source = EXCLUDED.source
                     """, (
                         pan_data.get("data", {}).get("pan_data", {}).get("document_id"),
                         pan_data.get("data", {}).get("pan_data", {}).get("date_of_birth"),
@@ -713,7 +714,8 @@ async def send_and_verify_pan(phone_number: str, otp: str , pan_number: str):
                         score,
                         datetime.now(timezone.utc),
                         active_emi_sum,
-                        consent
+                        consent,
+                        "Equifax"
                     ))
                     conn.commit()
                 conn.close()
