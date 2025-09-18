@@ -804,7 +804,7 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                 return {
                     "consent": consent_db or "Y",
                     "pan": pan,
-                    "message": "OTP verified; served from cache (≤30 days)",
+                    "message": "OTP verified",
                     "phone_number": phone_number,
                     "cibilScore": cibil_score,
                     "transId": trans_id,
