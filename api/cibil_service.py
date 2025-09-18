@@ -21,6 +21,8 @@ import httpx
 import traceback
 import os
 from dotenv import load_dotenv
+from typing import Dict, Optional
+from datetime import datetime, timezone, timedelta
 
 load_dotenv()
 
@@ -1453,20 +1455,22 @@ async def fetch_lenders_apf(propertyName: str, score: int = 750):
         "moreLenders": _clean_lenders(more_lenders),
     }
 
+TTL_DAYS = 30
 async def intell_report_from_json(report: Dict) -> dict:
     """Accepts a bureau report as a dict, sends it as a JSON file to Orbit AI, and returns the JSON response."""
     if not isinstance(report, dict) or not report:
         raise HTTPException(status_code=400, detail="Body must be a non-empty JSON object")
 
     pan = report.get("pan_number")
-    # --- Cache fast-path: if PAN present and we have a cached intell_report, return it ---
+
+    # --- Cache check with 30-day TTL ---
     if pan:
         try:
             conn = get_db_connection()
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    SELECT intell_report
+                    SELECT intell_report, created_at
                     FROM user_cibil_logs
                     WHERE pan = %s
                     ORDER BY created_at DESC
@@ -1479,16 +1483,21 @@ async def intell_report_from_json(report: Dict) -> dict:
         except Exception as e:
             print("⚠️ Cache lookup failed:", e)
             row = None
+        if row:
+            cached_blob, created_at = row
+            # treat anything older than TTL as stale → regenerate
+            cutoff = datetime.now(timezone.utc) - timedelta(days=TTL_DAYS)
+            # If your created_at is naive (no tz), assume UTC:
+            if created_at.tzinfo is None:
+                created_at = created_at.replace(tzinfo=timezone.utc)
 
-        if row and row[0]:
-            cached = row[0]
-            try:
-                cached_json = cached if isinstance(cached, dict) else json.loads(cached)
-            except Exception:
-                # If someone stored non-JSON text, still return something useful
-                cached_json = {"raw": cached, "user_details": {"pan": pan}}
-            print(f"⚡ Returning cached intell_report for PAN {pan}")
-            return cached_json
+            if cached_blob and created_at >= cutoff:
+                try:
+                    return cached_blob if isinstance(cached_blob, dict) else json.loads(cached_blob)
+                except Exception:
+                    # Badly stored blob? fall through to regenerate
+                    pass
+            # else: stale or missing → regenerate
 
 
     data_bytes = json.dumps(report, ensure_ascii=False, default=str).encode("utf-8")
