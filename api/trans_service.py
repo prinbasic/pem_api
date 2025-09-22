@@ -582,9 +582,9 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                 with conn.cursor() as cur:
                     cur.execute("""
                         INSERT INTO user_cibil_logs (
-                            pan, dob, name, phone, location, email,
+                            pan, dob, name, phone, location, email,gender,
                             raw_report, cibil_score, created_at, monthly_emi, consent, source
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         ON CONFLICT (pan)
                         DO UPDATE SET
                             dob = EXCLUDED.dob,
@@ -592,6 +592,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                             phone = EXCLUDED.phone,
                             location = EXCLUDED.location,
                             email = EXCLUDED.email,
+                            gender = EXCLUDED.gender
                             raw_report = EXCLUDED.raw_report,
                             cibil_score = EXCLUDED.cibil_score,
                             created_at = EXCLUDED.created_at,
@@ -605,6 +606,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                         phone_number,
                         pan_details.get("address", {}).get("pin_code"),
                         pan_details.get("email", None),
+                        user_details.get("gender", ''),
                         json.dumps(cibil_data),
                         user_details.get("credit_score"),
                         datetime.now(timezone.utc).isoformat(),
