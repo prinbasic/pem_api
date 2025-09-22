@@ -214,6 +214,13 @@ def _parse_dob(d):
     except Exception:
         return d or ""
 
+def _reverse_parse_dob(d):
+    # accepts "1999-12-31" → "31-12-1999"; passes through if already DD-MM-YYYY or invalid
+    try:
+        return datetime.strptime(d, "%Y-%m-%d").strftime("%d-%m-%Y")
+    except Exception:
+        return d or ""
+
 def _pick_prefill_address(addr_list):
     # choose first address with a postal_code; map to {state, pin_code, address_line_*}
     for a in addr_list or []:
@@ -582,9 +589,9 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                 with conn.cursor() as cur:
                     cur.execute("""
                         INSERT INTO user_cibil_logs (
-                            pan, dob, name, phone, location, email,
+                            pan, dob, name, phone, location, email,gender,
                             raw_report, cibil_score, created_at, monthly_emi, consent, source
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         ON CONFLICT (pan)
                         DO UPDATE SET
                             dob = EXCLUDED.dob,
@@ -592,6 +599,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                             phone = EXCLUDED.phone,
                             location = EXCLUDED.location,
                             email = EXCLUDED.email,
+                            gender = EXCLUDED.gender,
                             raw_report = EXCLUDED.raw_report,
                             cibil_score = EXCLUDED.cibil_score,
                             created_at = EXCLUDED.created_at,
@@ -605,6 +613,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                         phone_number,
                         pan_details.get("address", {}).get("pin_code"),
                         pan_details.get("email", None),
+                        user_details.get("gender", ''),
                         json.dumps(cibil_data),
                         user_details.get("credit_score"),
                         datetime.now(timezone.utc).isoformat(),
@@ -701,7 +710,7 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                             cibil_score,
                             monthly_emi,
                             consent,
-                            source
+                            source, gender
                         FROM user_cibil_logs
                         WHERE phone = %s
                           AND created_at >= (NOW() AT TIME ZONE 'utc') - INTERVAL '30 days'
@@ -728,7 +737,7 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                     cibil_score,
                     monthly_emi,
                     consent_db,
-                    source
+                    source, gender
                 ) = row
 
                 # parse raw report safely
@@ -743,57 +752,108 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                     or cibil_report.get("data", {}).get("transaction_id")
                     or cibil_report.get("result", {}).get("transaction_id")
                 )
+# --------------------------------------------------------------------------------------------------------------------
+                # if cibil_report.get("data").get("cibilData") is True:
+                #     print("gotcha")
+                # elif cibil_report.get("cibilData") is True:
+                #     print("another")
 
-                if cibil_report.get("data").get("cibilData") is True:
-                    print("gotcha")
+                # # # Only decide from the report when DB source is empty
+                # # if source == None:
+                # #     data = cibil_report["data"]  # fixed structure as you said
 
-                # # Only decide from the report when DB source is empty
-                # if source == None:
-                #     data = cibil_report["data"]  # fixed structure as you said
-
-                #     if data["message"] == "Fetched Bureau Profile.":
-                #         source = "Equifax"   # or "equifax" if you want lowercase
-                #     elif data["cibilData"] is True:
-                #         source = "Cibil"     # or "cibil"
-                #     else:
-                #         source = ""          # keep empty if neither condition matches
-                # # else: source is already set; leave it as-is
+                # #     if data["message"] == "Fetched Bureau Profile.":
+                # #         source = "Equifax"   # or "equifax" if you want lowercase
+                # #     elif data["cibilData"] is True:
+                # #         source = "Cibil"     # or "cibil"
+                # #     else:
+                # #         source = ""          # keep empty if neither condition matches
+                # # # else: source is already set; leave it as-is
                     
-                # Only decide from the report when DB source is empty/None
+                # # Only decide from the report when DB source is empty/None
+                # if source in (None, ""):
+                #     d = cibil_report["data"]          # fixed structure per you
+                #     cdata = d.get("cibilData")
+
+                #     # --- CIBIL detection (your payload shows cibilData is a dict) ---
+                #     if isinstance(cdata, dict):
+                #         # Optional: assert it's the expected shape
+                #         if "GetCustomerAssetsResponse" in cdata:
+                #             source = "cibil"
+                #         else:
+                #             # still CIBIL if cibilData dict exists
+                #             source = "cibil"
+
+                #     # Backward-compat for old boolean/string styles
+                #     elif cdata is True or (isinstance(cdata, str) and cdata.strip().lower() == "cibil"):
+                #         source = "cibil"
+
+                #     # --- Equifax detection (message-based) ---
+                #     elif d.get("message") == "Fetched Bureau Profile.":
+                #         source = "Equifax"
+
+                #     else:
+                #         source = ""   # or "Unknown" if you prefer
+# ----------------------------------------------------------------------------------------------------------------------------------------
+                # Decide source only if DB is empty/None
                 if source in (None, ""):
-                    d = cibil_report["data"]          # fixed structure per you
+                    # 1) Normalize: if data is a dict, use it; else use the whole report
+                    data = cibil_report.get("data")
+                    d = data if isinstance(data, dict) else cibil_report
+
+                    # 2) Safe fetches (fallback only when value is None, not when it's False)
                     cdata = d.get("cibilData")
+                    if cdata is None:
+                        cdata = cibil_report.get("cibilData")
 
-                    # --- CIBIL detection (your payload shows cibilData is a dict) ---
-                    if isinstance(cdata, dict):
-                        # Optional: assert it's the expected shape
-                        if "GetCustomerAssetsResponse" in cdata:
-                            source = "cibil"
-                        else:
-                            # still CIBIL if cibilData dict exists
-                            source = "cibil"
+                    msg = d.get("message")
+                    if msg is None:
+                        msg = cibil_report.get("message")
 
-                    # Backward-compat for old boolean/string styles
-                    elif cdata is True or (isinstance(cdata, str) and cdata.strip().lower() == "cibil"):
+                    html = d.get("htmlUrl")
+                    if html is None:
+                        html = cibil_report.get("htmlUrl")
+
+                    # 3) Detect source
+                    if (
+                        isinstance(cdata, dict)                                  # typical CIBIL dict
+                        or cdata is True                                         # legacy boolean
+                        or (isinstance(cdata, str) and cdata.strip().lower() == "cibil")
+                        or (isinstance(html, str) and "cibil" in html.lower())   # htmlUrl like myscore.cibil.com
+                    ):
                         source = "cibil"
-
-                    # --- Equifax detection (message-based) ---
-                    elif d.get("message") == "Fetched Bureau Profile.":
+                    elif isinstance(msg, str) and msg.strip() == "Fetched Bureau Profile.":
                         source = "Equifax"
-
                     else:
-                        source = ""   # or "Unknown" if you prefer
+                        source = ""  # or "unknown"
+
 
                 # guarantee response_model gets a string
                 source = source or ""
+                # dob1 = _reverse_parse_dob(dob)
+                # print(dob1)
+
+                dob_raw = dob
+                dob_clean = str(dob_raw)
+
+                # Convert to dd-mm-yyyy format
+                dob_formatted = ""
+                if dob_clean:
+                    try:
+                        dob_obj = datetime.strptime(dob_clean, "%Y-%m-%d")
+                        dob_formatted = dob_obj.strftime("%d-%m-%Y")
+                    except ValueError:
+                        dob_formatted = dob_clean  # fallback in case parsing fails
                 
+                print(dob_formatted)
+
 
                 # user details from cached columns (gender not stored in this table)
                 user_details = {
-                    "dob": dob,
+                    "dob": dob_formatted,
                     "credit_score": cibil_score,
                     "email": email,
-                    "gender": "",
+                    "gender": gender,
                     "pan_number": pan,
                     "pincode": location,
                     "name": name,
@@ -844,7 +904,9 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                 }
 
         except Exception as e:
-            raise HTTPException(status_code=200, detail=f"{str(e)}")
+            import traceback
+            f, l, func, _ = traceback.extract_tb(e.__traceback__)[-1]
+            raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {e} @ {f}:{l} in {func}")
 
 
 
