@@ -795,11 +795,27 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
 
                 # guarantee response_model gets a string
                 source = source or ""
+                # dob1 = _reverse_parse_dob(dob)
+                # print(dob1)
+
+                dob_raw = dob
+                dob_clean = str(dob_raw)
+
+                # Convert to dd-mm-yyyy format
+                dob_formatted = ""
+                if dob_clean:
+                    try:
+                        dob_obj = datetime.strptime(dob_clean, "%Y-%m-%d")
+                        dob_formatted = dob_obj.strftime("%d-%m-%Y")
+                    except ValueError:
+                        dob_formatted = dob_clean  # fallback in case parsing fails
                 
+                print(dob_formatted)
+
 
                 # user details from cached columns (gender not stored in this table)
                 user_details = {
-                    "dob": _reverse_parse_dob(dob),
+                    "dob": dob_formatted,
                     "credit_score": cibil_score,
                     "email": email,
                     "gender": gender,
