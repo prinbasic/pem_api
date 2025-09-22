@@ -710,7 +710,7 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                             cibil_score,
                             monthly_emi,
                             consent,
-                            source
+                            source, gender
                         FROM user_cibil_logs
                         WHERE phone = %s
                           AND created_at >= (NOW() AT TIME ZONE 'utc') - INTERVAL '30 days'
@@ -737,7 +737,7 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                     cibil_score,
                     monthly_emi,
                     consent_db,
-                    source
+                    source, gender
                 ) = row
 
                 # parse raw report safely
@@ -802,7 +802,7 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                     "dob": _reverse_parse_dob(dob),
                     "credit_score": cibil_score,
                     "email": email,
-                    "gender": "",
+                    "gender": gender,
                     "pan_number": pan,
                     "pincode": location,
                     "name": name,
