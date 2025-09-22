@@ -214,6 +214,13 @@ def _parse_dob(d):
     except Exception:
         return d or ""
 
+def _reverse_parse_dob(d):
+    # accepts "1999-12-31" → "31-12-1999"; passes through if already DD-MM-YYYY or invalid
+    try:
+        return datetime.strptime(d, "%Y-%m-%d").strftime("%d-%m-%Y")
+    except Exception:
+        return d or ""
+
 def _pick_prefill_address(addr_list):
     # choose first address with a postal_code; map to {state, pin_code, address_line_*}
     for a in addr_list or []:
@@ -240,7 +247,7 @@ def _normalize_from_prefill(prefill_result: dict) -> dict:
     return {
         "first_name": first_name,
         "last_name": last_name,
-        "dob": prefill_result.get("dob") or "",
+        "dob": _parse_dob(prefill_result.get("dob") or ""),
         "gender": gender_norm,  # now your existing "M" check works
         "pan": prefill_result.get("pan", "").strip(),
         "email": (prefill_result.get("email") or "").strip(),
@@ -792,7 +799,7 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
 
                 # user details from cached columns (gender not stored in this table)
                 user_details = {
-                    "dob": dob,
+                    "dob": _reverse_parse_dob(dob),
                     "credit_score": cibil_score,
                     "email": email,
                     "gender": "",
