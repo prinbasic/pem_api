@@ -752,46 +752,81 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                     or cibil_report.get("data", {}).get("transaction_id")
                     or cibil_report.get("result", {}).get("transaction_id")
                 )
+# --------------------------------------------------------------------------------------------------------------------
+                # if cibil_report.get("data").get("cibilData") is True:
+                #     print("gotcha")
+                # elif cibil_report.get("cibilData") is True:
+                #     print("another")
 
-                if cibil_report.get("data").get("cibilData") is True:
-                    print("gotcha")
+                # # # Only decide from the report when DB source is empty
+                # # if source == None:
+                # #     data = cibil_report["data"]  # fixed structure as you said
 
-                # # Only decide from the report when DB source is empty
-                # if source == None:
-                #     data = cibil_report["data"]  # fixed structure as you said
-
-                #     if data["message"] == "Fetched Bureau Profile.":
-                #         source = "Equifax"   # or "equifax" if you want lowercase
-                #     elif data["cibilData"] is True:
-                #         source = "Cibil"     # or "cibil"
-                #     else:
-                #         source = ""          # keep empty if neither condition matches
-                # # else: source is already set; leave it as-is
+                # #     if data["message"] == "Fetched Bureau Profile.":
+                # #         source = "Equifax"   # or "equifax" if you want lowercase
+                # #     elif data["cibilData"] is True:
+                # #         source = "Cibil"     # or "cibil"
+                # #     else:
+                # #         source = ""          # keep empty if neither condition matches
+                # # # else: source is already set; leave it as-is
                     
-                # Only decide from the report when DB source is empty/None
+                # # Only decide from the report when DB source is empty/None
+                # if source in (None, ""):
+                #     d = cibil_report["data"]          # fixed structure per you
+                #     cdata = d.get("cibilData")
+
+                #     # --- CIBIL detection (your payload shows cibilData is a dict) ---
+                #     if isinstance(cdata, dict):
+                #         # Optional: assert it's the expected shape
+                #         if "GetCustomerAssetsResponse" in cdata:
+                #             source = "cibil"
+                #         else:
+                #             # still CIBIL if cibilData dict exists
+                #             source = "cibil"
+
+                #     # Backward-compat for old boolean/string styles
+                #     elif cdata is True or (isinstance(cdata, str) and cdata.strip().lower() == "cibil"):
+                #         source = "cibil"
+
+                #     # --- Equifax detection (message-based) ---
+                #     elif d.get("message") == "Fetched Bureau Profile.":
+                #         source = "Equifax"
+
+                #     else:
+                #         source = ""   # or "Unknown" if you prefer
+# ----------------------------------------------------------------------------------------------------------------------------------------
+                # Decide source only if DB is empty/None
                 if source in (None, ""):
-                    d = cibil_report["data"]          # fixed structure per you
+                    # 1) Normalize: if data is a dict, use it; else use the whole report
+                    data = cibil_report.get("data")
+                    d = data if isinstance(data, dict) else cibil_report
+
+                    # 2) Safe fetches (fallback only when value is None, not when it's False)
                     cdata = d.get("cibilData")
+                    if cdata is None:
+                        cdata = cibil_report.get("cibilData")
 
-                    # --- CIBIL detection (your payload shows cibilData is a dict) ---
-                    if isinstance(cdata, dict):
-                        # Optional: assert it's the expected shape
-                        if "GetCustomerAssetsResponse" in cdata:
-                            source = "cibil"
-                        else:
-                            # still CIBIL if cibilData dict exists
-                            source = "cibil"
+                    msg = d.get("message")
+                    if msg is None:
+                        msg = cibil_report.get("message")
 
-                    # Backward-compat for old boolean/string styles
-                    elif cdata is True or (isinstance(cdata, str) and cdata.strip().lower() == "cibil"):
+                    html = d.get("htmlUrl")
+                    if html is None:
+                        html = cibil_report.get("htmlUrl")
+
+                    # 3) Detect source
+                    if (
+                        isinstance(cdata, dict)                                  # typical CIBIL dict
+                        or cdata is True                                         # legacy boolean
+                        or (isinstance(cdata, str) and cdata.strip().lower() == "cibil")
+                        or (isinstance(html, str) and "cibil" in html.lower())   # htmlUrl like myscore.cibil.com
+                    ):
                         source = "cibil"
-
-                    # --- Equifax detection (message-based) ---
-                    elif d.get("message") == "Fetched Bureau Profile.":
+                    elif isinstance(msg, str) and msg.strip() == "Fetched Bureau Profile.":
                         source = "Equifax"
-
                     else:
-                        source = ""   # or "Unknown" if you prefer
+                        source = ""  # or "unknown"
+
 
                 # guarantee response_model gets a string
                 source = source or ""
@@ -869,7 +904,9 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                 }
 
         except Exception as e:
-            raise HTTPException(status_code=200, detail=f"{str(e)}")
+            import traceback
+            f, l, func, _ = traceback.extract_tb(e.__traceback__)[-1]
+            raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {e} @ {f}:{l} in {func}")
 
 
 
