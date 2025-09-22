@@ -240,7 +240,7 @@ def _normalize_from_prefill(prefill_result: dict) -> dict:
     return {
         "first_name": first_name,
         "last_name": last_name,
-        "dob": _parse_dob(prefill_result.get("dob") or ""),
+        "dob": prefill_result.get("dob") or "",
         "gender": gender_norm,  # now your existing "M" check works
         "pan": prefill_result.get("pan", "").strip(),
         "email": (prefill_result.get("email") or "").strip(),
