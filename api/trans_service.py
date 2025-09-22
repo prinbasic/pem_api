@@ -592,7 +592,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
                             phone = EXCLUDED.phone,
                             location = EXCLUDED.location,
                             email = EXCLUDED.email,
-                            gender = EXCLUDED.gender
+                            gender = EXCLUDED.gender,
                             raw_report = EXCLUDED.raw_report,
                             cibil_score = EXCLUDED.cibil_score,
                             created_at = EXCLUDED.created_at,
