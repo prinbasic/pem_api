@@ -66,6 +66,25 @@ class VerifyOTPtrans(BaseModel):
     phone_number: str = Field(..., example="9876543210")
     otp: str = Field(..., example="123456")
     
+# class VerifyOtpResponse(BaseModel):
+#     consent: str
+#     message: str
+#     phone_number: Optional[str] = None
+#     cibilScore: Optional[int] = None
+#     transId: Optional[str] = None
+#     raw: Optional[Dict[str, Any]] = None
+#     approvedLenders: Optional[List[Dict[str, Any]]] = None
+#     moreLenders: Optional[List[Dict[str, Any]]] = None
+#     emi_data: Optional[Dict[str, Any]] = None
+#     data: Optional[Dict[str, Any]] = None
+#     # intell_response: Optional[Dict[str, Any]] = None
+#     user_details: Optional[Dict[str, Any]] = None
+#     source: str
+#     emi_data: float = None
+    
+#     class Config:
+#         orm_mode = True
+
 class VerifyOtpResponse(BaseModel):
     consent: str
     message: str
@@ -75,15 +94,71 @@ class VerifyOtpResponse(BaseModel):
     raw: Optional[Dict[str, Any]] = None
     approvedLenders: Optional[List[Dict[str, Any]]] = None
     moreLenders: Optional[List[Dict[str, Any]]] = None
-    emi_data: Optional[Dict[str, Any]] = None
     data: Optional[Dict[str, Any]] = None
-    # intell_response: Optional[Dict[str, Any]] = None
     user_details: Optional[Dict[str, Any]] = None
     source: str
-    emi_data: float = None
-    
+    emi_data: float = 0.0
+
+    # ✅ pass-through diagnostics from primePan
+    flags: Dict[str, bool] = Field(default_factory=dict)
+    reason_codes: List[str] = Field(default_factory=list)
+    stage: Optional[str] = None
+
     class Config:
         orm_mode = True
+
+
+def map_primepan_to_verify_otp(
+    *,
+    phone_number: str,
+    primepan: Dict[str, Any],
+    default_source: str = "cibil"
+) -> VerifyOtpResponse:
+    def _extract_cibil_score(cibil_report: Dict[str, Any]) -> Optional[int]:
+        try:
+            return (
+                cibil_report.get("data", {})
+                .get("cibilData", {})
+                .get("GetCustomerAssetsResponse", {})
+                .get("GetCustomerAssetsSuccess", {})
+                .get("Asset", {})
+                .get("TrueLinkCreditReport", {})
+                .get("Borrower", {})
+                .get("CreditScore", {})
+                .get("riskScore")
+            )
+        except Exception:
+            return None
+
+    success = bool(primepan.get("success"))
+    message = primepan.get("message") or ("OTP verified successfully" if success else "Unable to fetch data")
+
+    cibil_report = primepan.get("cibil_report") or {}
+    profile_detail = primepan.get("profile_detail") or {}
+    emi_total = float(primepan.get("emi_data") or 0.0)
+    source = primepan.get("source") or default_source
+
+    return VerifyOtpResponse(
+        consent="Y",
+        message=message,
+        phone_number=phone_number,
+        cibilScore=_extract_cibil_score(cibil_report),
+        transId=None,
+        raw=cibil_report,
+        approvedLenders=[],
+        moreLenders=[],
+        data=primepan.get("data") or {},
+        user_details=profile_detail,
+        source=source,
+        emi_data=emi_total,
+
+        # ✅ pass-through
+        flags=primepan.get("flags") or {},
+        reason_codes=primepan.get("reason_codes") or [],
+        stage=primepan.get("stage"),
+    )
+
+
 
 class PrefillFlags(BaseModel):
     prefill_called: Optional[bool] = False
