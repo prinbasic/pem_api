@@ -114,50 +114,111 @@ def map_primepan_to_verify_otp(
     primepan: Dict[str, Any],
     default_source: str = "cibil"
 ) -> VerifyOtpResponse:
-    def _extract_cibil_score(cibil_report: Dict[str, Any]) -> Optional[int]:
-        try:
-            return (
-                cibil_report.get("data", {})
-                .get("cibilData", {})
-                .get("GetCustomerAssetsResponse", {})
-                .get("GetCustomerAssetsSuccess", {})
-                .get("Asset", {})
-                .get("TrueLinkCreditReport", {})
-                .get("Borrower", {})
-                .get("CreditScore", {})
-                .get("riskScore")
-            )
-        except Exception:
-            return None
+    """
+    Unifies TransBank (CIBIL) and Ongrid (Equifax) payloads into VerifyOtpResponse.
+    - Pulls cibilScore from: primepan.cibilScore -> Equifax score_detail -> CIBIL riskScore -> profile_detail.credit_score
+    - Pulls transId from: primepan.transId -> cibil_report.transaction_id -> cibil_report.result.transaction_id -> cibil_report.data.transaction_id
+    - Chooses source from primepan.source else infers from report body
+    """
 
-    success = bool(primepan.get("success"))
+    cibil_report: Dict[str, Any] = primepan.get("cibil_report") or {}
+    profile_detail: Dict[str, Any] = primepan.get("profile_detail") or {}
+    data_block = primepan.get("data") or cibil_report.get("data") or {}
+
+    # ----- inline score extraction (no extra helpers) -----
+    cibil_score = primepan.get("cibilScore")
+    if cibil_score is None:
+        # Try Equifax-style: data.profile_data.score_detail[0].value
+        try:
+            sd = (data_block.get("profile_data", {}) or {}).get("score_detail", []) or []
+            if sd:
+                v = sd[0].get("value")
+                if isinstance(v, (int, float)):
+                    cibil_score = int(v)
+                elif isinstance(v, str) and v.isdigit():
+                    cibil_score = int(v)
+        except Exception:
+            pass
+
+    if cibil_score is None:
+        # Try CIBIL-style: data.cibilData...Borrower.CreditScore.riskScore
+        try:
+            cibil_score = (
+                data_block.get("cibilData", {})
+                          .get("GetCustomerAssetsResponse", {})
+                          .get("GetCustomerAssetsSuccess", {})
+                          .get("Asset", {})
+                          .get("TrueLinkCreditReport", {})
+                          .get("Borrower", {})
+                          .get("CreditScore", {})
+                          .get("riskScore")
+            )
+            if isinstance(cibil_score, str) and cibil_score.isdigit():
+                cibil_score = int(cibil_score)
+            elif isinstance(cibil_score, float):
+                cibil_score = int(cibil_score)
+        except Exception:
+            pass
+
+    if cibil_score is None:
+        # Last resort: profile_detail.credit_score
+        cs = profile_detail.get("credit_score")
+        if isinstance(cs, (int, float)):
+            cibil_score = int(cs)
+        elif isinstance(cs, str) and cs.isdigit():
+            cibil_score = int(cs)
+
+    # ----- transaction id extraction -----
+    trans_id = (
+        primepan.get("transId")
+        or cibil_report.get("transaction_id")
+        or (cibil_report.get("result", {}) or {}).get("transaction_id")
+        or (data_block.get("transaction_id"))
+    )
+
+    # ----- source inference if missing -----
+    source = primepan.get("source") or default_source
+    if not source:
+        msg = (data_block.get("message") or "").strip()
+        html = (data_block.get("htmlUrl") or "").lower()
+        if "profile_data" in data_block or msg == "Fetched Bureau Profile.":
+            source = "Equifax"
+        elif "cibil" in html or isinstance(data_block.get("cibilData"), (dict, bool)) \
+             or str(data_block.get("cibilData")).strip().lower() == "cibil":
+            source = "cibil"
+        else:
+            source = default_source
+
+    # ----- message & success -----
+    success = bool(primepan.get("success", True))  # be lenient; some happy paths don't set this
     message = primepan.get("message") or ("OTP verified successfully" if success else "Unable to fetch data")
 
-    cibil_report = primepan.get("cibil_report") or {}
-    profile_detail = primepan.get("profile_detail") or {}
-    emi_total = float(primepan.get("emi_data") or 0.0)
-    source = primepan.get("source") or default_source
+    # ----- emi total -----
+    try:
+        emi_total = float(primepan.get("emi_data") or 0.0)
+    except Exception:
+        emi_total = 0.0
 
+    # ----- build the response -----
     return VerifyOtpResponse(
         consent="Y",
         message=message,
         phone_number=phone_number,
-        cibilScore=_extract_cibil_score(cibil_report),
-        transId=None,
+        cibilScore=cibil_score if isinstance(cibil_score, (int, type(None))) else None,
+        transId=trans_id,
         raw=cibil_report,
-        approvedLenders=[],
-        moreLenders=[],
-        data=primepan.get("data") or {},
+        approvedLenders=primepan.get("approvedLenders") or [],
+        moreLenders=primepan.get("moreLenders") or [],
+        data=data_block,
         user_details=profile_detail,
         source=source,
         emi_data=emi_total,
 
-        # ✅ pass-through
+        # pass-through diagnostics
         flags=primepan.get("flags") or {},
         reason_codes=primepan.get("reason_codes") or [],
         stage=primepan.get("stage"),
     )
-
 
 
 class PrefillFlags(BaseModel):

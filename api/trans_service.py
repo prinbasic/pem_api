@@ -14,7 +14,7 @@ import os
 import re
 from dotenv import load_dotenv
 from api.cibil_service import send_and_verify_pan
-from models.request_models import VerifyOtpResponse
+from models.request_models import VerifyOtpResponse, map_primepan_to_verify_otp
 
 load_dotenv()
 
@@ -1672,14 +1672,14 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
             print("fetch data", fetch_data)
 
             # Use the adapter to guarantee flags/stage/reason_codes are preserved
-            # resp = map_primepan_to_verify_otp(
-            #     phone_number=phone_number,
-            #     primepan=fetch_data,
-            # )
+            resp = map_primepan_to_verify_otp(
+                phone_number=phone_number,
+                primepan=fetch_data,
+            )
             # Add an extra flag to indicate live fetch
-            # resp.flags["from_cache"] = False
-            # resp.flags["otp_verified"] = True
-            # return resp
+            resp.flags["from_cache"] = False
+            resp.flags["otp_verified"] = True
+            return resp
 
         except Exception as e:
             import traceback
