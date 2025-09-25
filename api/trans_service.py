@@ -14,6 +14,7 @@ import os
 import re
 from dotenv import load_dotenv
 from api.cibil_service import send_and_verify_pan
+from models.request_models import map_primepan_to_verify_otp, VerifyOtpResponse
 
 load_dotenv()
 
@@ -1292,6 +1293,233 @@ async def trans_bank_fetch_flow(phone_number: str) -> Dict[str, Any]:
                 pan_number="", pan_supreme={}, cibil_report={}, profile_detail={}, source="", emi_data=0.0
             )
 
+# async def verify_otp_and_pan(phone_number: str, otp: str):
+#     async with httpx.AsyncClient(timeout=60.0) as client:
+#         try:
+#             verify_response = await client.post(
+#                 f"{OTP_BASE_URL}/otp_verify",
+#                 json={"phone_number": phone_number, "otp": otp}
+#             )
+#             verify_data = verify_response.json()
+#             print(f"✅ OTP Verify Response [{verify_response.status_code}]: {verify_data}")
+
+#             if verify_response.status_code != 200 or not verify_data.get("success"):
+#                 return {"consent": "N", "message": "OTP verification failed"}
+            
+#             try:
+#                 conn = get_db_connection()
+#                 with conn.cursor() as cur:
+#                     cur.execute(
+#                         """
+#                         SELECT
+#                             pan,
+#                             dob,
+#                             name,
+#                             phone,
+#                             location,
+#                             email,
+#                             raw_report,
+#                             cibil_score,
+#                             monthly_emi,
+#                             consent,
+#                             source, gender
+#                         FROM user_cibil_logs
+#                         WHERE phone = %s
+#                           AND created_at >= (NOW() AT TIME ZONE 'utc') - INTERVAL '30 days'
+#                         ORDER BY created_at DESC
+#                         LIMIT 1
+#                         """,
+#                         (phone_number,)
+#                     )
+#                     row = cur.fetchone()
+#                 conn.close()
+#             except Exception as e:
+#                 print("⚠️ Cache lookup failed:", e)
+#                 row = None
+#             print(row)
+#             if row:
+#                 (
+#                     pan,
+#                     dob,
+#                     name,
+#                     phone_db,
+#                     location,
+#                     email,
+#                     raw_report_json,
+#                     cibil_score,
+#                     monthly_emi,
+#                     consent_db,
+#                     source, gender
+#                 ) = row
+
+#                 # parse raw report safely
+#                 try:
+#                     cibil_report = raw_report_json if isinstance(raw_report_json, dict) else json.loads(raw_report_json or "{}")
+#                 except Exception:
+#                     cibil_report = {}
+
+#                 # try to extract a transaction id if present in the cached report
+#                 trans_id = (
+#                     cibil_report.get("transaction_id")
+#                     or cibil_report.get("data", {}).get("transaction_id")
+#                     or cibil_report.get("result", {}).get("transaction_id")
+#                 )
+# # --------------------------------------------------------------------------------------------------------------------
+#                 # if cibil_report.get("data").get("cibilData") is True:
+#                 #     print("gotcha")
+#                 # elif cibil_report.get("cibilData") is True:
+#                 #     print("another")
+
+#                 # # # Only decide from the report when DB source is empty
+#                 # # if source == None:
+#                 # #     data = cibil_report["data"]  # fixed structure as you said
+
+#                 # #     if data["message"] == "Fetched Bureau Profile.":
+#                 # #         source = "Equifax"   # or "equifax" if you want lowercase
+#                 # #     elif data["cibilData"] is True:
+#                 # #         source = "Cibil"     # or "cibil"
+#                 # #     else:
+#                 # #         source = ""          # keep empty if neither condition matches
+#                 # # # else: source is already set; leave it as-is
+                    
+#                 # # Only decide from the report when DB source is empty/None
+#                 # if source in (None, ""):
+#                 #     d = cibil_report["data"]          # fixed structure per you
+#                 #     cdata = d.get("cibilData")
+
+#                 #     # --- CIBIL detection (your payload shows cibilData is a dict) ---
+#                 #     if isinstance(cdata, dict):
+#                 #         # Optional: assert it's the expected shape
+#                 #         if "GetCustomerAssetsResponse" in cdata:
+#                 #             source = "cibil"
+#                 #         else:
+#                 #             # still CIBIL if cibilData dict exists
+#                 #             source = "cibil"
+
+#                 #     # Backward-compat for old boolean/string styles
+#                 #     elif cdata is True or (isinstance(cdata, str) and cdata.strip().lower() == "cibil"):
+#                 #         source = "cibil"
+
+#                 #     # --- Equifax detection (message-based) ---
+#                 #     elif d.get("message") == "Fetched Bureau Profile.":
+#                 #         source = "Equifax"
+
+#                 #     else:
+#                 #         source = ""   # or "Unknown" if you prefer
+# # ----------------------------------------------------------------------------------------------------------------------------------------
+#                 # Decide source only if DB is empty/None
+#                 if source in (None, ""):
+#                     # 1) Normalize: if data is a dict, use it; else use the whole report
+#                     data = cibil_report.get("data")
+#                     d = data if isinstance(data, dict) else cibil_report
+
+#                     # 2) Safe fetches (fallback only when value is None, not when it's False)
+#                     cdata = d.get("cibilData")
+#                     if cdata is None:
+#                         cdata = cibil_report.get("cibilData")
+
+#                     msg = d.get("message")
+#                     if msg is None:
+#                         msg = cibil_report.get("message")
+
+#                     html = d.get("htmlUrl")
+#                     if html is None:
+#                         html = cibil_report.get("htmlUrl")
+
+#                     # 3) Detect source
+#                     if (
+#                         isinstance(cdata, dict)                                  # typical CIBIL dict
+#                         or cdata is True                                         # legacy boolean
+#                         or (isinstance(cdata, str) and cdata.strip().lower() == "cibil")
+#                         or (isinstance(html, str) and "cibil" in html.lower())   # htmlUrl like myscore.cibil.com
+#                     ):
+#                         source = "cibil"
+#                     elif isinstance(msg, str) and msg.strip() == "Fetched Bureau Profile.":
+#                         source = "Equifax"
+#                     else:
+#                         source = ""  # or "unknown"
+
+
+#                 # guarantee response_model gets a string
+#                 source = source or ""
+#                 # dob1 = _reverse_parse_dob(dob)
+#                 # print(dob1)
+
+#                 dob_raw = dob
+#                 dob_clean = str(dob_raw)
+
+#                 # Convert to dd-mm-yyyy format
+#                 dob_formatted = ""
+#                 if dob_clean:
+#                     try:
+#                         dob_obj = datetime.strptime(dob_clean, "%Y-%m-%d")
+#                         dob_formatted = dob_obj.strftime("%d-%m-%Y")
+#                     except ValueError:
+#                         dob_formatted = dob_clean  # fallback in case parsing fails
+                
+#                 print(dob_formatted)
+
+
+#                 # user details from cached columns (gender not stored in this table)
+#                 user_details = {
+#                     "dob": dob_formatted,
+#                     "credit_score": cibil_score,
+#                     "email": email,
+#                     "gender": gender,
+#                     "pan_number": pan,
+#                     "pincode": location,
+#                     "name": name,
+#                     "phone": phone_db,
+#                 }
+
+#                 # shape the response exactly like your live path
+#                 return {
+#                     "consent": consent_db or "Y",
+#                     "pan": pan,
+#                     "message": "OTP verified",
+#                     "phone_number": phone_number,
+#                     "cibilScore": cibil_score,
+#                     "transId": trans_id,
+#                     "raw": cibil_report,
+#                     "approvedLenders": [],
+#                     "moreLenders": [],
+#                     "emi_data": float(monthly_emi or 0.0),
+#                     "data": cibil_report,
+#                     "user_details": user_details,
+#                     "source": source,
+#                 }
+
+
+#             fetch_data = await trans_bank_fetch_flow(phone_number=phone_number)
+#             print("fetch data", fetch_data)
+
+#             try:
+#                 emi_data =  fetch_data.get("emi_data")
+#             except:
+#                 emi_data =  None
+
+#             return {
+#                     "consent": "Y",
+#                     "pan": fetch_data.get("pan_number"),
+#                     "message": fetch_data.get("message", "OTP verified and data fetched successfully"),
+#                     "phone_number": phone_number,
+#                     "cibilScore": fetch_data.get("cibilScore") or fetch_data.get("profile_detail", {}).get("credit_score"),
+#                     "transId": fetch_data.get("transId") or fetch_data.get("cibil_report", {}).get("transaction_id"),
+#                     "raw": fetch_data.get("raw") or fetch_data.get("cibil_data") or fetch_data.get("cibil_report"),
+#                     "approvedLenders": fetch_data.get("approvedLenders") or [],
+#                     "moreLenders": fetch_data.get("moreLenders") or [],
+#                     "emi_data": fetch_data.get("emi_data") or {},
+#                     "data": fetch_data.get("data") or fetch_data.get("cibil_data") or fetch_data.get("cibil_report"),
+#                     "user_details": fetch_data.get("user_details") or fetch_data.get("profile_detail"),
+#                     "source": fetch_data.get("source") or "cibil",   # <-- REQUIRED by your model
+#                     "emi_data": emi_data
+#                 }
+
+#         except Exception as e:
+#             import traceback
+#             f, l, func, _ = traceback.extract_tb(e.__traceback__)[-1]
+#             raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {e} @ {f}:{l} in {func}")
+
 async def verify_otp_and_pan(phone_number: str, otp: str):
     async with httpx.AsyncClient(timeout=60.0) as client:
         try:
@@ -1303,25 +1531,27 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
             print(f"✅ OTP Verify Response [{verify_response.status_code}]: {verify_data}")
 
             if verify_response.status_code != 200 or not verify_data.get("success"):
-                return {"consent": "N", "message": "OTP verification failed"}
-            
+                # Early exit: OTP failed. Return flags so FE can branch.
+                return VerifyOtpResponse(
+                    consent="N",
+                    message=verify_data.get("message") or "OTP verification failed",
+                    phone_number=phone_number,
+                    source="cibil",
+                    emi_data=0.0,
+                    flags={"otp_verified": False},
+                    reason_codes=["E_OTP_FAILED"],
+                    stage="otp_verify",
+                )
+
+            # ---------- 30-day cache check ----------
             try:
                 conn = get_db_connection()
                 with conn.cursor() as cur:
                     cur.execute(
                         """
                         SELECT
-                            pan,
-                            dob,
-                            name,
-                            phone,
-                            location,
-                            email,
-                            raw_report,
-                            cibil_score,
-                            monthly_emi,
-                            consent,
-                            source, gender
+                            pan, dob, name, phone, location, email, raw_report,
+                            cibil_score, monthly_emi, consent, source, gender
                         FROM user_cibil_logs
                         WHERE phone = %s
                           AND created_at >= (NOW() AT TIME ZONE 'utc') - INTERVAL '30 days'
@@ -1335,131 +1565,45 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
             except Exception as e:
                 print("⚠️ Cache lookup failed:", e)
                 row = None
-            print(row)
+
             if row:
                 (
-                    pan,
-                    dob,
-                    name,
-                    phone_db,
-                    location,
-                    email,
-                    raw_report_json,
-                    cibil_score,
-                    monthly_emi,
-                    consent_db,
-                    source, gender
+                    pan, dob, name, phone_db, location, email, raw_report_json,
+                    cibil_score, monthly_emi, consent_db, source_db, gender
                 ) = row
 
-                # parse raw report safely
+                # Parse cached report
                 try:
                     cibil_report = raw_report_json if isinstance(raw_report_json, dict) else json.loads(raw_report_json or "{}")
                 except Exception:
                     cibil_report = {}
 
-                # try to extract a transaction id if present in the cached report
-                trans_id = (
-                    cibil_report.get("transaction_id")
-                    or cibil_report.get("data", {}).get("transaction_id")
-                    or cibil_report.get("result", {}).get("transaction_id")
-                )
-# --------------------------------------------------------------------------------------------------------------------
-                # if cibil_report.get("data").get("cibilData") is True:
-                #     print("gotcha")
-                # elif cibil_report.get("cibilData") is True:
-                #     print("another")
-
-                # # # Only decide from the report when DB source is empty
-                # # if source == None:
-                # #     data = cibil_report["data"]  # fixed structure as you said
-
-                # #     if data["message"] == "Fetched Bureau Profile.":
-                # #         source = "Equifax"   # or "equifax" if you want lowercase
-                # #     elif data["cibilData"] is True:
-                # #         source = "Cibil"     # or "cibil"
-                # #     else:
-                # #         source = ""          # keep empty if neither condition matches
-                # # # else: source is already set; leave it as-is
-                    
-                # # Only decide from the report when DB source is empty/None
-                # if source in (None, ""):
-                #     d = cibil_report["data"]          # fixed structure per you
-                #     cdata = d.get("cibilData")
-
-                #     # --- CIBIL detection (your payload shows cibilData is a dict) ---
-                #     if isinstance(cdata, dict):
-                #         # Optional: assert it's the expected shape
-                #         if "GetCustomerAssetsResponse" in cdata:
-                #             source = "cibil"
-                #         else:
-                #             # still CIBIL if cibilData dict exists
-                #             source = "cibil"
-
-                #     # Backward-compat for old boolean/string styles
-                #     elif cdata is True or (isinstance(cdata, str) and cdata.strip().lower() == "cibil"):
-                #         source = "cibil"
-
-                #     # --- Equifax detection (message-based) ---
-                #     elif d.get("message") == "Fetched Bureau Profile.":
-                #         source = "Equifax"
-
-                #     else:
-                #         source = ""   # or "Unknown" if you prefer
-# ----------------------------------------------------------------------------------------------------------------------------------------
-                # Decide source only if DB is empty/None
+                # Decide source only if empty/None
+                source = source_db or ""
                 if source in (None, ""):
-                    # 1) Normalize: if data is a dict, use it; else use the whole report
                     data = cibil_report.get("data")
                     d = data if isinstance(data, dict) else cibil_report
+                    cdata = d.get("cibilData") if d.get("cibilData") is not None else cibil_report.get("cibilData")
+                    msg = d.get("message") if d.get("message") is not None else cibil_report.get("message")
+                    html = d.get("htmlUrl") if d.get("htmlUrl") is not None else cibil_report.get("htmlUrl")
 
-                    # 2) Safe fetches (fallback only when value is None, not when it's False)
-                    cdata = d.get("cibilData")
-                    if cdata is None:
-                        cdata = cibil_report.get("cibilData")
-
-                    msg = d.get("message")
-                    if msg is None:
-                        msg = cibil_report.get("message")
-
-                    html = d.get("htmlUrl")
-                    if html is None:
-                        html = cibil_report.get("htmlUrl")
-
-                    # 3) Detect source
-                    if (
-                        isinstance(cdata, dict)                                  # typical CIBIL dict
-                        or cdata is True                                         # legacy boolean
+                    if (isinstance(cdata, dict) or cdata is True
                         or (isinstance(cdata, str) and cdata.strip().lower() == "cibil")
-                        or (isinstance(html, str) and "cibil" in html.lower())   # htmlUrl like myscore.cibil.com
-                    ):
+                        or (isinstance(html, str) and "cibil" in html.lower())):
                         source = "cibil"
                     elif isinstance(msg, str) and msg.strip() == "Fetched Bureau Profile.":
                         source = "Equifax"
                     else:
-                        source = ""  # or "unknown"
+                        source = ""
 
-
-                # guarantee response_model gets a string
-                source = source or ""
-                # dob1 = _reverse_parse_dob(dob)
-                # print(dob1)
-
-                dob_raw = dob
-                dob_clean = str(dob_raw)
-
-                # Convert to dd-mm-yyyy format
+                # DOB normalize → dd-mm-yyyy
                 dob_formatted = ""
-                if dob_clean:
+                if dob:
                     try:
-                        dob_obj = datetime.strptime(dob_clean, "%Y-%m-%d")
-                        dob_formatted = dob_obj.strftime("%d-%m-%Y")
+                        dob_formatted = datetime.strptime(str(dob), "%Y-%m-%d").strftime("%d-%m-%Y")
                     except ValueError:
-                        dob_formatted = dob_clean  # fallback in case parsing fails
-                
-                print(dob_formatted)
+                        dob_formatted = str(dob)
 
-
-                # user details from cached columns (gender not stored in this table)
                 user_details = {
                     "dob": dob_formatted,
                     "credit_score": cibil_score,
@@ -1471,56 +1615,43 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                     "phone": phone_db,
                 }
 
-                # shape the response exactly like your live path
-                return {
-                    "consent": consent_db or "Y",
-                    "pan": pan,
-                    "message": "OTP verified",
-                    "phone_number": phone_number,
-                    "cibilScore": cibil_score,
-                    "transId": trans_id,
-                    "raw": cibil_report,
-                    "approvedLenders": [],
-                    "moreLenders": [],
-                    "emi_data": float(monthly_emi or 0.0),
-                    "data": cibil_report,
-                    "user_details": user_details,
-                    "source": source,
-                }
+                # Return the same schema, with flags reflecting cache path
+                return VerifyOtpResponse(
+                    consent=consent_db or "Y",
+                    message="OTP verified (cached bureau used)",
+                    phone_number=phone_number,
+                    cibilScore=cibil_score,
+                    transId=None,
+                    raw=cibil_report,
+                    approvedLenders=[],
+                    moreLenders=[],
+                    data=cibil_report,
+                    user_details=user_details,
+                    source=source or "cibil",
+                    emi_data=float(monthly_emi or 0.0),
+                    flags={"otp_verified": True, "from_cache": True},
+                    reason_codes=[],
+                    stage="cache_hit",
+                )
 
-
+            # ---------- Live flow ----------
             fetch_data = await trans_bank_fetch_flow(phone_number=phone_number)
             print("fetch data", fetch_data)
 
-            try:
-                emi_data =  fetch_data.get("emi_data")
-            except:
-                emi_data =  None
-
-            return {
-                    "consent": "Y",
-                    "pan": fetch_data.get("pan_number"),
-                    "message": fetch_data.get("message", "OTP verified and data fetched successfully"),
-                    "phone_number": phone_number,
-                    "cibilScore": fetch_data.get("cibilScore") or fetch_data.get("profile_detail", {}).get("credit_score"),
-                    "transId": fetch_data.get("transId") or fetch_data.get("cibil_report", {}).get("transaction_id"),
-                    "raw": fetch_data.get("raw") or fetch_data.get("cibil_data") or fetch_data.get("cibil_report"),
-                    "approvedLenders": fetch_data.get("approvedLenders") or [],
-                    "moreLenders": fetch_data.get("moreLenders") or [],
-                    "emi_data": fetch_data.get("emi_data") or {},
-                    "data": fetch_data.get("data") or fetch_data.get("cibil_data") or fetch_data.get("cibil_report"),
-                    "user_details": fetch_data.get("user_details") or fetch_data.get("profile_detail"),
-                    "source": fetch_data.get("source") or "cibil",   # <-- REQUIRED by your model
-                    "emi_data": emi_data
-                }
+            # Use the adapter to guarantee flags/stage/reason_codes are preserved
+            resp = map_primepan_to_verify_otp(
+                phone_number=phone_number,
+                primepan=fetch_data,
+            )
+            # Add an extra flag to indicate live fetch
+            resp.flags["from_cache"] = False
+            resp.flags["otp_verified"] = True
+            return resp
 
         except Exception as e:
             import traceback
             f, l, func, _ = traceback.extract_tb(e.__traceback__)[-1]
             raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {e} @ {f}:{l} in {func}")
-
-
-
 
 
 
