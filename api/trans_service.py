@@ -1042,7 +1042,7 @@ async def trans_bank_fetch_flow(phone_number: str) -> Dict[str, Any]:
                             "Region": region_code,
                             "AddressType": 1
                         },
-                        "EmailID": pick_email(pan_details.get("email")),
+                        "EmailID": pick_email(pan_details.get("email")) or (mobile_to_prefill_data.get("result", {}).get("email", "")),
                         "DateOfBirth": pan_details.get("dob", "").strip(),  # YYYY-MM-DD
                         "PhoneNumber": {"Number": int(phone_number)},
                         "Gender": "Male" if pan_details.get("gender","").upper() == "M" else "Female"
