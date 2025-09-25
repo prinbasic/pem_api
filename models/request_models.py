@@ -66,7 +66,6 @@ class VerifyOTPtrans(BaseModel):
     phone_number: str = Field(..., example="9876543210")
     otp: str = Field(..., example="123456")
     
-
 class VerifyOtpResponse(BaseModel):
     consent: str
     message: str
@@ -86,6 +85,45 @@ class VerifyOtpResponse(BaseModel):
     class Config:
         orm_mode = True
 
+class PrefillFlags(BaseModel):
+    prefill_called: Optional[bool] = False
+    prefill_ok: Optional[bool] = False
+    no_record_found: Optional[bool] = False
+    name_not_found: Optional[bool] = False
+    source_unavailable: Optional[bool] = False
+    pan_missing: Optional[bool] = False
+    parse_error: Optional[bool] = False
+    transport_ok: Optional[bool] = None
+    prefill_success_101: Optional[bool] = False
+
+    pan_supreme_called: Optional[bool] = False
+    pan_supreme_ok: Optional[bool] = False
+
+    cibil_called: Optional[bool] = False
+    cibil_ok: Optional[bool] = False
+    cibil_error: Optional[bool] = False
+
+    fallback_used: Optional[bool] = False
+
+class TransBankResponse(BaseModel):
+    # Legacy fields your FE already consumes
+    pan_number: str = ""
+    pan_supreme: Dict[str, Any] = Field(default_factory=dict)
+    cibil_report: Dict[str, Any] = Field(default_factory=dict)
+    profile_detail: Dict[str, Any] = Field(default_factory=dict)
+    source: str = ""
+    emi_data: float = 0.0
+
+    # New structured metadata
+    success: bool
+    stage: str
+    flags: PrefillFlags = Field(default_factory=PrefillFlags)
+    reason_codes: List[str] = Field(default_factory=list)
+    message: str = ""
+    debug: Dict[str, Any] = Field(default_factory=dict)
+
+    class Config:
+        extra = "allow"
 
 class IntellReq(BaseModel):
     report: dict   # the JSON object you receive in the body
