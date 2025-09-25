@@ -79,7 +79,6 @@ def generate_ref_num(prefix="BBA"):
     suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     return f"{prefix}{timestamp}{suffix}"
 
-
 STATUS_MEANING = {
     "0": "Current / no DPD",
     "1": "30+ DPD",
@@ -254,6 +253,126 @@ def _normalize_from_prefill(prefill_result: dict) -> dict:
         "address": _pick_prefill_address(prefill_result.get("address")),
     }
 
+
+def interpret_mobile_to_prefill(resp_json: Dict[str, Any], http_status: int) -> Dict[str, Any]:
+    """
+    Normalize the Mobile→Prefill response to FE-friendly flags.
+    Works even when HTTP status is 200 but body signals errors.
+
+    Returns:
+      {
+        "ok": bool,                 # True only when we have a usable PAN
+        "message": str,             # concise human message
+        "flags": {                  # booleans for the UI to branch on
+          "no_record_found": bool,
+          "name_not_found": bool,
+          "source_unavailable": bool,
+          "pan_missing": bool,
+          "parse_error": bool,
+          "transport_ok": bool,     # HTTP transport OK (==200)
+          "prefill_success_101": bool
+        },
+        "reason_codes": [str],      # machine-friendly enums
+        "pan": str|None,            # PAN if available
+        "result_code": int|None,    # inner result_code if present
+        "http_response_code": int|None, # inner http_response_code if present
+        "raw": resp_json            # echo back for logging/diagnostics
+      }
+    """
+    flags = {
+        "no_record_found": False,
+        "name_not_found": False,
+        "source_unavailable": False,
+        "pan_missing": False,
+        "parse_error": False,
+        "transport_ok": (http_status == 200),
+        "prefill_success_101": False,
+    }
+    reason_codes: list[str] = []
+    message = "Prefill response processed."
+    pan = None
+    inner_result_code = None
+    inner_http_code = None
+
+    try:
+        # Common shapes seen in your logs:
+        # A) {'code': 102, 'message': 'no record found', 'status': 200}
+        # B) {'code': 103, 'message': 'name not found', 'status': 200}
+        # C) {'result': {'http_response_code': 503, 'message': 'Source Unavailable for Name Lookup', ...}, 'code': 503}
+        # D) Success often has inner: result_code==101, http_response_code==200 and a result.pan
+
+        top_code = resp_json.get("code")
+        top_msg  = str(resp_json.get("message", "")).strip().lower()
+        result   = resp_json.get("result") if isinstance(resp_json.get("result"), dict) else {}
+        inner_http_code = result.get("http_response_code")
+        inner_result_code = result.get("result_code")
+        inner_msg  = str(result.get("message", "")).strip().lower()
+
+        # Flags from top-level codes/messages
+        if top_msg == "no record found" or top_code == 102:
+            flags["no_record_found"] = True
+            reason_codes.append("E_PREFILL_NO_RECORD")
+
+        if top_msg == "name not found" or top_code == 103:
+            flags["name_not_found"] = True
+            reason_codes.append("E_PREFILL_NAME_NOT_FOUND")
+
+        # Flags from inner result object (often where the real signal is)
+        if inner_http_code == 503 or "source unavailable" in inner_msg:
+            flags["source_unavailable"] = True
+            reason_codes.append("E_PREFILL_SOURCE_UNAVAILABLE")
+
+        # Happy path detection (your vendor often uses 101 for success)
+        if str(inner_result_code) == "101" and inner_http_code == 200:
+            flags["prefill_success_101"] = True
+
+        # Extract PAN if present
+        pan = result.get("pan")
+        if not pan:
+            flags["pan_missing"] = True
+            reason_codes.append("E_PREFILL_PAN_MISSING")
+
+        # Final OK definition: we consider it usable if we actually have a PAN
+        ok = bool(pan)
+
+        # Craft a concise message for FE to toast/log
+        if flags["no_record_found"]:
+            message = "No record found for the given mobile number."
+        elif flags["name_not_found"]:
+            message = "Name not found for the given mobile number."
+        elif flags["source_unavailable"]:
+            message = "Source unavailable for name lookup."
+        elif ok:
+            message = "Prefill succeeded with PAN."
+        else:
+            message = "Prefill did not return a PAN."
+
+        return {
+            "ok": ok,
+            "message": message,
+            "flags": flags,
+            "reason_codes": reason_codes,
+            "pan": pan,
+            "result_code": inner_result_code,
+            "http_response_code": inner_http_code,
+            "raw": resp_json,
+        }
+
+    except Exception:
+        flags["parse_error"] = True
+        reason_codes.append("E_PREFILL_PARSE")
+        return {
+            "ok": False,
+            "message": "Could not parse prefill response.",
+            "flags": flags,
+            "reason_codes": reason_codes,
+            "pan": None,
+            "result_code": None,
+            "http_response_code": None,
+            "raw": resp_json,
+        }
+
+
 async def trans_bank_fetch_flow(phone_number: str) -> dict:
     final_pan_number = None
     try:
@@ -276,35 +395,83 @@ async def trans_bank_fetch_flow(phone_number: str) -> dict:
         json=mobile_to_prefill_payload
     )
 
+            # print(f"🔍 Mobile to Prefill API Response Status [{mobile_to_prefill_resp.status_code}]")
+            # print(f"mobile to prefill response", mobile_to_prefill_resp)
+            # try:
+            #     mobile_to_prefill_data = mobile_to_prefill_resp.json()
+            # except Exception as e:
+            #     print(f"❌ Failed to parse mobile_to_prefill_resp JSON: {e}")
+            #     print(f"❌ Raw Response Content: {mobile_to_prefill_resp.content}")
+            # print("📋 Full Mobile to Prefill API Response:", mobile_to_prefill_data)
+                    
+            # # Check if message is "no record found"
+            # message = mobile_to_prefill_data.get("message", "").lower()
+            # if message == "no record found":
+            #     raise HTTPException(
+            #         status_code=404,
+            #         detail="No record found for the given mobile number."
+            #     )
+
+            # # Fallback: Check if result contains PAN
+            # result = mobile_to_prefill_data.get("result")
+            # if not result or not isinstance(result, dict) or not result.get("pan"):
+            #     raise HTTPException(
+            #         status_code=400,
+            #         detail=f"PAN number not returned in Mobile to Prefill response. Raw response: {mobile_to_prefill_data}"
+            #     )
+
+            # # if not mobile_to_prefill_data.get("result") or not mobile_to_prefill_data["
+
+            # final_pan_number = mobile_to_prefill_data["result"]["pan"]
+            # print(f"✅ Extracted PAN number: {final_pan_number}")
+
             print(f"🔍 Mobile to Prefill API Response Status [{mobile_to_prefill_resp.status_code}]")
-            print(f"mobile to prefill response", mobile_to_prefill_resp)
+
+            # Robust JSON parse
             try:
                 mobile_to_prefill_data = mobile_to_prefill_resp.json()
             except Exception as e:
-                print(f"❌ Failed to parse mobile_to_prefill_resp JSON: {e}")
-                print(f"❌ Raw Response Content: {mobile_to_prefill_resp.content}")
+                # Return FE-friendly flags when parsing fails (HTTP might still be 200)
+                return {
+                    "success": False,
+                    "stage": "mobile_to_prefill",
+                    "message": f"Could not parse prefill response: {e}",
+                    "flags": {"prefill_parse_error": True, "transport_ok": (mobile_to_prefill_resp.status_code == 200)},
+                    "reason_codes": ["E_PREFILL_PARSE"],
+                    "data": {},
+                    "debug": {"raw_content": getattr(mobile_to_prefill_resp, "content", b"")[:2000]},
+                }
+
             print("📋 Full Mobile to Prefill API Response:", mobile_to_prefill_data)
-                    
-            # Check if message is "no record found"
-            message = mobile_to_prefill_data.get("message", "").lower()
-            if message == "no record found":
-                raise HTTPException(
-                    status_code=404,
-                    detail="No record found for the given mobile number."
-                )
 
-            # Fallback: Check if result contains PAN
-            result = mobile_to_prefill_data.get("result")
-            if not result or not isinstance(result, dict) or not result.get("pan"):
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"PAN number not returned in Mobile to Prefill response. Raw response: {mobile_to_prefill_data}"
-                )
+            # Normalize vendor body -> flags
+            prefill = interpret_mobile_to_prefill(mobile_to_prefill_data, mobile_to_prefill_resp.status_code)
 
-            # if not mobile_to_prefill_data.get("result") or not mobile_to_prefill_data["
+            # If not OK, short-circuit with clear flags for the frontend.
+            if not prefill["ok"]:
+                return {
+                    "success": False,
+                    "stage": "mobile_to_prefill",
+                    "message": prefill["message"],
+                    "flags": {
+                        "prefill_called": True,
+                        "prefill_ok": False,
+                        **prefill["flags"],  # includes: no_record_found, name_not_found, source_unavailable, pan_missing, etc.
+                    },
+                    "reason_codes": prefill["reason_codes"],
+                    "data": {},
+                    "debug": {
+                        "mobile_to_prefill_status": mobile_to_prefill_resp.status_code,
+                        "last_mobile_to_prefill": prefill["raw"],
+                        "inner_result_code": prefill["result_code"],
+                        "inner_http_code": prefill["http_response_code"],
+                    },
+                }
 
-            final_pan_number = mobile_to_prefill_data["result"]["pan"]
+            # Happy path: PAN present → continue to PAN Supreme / CIBIL
+            final_pan_number = prefill["pan"]
             print(f"✅ Extracted PAN number: {final_pan_number}")
+
 
             # # PAN Supreme
             # pan_supreme_resp = await client.post(
