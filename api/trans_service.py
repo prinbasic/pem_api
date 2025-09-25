@@ -1300,8 +1300,6 @@ async def trans_bank_fetch_flow(phone_number: str) -> Dict[str, Any]:
             fb_success = bool(fb.get("cibilScore") is not None or fb.get("raw"))
 
             return _make_response_legacy(
-                cibilScore = fb.get("cibilScore"),
-                transId = fb.get("transId"),
                 success=fb_success,
                 stage="fallback_ongrid",
                 flags={**flags, "fallback_used": True},
