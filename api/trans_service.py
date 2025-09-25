@@ -1286,25 +1286,33 @@ async def trans_bank_fetch_flow(phone_number: str) -> Dict[str, Any]:
         try:
             if not final_pan_number:
                 raise RuntimeError("PAN not available for fallback.")
+
             fallback_result = await send_and_verify_pan(
                 phone_number=phone_number,
                 otp="NA",
                 pan_number=final_pan_number
             )
+
+            # normalize types
+            fb = fallback_result if isinstance(fallback_result, dict) else {}
+
+            # choose a success heuristic for fallback: score present or raw present
+            fb_success = bool(fb.get("cibilScore") is not None or fb.get("raw"))
+
             return _make_response_legacy(
-                success=bool(fallback_result),
+                success=fb_success,
                 stage="fallback_ongrid",
                 flags={**flags, "fallback_used": True},
-                reason_codes=reason_codes + ["USED_FALLBACK_ONGRID"],
-                message="Used Ongrid fallback.",
-                debug={"exception": f"{exc_type.__name__}: {e}", "file": fname, "line": lineno},
-                # legacy fields (best-effort mapping if your fallback already returns these)
-                pan_number=fallback_result.get("pan_number", "") if isinstance(fallback_result, dict) else "",
-                pan_supreme=fallback_result.get("pan_supreme", {}) if isinstance(fallback_result, dict) else {},
-                cibil_report=fallback_result.get("cibil_report", {}) if isinstance(fallback_result, dict) else {},
-                profile_detail=fallback_result.get("profile_detail", {}) if isinstance(fallback_result, dict) else {},
-                source=fallback_result.get("source", "") if isinstance(fallback_result, dict) else "",
-                emi_data=fallback_result.get("emi_data", 0.0) if isinstance(fallback_result, dict) else 0.0,
+                reason_codes=[*reason_codes, "USED_FALLBACK_ONGRID"],
+                message=fb.get("message", "Used Ongrid fallback."),
+                debug={**debug, "ongrid_raw_present": bool(fb.get("raw")), "ongrid_transId": fb.get("transId")},
+                # ✅ correct field mappings from send_and_verify_pan(...)
+                pan_number=(fb.get("user_details", {}) or {}).get("pan_number") or final_pan_number,
+                pan_supreme={},  # Ongrid path doesn't have this
+                cibil_report=fb.get("raw") or fb.get("data") or {},   # <- was cibil_report
+                profile_detail=fb.get("user_details") or {},          # <- was profile_detail
+                source=fb.get("source", "Equifax"),
+                emi_data=float(fb.get("emi_data") or 0.0),
             )
         except Exception as fallback_error:
             print("❌ Ongrid fallback also failed:", fallback_error)
