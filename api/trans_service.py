@@ -1076,16 +1076,41 @@ async def trans_bank_fetch_flow(phone_number: str) -> Dict[str, Any]:
 
             print("cibil data :", cibil_data)
 
-            if cibil_data.get("result", {}).get("status") == "error":
+            # if cibil_data.get("result", {}).get("status") == "error":
+            #     flags["cibil_called"] = True
+            #     flags["cibil_error"] = True
+            #     return _make_response_legacy(
+            #         success=False, stage="cibil",
+            #         flags=flags, reason_codes=reason_codes + ["E_CIBIL_ERROR"],
+            #         message="CIBIL extraction failed.",
+            #         debug={**debug, "cibil_status": cibil_resp.status_code, "cibil_result": cibil_data.get("result")},
+            #         pan_number=final_pan_number or "", pan_supreme=pan_supreme_data, cibil_report=cibil_data, profile_detail={}, source="", emi_data=0.0
+            #     )
+
+            # --- CIBIL body-level error handling: RAISE to trigger outer fallback ---
+            result_obj = cibil_data.get("result", {}) or {}
+            msg_code = ((result_obj.get("data", {}) or {}).get("message_code") or "").strip()
+            msg_text = ((result_obj.get("data", {}) or {}).get("message")
+                        or result_obj.get("error_message")
+                        or "CIBIL extraction failed.")
+
+            if result_obj.get("status") == "error":
+                # mark flags before we bail out
                 flags["cibil_called"] = True
                 flags["cibil_error"] = True
-                return _make_response_legacy(
-                    success=False, stage="cibil",
-                    flags=flags, reason_codes=reason_codes + ["E_CIBIL_ERROR"],
-                    message="CIBIL extraction failed.",
-                    debug={**debug, "cibil_status": cibil_resp.status_code, "cibil_result": cibil_data.get("result")},
-                    pan_number=final_pan_number or "", pan_supreme=pan_supreme_data, cibil_report=cibil_data, profile_detail={}, source="", emi_data=0.0
-                )
+                if msg_code:
+                    flags[f"cibil_{msg_code}"] = True  # e.g., cibil_cibil_iv_in_progress
+
+                # stash some debug context so the outer except can show it if needed
+                debug.update({
+                    "cibil_status": cibil_resp.status_code,
+                    "cibil_result": result_obj,
+                    "cibil_message_code": msg_code,
+                    "cibil_message": msg_text,
+                })
+
+                # IMPORTANT: raise (not return) so the outer except runs the Ongrid fallback
+                raise RuntimeError(f"CIBIL_ERROR:{msg_code}:{msg_text}")
 
             flags["cibil_called"] = True
             flags["cibil_ok"] = True
