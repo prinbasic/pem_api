@@ -1038,8 +1038,8 @@ async def trans_bank_fetch_flow(phone_number: str) -> Dict[str, Any]:
                         "Address": {
                             "StreetAddress": "plot no. 266/c",
                             "City": "BOKARO",
-                            "PostalCode": int(pan_details.get("address", {}).get("pin_code", 0) or 0),
-                            "Region": region_code,
+                            "PostalCode": 827012,
+                            "Region": 20,
                             "AddressType": 1
                         },
                         "EmailID": "prince.raj@basichomeloan.com",
