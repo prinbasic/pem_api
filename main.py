@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI,  Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
 from routes import cibil_routes, lender_routes, trans_routes
@@ -63,6 +63,20 @@ async def get_combined_openapi():
         "info": {"title": "Combined API", "version": "1.0.0"},
         "paths": combined_paths,
         "components": combined_components
+    }
+
+# Belt & suspenders: block direct calls that bypass NGINX
+@app.middleware("http")
+async def require_trusted_auth(request: Request, call_next):
+    if request.headers.get("x-trusted-auth") != "yes":
+        raise HTTPException(status_code=403, detail="Direct access forbidden")
+    return await call_next(request)
+
+@app.get("/cibil/health")
+async def health(request: Request):
+    return {
+        "ok": True,
+        "team": request.headers.get("x-team-id")  # set by NGINX if Auth-Gateway returns it
     }
 
 
