@@ -1660,7 +1660,7 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                     moreLenders=[],
                     data=cibil_report,
                     user_details=user_details,
-                    source=source or "User defined data found",
+                    source=source or None,
                     emi_data=float(monthly_emi or 0.0),
                     flags={"otp_verified": True, "from_cache": True},
                     reason_codes=[],
