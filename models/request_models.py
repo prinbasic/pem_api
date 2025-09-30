@@ -96,7 +96,7 @@ class VerifyOtpResponse(BaseModel):
     moreLenders: Optional[List[Dict[str, Any]]] = None
     data: Optional[Dict[str, Any]] = None
     user_details: Optional[Dict[str, Any]] = None
-    source: str
+    source: Optional[str] = None
     emi_data: float = 0.0
 
     # ✅ pass-through diagnostics from primePan
