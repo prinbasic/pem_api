@@ -112,7 +112,7 @@ def map_primepan_to_verify_otp(
     *,
     phone_number: str,
     primepan: Dict[str, Any],
-    default_source: str = "cibil"
+    default_source: Optional[str] = None
 ) -> VerifyOtpResponse:
     """
     Unifies TransBank (CIBIL) and Ongrid (Equifax) payloads into VerifyOtpResponse.
