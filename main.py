@@ -115,6 +115,7 @@ async def health(request: Request):
     }
 
 
+
 @app.get("/openapi/aggregate.json")
 async def openapi_aggregate(request: Request):
     spec = await get_combined_openapi()
