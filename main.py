@@ -28,7 +28,8 @@ app.include_router(lender_routes.router)
 app.include_router(trans_routes.router, prefix="/cibil")
 
 # --- Swagger Aggregation Setup ---
-
+ALLOWED_PATHS = {"/health", "/openapi.json", "/openapi/aggregate.json"}
+ALLOWED_PREFIXES = ("/docs", "/redoc", "/docs/aggregate", "/redoc/aggregate", "/combined-docs", "/combined-swagger")
 # List the container Swagger URLs
 SERVICE_URLS = [
     "http://127.0.0.1:8000/openapi.json",
@@ -96,8 +97,12 @@ async def get_combined_openapi():
     }
 
 # Belt & suspenders: block direct calls that bypass NGINX
+
 @app.middleware("http")
 async def require_trusted_auth(request: Request, call_next):
+    path = request.url.path
+    if path in ALLOWED_PATHS or any(path.startswith(p) for p in ALLOWED_PREFIXES):
+        return await call_next(request)
     if request.headers.get("x-trusted-auth") != "yes":
         raise HTTPException(status_code=403, detail="Direct access forbidden")
     return await call_next(request)
