@@ -119,9 +119,26 @@ async def health(request: Request):
 @app.get("/openapi/aggregate.json")
 async def openapi_aggregate(request: Request):
     spec = await get_combined_openapi()
-    # Use the current host (e.g., https://dev-api.orbit.basichomeloan.com)
-    base_url = str(request.base_url)
-    spec = _inject_security_for_cibil(spec, base_url)
+
+    # derive scheme/host from NGINX headers so it becomes HTTPS in Swagger
+    proto = request.headers.get("x-forwarded-proto") or request.url.scheme
+    host  = request.headers.get("x-forwarded-host") or request.headers.get("host") or request.url.netloc
+    base_url = f"{proto}://{host}"
+
+    # inject servers + security for /cibil/**
+    spec["servers"] = [{"url": base_url}]
+    components = spec.setdefault("components", {})
+    sec = components.setdefault("securitySchemes", {})
+    sec["ApiKeyAuth"] = {"type": "apiKey", "in": "header", "name": "x-api-key"}
+
+    # apply security only to /cibil/** operations
+    for path, item in (spec.get("paths") or {}).items():
+        if not path.startswith("/cibil/"):
+            continue
+        for method, op in list(item.items()):
+            if method.lower() in ("get","post","put","patch","delete","options","head"):
+                op.setdefault("security", [{"ApiKeyAuth": []}])
+
     return spec
 
 @app.get("/docs/aggregate", include_in_schema=False)
