@@ -37,6 +37,36 @@ SERVICE_URLS = [
     "http://13.200.185.198:5000/openapi.json"
 ]
 
+def _inject_security_for_cibil(spec: dict, base_url: str) -> dict:
+    """
+    - sets servers[] so Swagger "Try it out" hits your real domain
+    - defines components.securitySchemes.ApiKeyAuth (x-api-key in header)
+    - adds per-operation security ONLY for /cibil/** paths
+    """
+    spec = dict(spec)  # shallow copy
+    spec["servers"] = [{"url": base_url.rstrip("/")}]
+
+    components = spec.setdefault("components", {})
+    sec_schemes = components.setdefault("securitySchemes", {})
+    sec_schemes["ApiKeyAuth"] = {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key"
+    }
+
+    paths = spec.get("paths", {}) or {}
+    for path, item in paths.items():
+        if not path.startswith("/cibil/"):
+            continue
+        # add security to every HTTP operation under this path
+        for method, op in list(item.items()):
+            if method.lower() not in ("get","post","put","patch","delete","options","head"):
+                continue
+            if "security" not in op:
+                op["security"] = [{"ApiKeyAuth": []}]  # don't override if already present
+
+    return spec
+
 async def fetch_openapi_spec(url):
     async with httpx.AsyncClient() as client:
         try:
@@ -54,8 +84,8 @@ async def get_combined_openapi():
     combined_components = {"schemas": {}}
 
     for spec in specs:
-        combined_paths.update(spec.get("paths", {}))
-        components = spec.get("components", {}).get("schemas", {})
+        combined_paths.update(spec.get("paths", {}) or {})
+        components = (spec.get("components", {}) or {}).get("schemas", {}) or {}
         combined_components["schemas"].update(components)
 
     return {
@@ -81,18 +111,21 @@ async def health(request: Request):
 
 
 @app.get("/openapi/aggregate.json")
-async def openapi_aggregate():
-    return await get_combined_openapi()
-
+async def openapi_aggregate(request: Request):
+    spec = await get_combined_openapi()
+    # Use the current host (e.g., https://dev-api.orbit.basichomeloan.com)
+    base_url = str(request.base_url)
+    spec = _inject_security_for_cibil(spec, base_url)
+    return spec
 
 @app.get("/docs/aggregate", include_in_schema=False)
 async def aggregated_swagger_ui():
-    timestamp = int(datetime.now().timestamp())  # generate a unique query param
+    # unchanged, hits /openapi/aggregate.json which now includes security + servers
+    timestamp = int(datetime.now().timestamp())
     return get_swagger_ui_html(
         openapi_url=f"/openapi/aggregate.json?t={timestamp}",
         title="Combined API Docs"
     )
-
 
 @app.get("/redoc/aggregate", include_in_schema=False)
 async def aggregated_redoc():
