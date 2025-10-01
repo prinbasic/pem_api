@@ -10,13 +10,13 @@ from datetime import datetime
 app = FastAPI()
 
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=["*"],
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
 
 @app.get("/")
 async def read_root():
@@ -120,23 +120,23 @@ async def health(request: Request):
 async def openapi_aggregate(request: Request):
     spec = await get_combined_openapi()
 
-    # derive scheme/host from NGINX headers so it becomes HTTPS in Swagger
+    # Build public base URL from NGINX
     proto = request.headers.get("x-forwarded-proto") or request.url.scheme
     host  = request.headers.get("x-forwarded-host") or request.headers.get("host") or request.url.netloc
     base_url = f"{proto}://{host}"
+    spec["servers"] = [{"url": base_url}]  # ensures Swagger uses https://dev-api...
 
-    # inject servers + security for /cibil/**
-    spec["servers"] = [{"url": base_url}]
+    # Add ApiKey scheme (x-api-key)
     components = spec.setdefault("components", {})
-    sec = components.setdefault("securitySchemes", {})
-    sec["ApiKeyAuth"] = {"type": "apiKey", "in": "header", "name": "x-api-key"}
+    sec_schemes = components.setdefault("securitySchemes", {})
+    sec_schemes["ApiKeyAuth"] = {"type": "apiKey", "in": "header", "name": "x-api-key"}
 
-    # apply security only to /cibil/** operations
+    # Require the key ONLY for /cibil/**
     for path, item in (spec.get("paths") or {}).items():
         if not path.startswith("/cibil/"):
             continue
         for method, op in list(item.items()):
-            if method.lower() in ("get","post","put","patch","delete","options","head"):
+            if method.lower() in {"get","post","put","patch","delete","options","head"}:
                 op.setdefault("security", [{"ApiKeyAuth": []}])
 
     return spec
