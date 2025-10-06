@@ -1651,7 +1651,7 @@ async def verify_otp_and_pan(phone_number: str, otp: str):
                 # Return the same schema, with flags reflecting cache path
                 return VerifyOtpResponse(
                     consent=consent_db or "Y",
-                    message="OTP verified (cached bureau used)",
+                    message="OTP verified",
                     phone_number=phone_number,
                     cibilScore=cibil_score,
                     transId=None,
