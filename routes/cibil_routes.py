@@ -6,7 +6,8 @@ from api.cibil_service import (
     poll_consent_and_fetch,send_and_verify_pan, send_otp_to_user, resend_otp_to_user, fetch_lenders_and_emi, intell_report_from_json
 )
 from api.log_utils import log_user_cibil_data
-from models.request_models import cibilOTPRequest,PhoneNumberRequest,PANRequest, LoanFormData, IntellReq
+from models.request_models import cibilOTPRequest,PhoneNumberRequest,PANRequest, LoanFormData, IntellReq, updateprofile
+from db_client import get_db_connection
 import httpx
 router = APIRouter()
 
@@ -143,3 +144,63 @@ async def fetch_lenders(propertyName: str):
 @router.post("/intell-report", tags=["credit"])
 async def intell_report_endpoint(report: dict = Body(...)):
     return await intell_report_from_json(report)
+
+
+# def _to_date(s: Optional[str]) -> Optional[date]:
+#     if not s: 
+#         return None
+#     s = str(s)[:10]
+#     try:
+#         return date.fromisoformat(s)
+#     except Exception:
+#         try:
+#             return datetime.strptime(s, "%d-%m-%Y").date()
+#         except Exception:
+#             return None
+
+@router.post("/push_update", tags=["credits"])
+def push_update(payload: updateprofile):
+    # Map request → table columns (only those we update)
+    name = f"{payload.firstName} {payload.lastName}".strip() or None
+    params = {
+        "pan": (payload.pan or "").upper(),
+        "name": name,
+        "email": payload.email,
+        "phone": payload.mobile,
+        "dob": payload.dateOfBirth,
+        "cibil_score": int(payload.creditScore),
+        "gender": (payload.gender or "").lower() or None,
+    }
+
+    # UPDATE only if any value is different; else no-op
+    sql = """
+        UPDATE public.user_cibil_logs AS t
+           SET name        = %(name)s,
+               email       = %(email)s,
+               phone       = %(phone)s,
+               dob         = %(dob)s,
+               cibil_score = %(cibil_score)s,
+               gender      = %(gender)s
+         WHERE t.pan = %(pan)s
+           AND ROW(t.name, t.email, t.phone, t.dob, t.cibil_score, t.gender)
+               IS DISTINCT FROM
+               ROW(%(name)s, %(email)s, %(phone)s, %(dob)s, %(cibil_score)s, %(gender)s)
+         RETURNING t.id, t.pan;
+    """
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            # Try update-when-different
+            cur.execute(sql, params)
+            rec = cur.fetchone()
+
+            if rec:
+                return {"status": "updated", "id": rec[0], "pan": rec[1]}
+
+            # No row returned: either unchanged or not found.
+            cur.execute("SELECT id, pan FROM public.user_cibil_logs WHERE pan = %s", (params["pan"],))
+            found = cur.fetchone()
+            if not found:
+                raise HTTPException(status_code=404, detail="PAN not found")
+            return {"status": "unchanged", "id": found[0], "pan": found[1]}
+

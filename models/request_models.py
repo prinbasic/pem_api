@@ -264,3 +264,14 @@ class TransBankResponse(BaseModel):
 class IntellReq(BaseModel):
     report: dict   # the JSON object you receive in the body
 
+class updateprofile(BaseModel):
+    firstName: str
+    lastName: str
+    gender: str
+    mobile: str
+    creditScore: int
+    pan: str
+    pincode: str
+    email: str
+    dateOfBirth: str
+
