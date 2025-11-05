@@ -146,18 +146,6 @@ async def intell_report_endpoint(report: dict = Body(...)):
     return await intell_report_from_json(report)
 
 
-# def _to_date(s: Optional[str]) -> Optional[date]:
-#     if not s: 
-#         return None
-#     s = str(s)[:10]
-#     try:
-#         return date.fromisoformat(s)
-#     except Exception:
-#         try:
-#             return datetime.strptime(s, "%d-%m-%Y").date()
-#         except Exception:
-#             return None
-
 @router.post("/push_update", tags=["credits"])
 def push_update(payload: updateprofile):
     # Map request → table columns (only those we update)

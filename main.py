@@ -33,9 +33,9 @@ ALLOWED_PREFIXES = ("/docs", "/redoc", "/docs/aggregate", "/redoc/aggregate", "/
 # List the container Swagger URLs
 SERVICE_URLS = [
     "http://127.0.0.1:8000/openapi.json",
-    "http://13.200.185.198:8001/openapi.json",
-    "http://13.200.185.198:9000/ai/openapi.json",
-    "http://13.200.185.198:5000/openapi.json"
+    "http://127.0.0.1:8001/openapi.json",
+    "http://127.0.0.1:9000/ai/openapi.json",
+    "http://127.0.0.1:5000/openapi.json"
 ]
 
 def _inject_security_for_cibil(spec: dict, base_url: str) -> dict:

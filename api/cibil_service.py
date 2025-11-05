@@ -816,7 +816,7 @@ async def send_and_verify_pan(phone_number: str, otp: str , pan_number: str):
                 "approvedLenders": approved_lenders,
                 "moreLenders": remaining_lenders,
                 "data": data,
-                # "intell_response": intell_response
+                # "intell_response": intell_response    
                 "emi_data": active_emi_sum,
                 "user_details": user_details,
                 "source": "Equifax"
@@ -1544,4 +1544,43 @@ async def intell_report_from_json(report: Dict) -> dict:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate report: {str(e)}")
     
+async def upsert_changes(conn, table: str, key_col: str, row: dict):
+    """
+    Compare payload with DB by `key_col`. Insert if not exists; else update only changed columns.
+    Returns: {"inserted": bool, "updated": bool, "changed": {col: {"old": x, "new": y}, ...}}
+    """
+    key_val = row[key_col]
+    existing = await conn.fetchrow(f"SELECT * FROM {table} WHERE {key_col} = $1", key_val)
 
+    if not existing:
+        cols = list(row.keys())
+        vals = [row[c] for c in cols]
+        placeholders = ", ".join(f"${i+1}" for i in range(len(vals)))
+        col_clause = ", ".join(cols)
+        await conn.execute(
+            f"INSERT INTO {table} ({col_clause}) VALUES ({placeholders})",
+            *vals,
+        )
+        return {"inserted": True, "updated": False, "changed": {c: {"old": None, "new": row[c]} for c in cols}}
+
+    # compute diffs
+    changed = {}
+    for c, new_val in row.items():
+        if c == key_col:
+            continue
+        old_val = existing[c]
+        if old_val != new_val:
+            changed[c] = {"old": old_val, "new": new_val}
+
+    if not changed:
+        return {"inserted": False, "updated": False, "changed": {}}
+
+    # dynamic UPDATE only for changed columns
+    set_cols = list(changed.keys())
+    assignments = ", ".join(f"{c} = ${i+1}" for i, c in enumerate(set_cols))
+    values = [row[c] for c in set_cols] + [key_val]
+    await conn.execute(
+        f"UPDATE {table} SET {assignments} WHERE {key_col} = ${len(values)}",
+        *values,
+    )
+    return {"inserted": False, "updated": True, "changed": changed}
