@@ -8,7 +8,7 @@ import yaml
 from datetime import datetime
 import logging
 from dataclasses import dataclass, asdict
-import os
+import os, asyncio
 from datetime import datetime, timezone
 from fastapi.responses import JSONResponse
 from typing import Dict, Any, List, Optional, Tuple
@@ -46,7 +46,7 @@ app.include_router(trans_routes.router, prefix="/cibil")
 ALLOWED_PATHS = { "/health", "/health/ready", "/health/deps",
     "/openapi.json", "/openapi/aggregate.json",
     "/openapi/filtered.json", "/openapi/filtered/list",
-    "/docs/filtered", "/redoc/filtered"}
+    "/docs/filtered", "/redoc/filtered","/health/filtered"}
 ALLOWED_PREFIXES = ("/docs", "/redoc", "/docs/aggregate", "/redoc/aggregate", "/combined-docs", "/combined-swagger")
 # List the container Swagger URLs
 SERVICE_URLS = [
