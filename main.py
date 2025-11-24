@@ -61,8 +61,8 @@ FILTER_SOURCE_URL = os.getenv("FILTER_SOURCE_URL", "https://api.orbit.basichomel
 FILTER_TIMEOUT = float(os.getenv("FILTER_TIMEOUT", "4.0"))
 
 # Which ops to include
-FILTER_INCLUDE_TAGS = {t.strip().lower() for t in ["ongrid", "transbank", "credits"]}
-FILTER_INCLUDE_PATHS = {"/cibil/fetch-lenders", "/cibil/intell-report", "/cibil/fetchlenders_apf"}  # de-duped
+FILTER_INCLUDE_TAGS = {t.strip().lower() for t in ["ongrid", "transbnk", "credits"]}
+FILTER_INCLUDE_PATHS = {"/cibil/intell-report", "/cibil/fetchlenders_apf"}  # de-duped
 
 SAFE_METHODS = {"get", "head", "options"}
 INCLUDE_405_AS_UP = os.getenv("ROUTE_INCLUDE_405_AS_UP", "1") == "1"
