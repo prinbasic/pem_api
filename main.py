@@ -88,7 +88,15 @@ PROBES: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
     # Example (uncomment & edit):
     "https://api.orbit.basichomeloan.com": {
         "/cibil/fetchlenders_apf": [
-            {"method": "POST", "json": {"propertyName ": "dlf"},"headers":{"x-api-key":os.getenv("api-key")}, "expect": [200,400,401,403]}
+            {
+        "method": "POST",
+        # send it as QUERY, not JSON:
+        "query": {"propertyName": "dlf"},
+        # auth header (from env). You can also hardcode for a quick test.
+        "headers": {"x-api-key": os.getenv("ROUTE_HEALTH_API_KEY", "")},
+        # treat these as UP (loose mode). Tighten to [200] if you want strict success.
+        "expect": [200, 400, 401, 403]
+      }
         ],
     #     "/cibil/intell-report": [
     #         {"method": "POST", "json": {"pan": "ABCDE1234F", "dob": "1990-01-01"}, "expect": [200,400,401,403]}
