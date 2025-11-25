@@ -12,6 +12,9 @@ import os, asyncio, re, time
 from datetime import datetime, timezone
 from fastapi.responses import JSONResponse
 from typing import Dict, Any, List, Optional, Tuple
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI()
 SERVICE_NAME = os.getenv("SERVICE_NAME", "pem-main")
@@ -94,7 +97,7 @@ PROBES: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
         # send it as QUERY, not JSON:
         "query": {"propertyName": "dlf"},
         # auth header (from env). You can also hardcode for a quick test.
-        "headers": {"x-api-key": "home.^,C&ffK]zgv<m,}ms`4x!].fYsr`p|d.XA2KWZpp_}*0}{}TSI",
+        "headers": {"x-api-key": os.getenv("api-key"),
                     "accept": "application/json",
                     "Content-Type": "application/json"},
         # treat these as UP (loose mode). Tighten to [200] if you want strict success.
@@ -109,7 +112,7 @@ PROBES: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
             "json": {
                     "phone_number": "7759054070"
                     },
-            "headers": {"x-api-key": "home.^,C&ffK]zgv<m,}ms`4x!].fYsr`p|d.XA2KWZpp_}*0}{}TSI",
+            "headers": {"x-api-key": os.getenv("api-key"),
                     "accept": "application/json",
                     "Content-Type": "application/json"},
             # treat these as UP (loose mode). Tighten to [200] if you want strict success.
@@ -326,7 +329,6 @@ async def _run_filtered_health() -> Dict[str, Any]:
         "base_url_used": base,
         "summary": {"total": len(results), "up": up, "down": down, "skipped": skipped},
         "results": [asdict(r) for r in results],
-        "env": os.getenv("api-key"),
     }
 
 
