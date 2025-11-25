@@ -337,13 +337,24 @@ async def _run_filtered_health() -> Dict[str, Any]:
     up = sum(1 for r in results if r.up and not r.skipped)
     down = sum(1 for r in results if (not r.up) and not r.skipped)
     skipped = sum(1 for r in results if r.skipped)
-    status = "pass" if down == 0 else ("degraded" if up > 0 else "fail")
+    status = "healthy" if down == 0 else ("degraded" if up > 0 else "fail")
     return {
         "status": status,
         "source_openapi": FILTER_SOURCE_URL,
         "base_url_used": base,
-        "summary": {"total": len(results), "up": up, "down": down, "skipped": skipped},
-        "results": [asdict(r) for r in results],
+        "summary": {"total": len(results), "healthy": up, "unhealthy": down, "skipped": skipped},
+        "results": [
+                    {
+                        k: v
+                        for k, v in {
+                            **asdict(r),
+                            "healthy": r.up
+                        }.items()
+                        if k != "up"
+                    }
+                    for r in results
+                ],
+
     }
 
 
