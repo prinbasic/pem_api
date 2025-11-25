@@ -104,9 +104,11 @@ PROBES: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
         "expect": [200, 400, 401, 403]
       }
         ],
-    #     "/cibil/intell-report": [
-    #         {"method": "POST", "json": {"pan": "ABCDE1234F", "dob": "1990-01-01"}, "expect": [200,400,401,403]}
-    #     ],
+        "/cibil/intell-report": [
+            {"method": "POST", "json": {"pan": "ABCDE1234F", "dob": "1990-01-01"},"headers": {"x-api-key": os.getenv("api-key"),
+                    "accept": "application/json",
+                    "Content-Type": "application/json"}, "expect": [200,400,401,403]}
+        ],
         "/cibil/consent/send-otp": [{
             "method": "POST",
             "json": {
