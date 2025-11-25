@@ -61,9 +61,11 @@ FILTER_SOURCE_URL = os.getenv("FILTER_SOURCE_URL", "https://api.orbit.basichomel
 FILTER_TIMEOUT = float(os.getenv("FILTER_TIMEOUT", "4.0"))
 
 # Which ops to include
-FILTER_INCLUDE_TAGS = {t.strip().lower() for t in ["ongrid", "transbnk", "credits"]}
-FILTER_INCLUDE_PATHS = {"/cibil/intell-report", "/cibil/fetchlenders_apf"}  # de-duped
+INCLUDE_TAGS = {t.strip().lower() for t in ["ongrid", "transbnk", "credits"]}
+INCLUDE_PATHS = {"/cibil/intell-report", "/cibil/fetchlenders_apf"}  # de-duped
 FILTER_BASE_URL   = os.getenv("FILTER_BASE_URL", "").strip()
+# Don’t accidentally probe our own infra/docs
+PATH_EXCLUDE_PREFIXES = {"/health", "/openapi", "/docs", "/redoc"}
 
 SAFE_METHODS = {"get", "head", "options"}
 INCLUDE_405_AS_UP = os.getenv("ROUTE_INCLUDE_405_AS_UP", "1") == "1"
@@ -111,7 +113,6 @@ def _path_vars(path: str) -> List[str]:
     return re.findall(r"\{([^}]+)\}", path or "")
 
 def _fill_path(path: str, params: Dict[str, Any]) -> Optional[str]:
-    """Replace {vars} with values from params; return None if any missing."""
     try:
         out = path
         for k in _path_vars(path):
@@ -123,7 +124,6 @@ def _fill_path(path: str, params: Dict[str, Any]) -> Optional[str]:
         return None
 
 def _clean_headers(h: Dict[str, str]) -> Dict[str, str]:
-    """Drop empty header values so httpx doesn't send them."""
     return {k: v for k, v in (h or {}).items() if v not in (None, "", [])}
 
 def _join(base: str, path: str) -> str:
@@ -131,10 +131,29 @@ def _join(base: str, path: str) -> str:
         path = "/" + path
     return base.rstrip("/") + path
 
+def _norm_tags(op: dict) -> List[str]:
+    tags = op.get("tags") or []
+    out: List[str] = []
+    for t in tags:
+        if isinstance(t, dict):
+            name = str(t.get("name", "")).strip().lower()
+        else:
+            name = str(t).strip().lower()
+        if name:
+            out.append(name)
+    return out
+
+def _op_is_included(path: str, op: dict) -> bool:
+    if any(path.startswith(pref) for pref in PATH_EXCLUDE_PREFIXES):
+        return False
+    if path in INCLUDE_PATHS:
+        return True
+    tags = _norm_tags(op or {})
+    return any(tag in INCLUDE_TAGS for tag in tags)
+
 async def _fetch_source_openapi(url: str) -> dict:
-    """Fetch upstream OpenAPI with sane fallbacks."""
     candidates = [
-        url,  # exact
+        url,
         url.rstrip("/") + "/openapi.json",
         url.rstrip("/") + "/docs/openapi.json",
         url.rstrip("/") + "/openapi/aggregate.json",
@@ -143,8 +162,7 @@ async def _fetch_source_openapi(url: str) -> dict:
         last_err = None
         for u in candidates:
             try:
-                r = await client.get(u)
-                r.raise_for_status()
+                r = await client.get(u); r.raise_for_status()
                 j = r.json()
                 if isinstance(j, dict) and ("paths" in j or "swagger" in j or "openapi" in j):
                     return j
@@ -154,7 +172,6 @@ async def _fetch_source_openapi(url: str) -> dict:
     raise RuntimeError(f"Upstream OpenAPI fetch failed; last_error={last_err}")
 
 def _resolve_base_url(source: Dict[str, Any]) -> str:
-    """Prefer servers[0].url; fallback to FILTER_BASE_URL; else origin of FILTER_SOURCE_URL."""
     servers = source.get("servers", [])
     if servers and servers[0].get("url"):
         return str(servers[0]["url"]).rstrip("/")
@@ -164,7 +181,6 @@ def _resolve_base_url(source: Dict[str, Any]) -> str:
     return m.group(1) if m else "http://3.6.21.243:8000"
 
 def _has_required_params(op: Dict[str, Any]) -> bool:
-    """Detect required path/query params with no defaults/examples (so we skip in safe mode)."""
     params = op.get("parameters", [])
     for p in params:
         if p.get("required"):
@@ -214,7 +230,7 @@ async def _probe_route(
     upper = method.upper()
     url = _join(base, path)
 
-    # 1) If explicit probes exist for this route, run those (POST/parametrized/auth-safe)
+    # 1) If explicit probes exist for this route, run those (POST/secured/parametrized)
     base_key = base.rstrip("/")
     base_probes = PROBES.get(base_key) or PROBES.get(base_key + "/") or {}
     custom_list = base_probes.get(path, [])
@@ -222,7 +238,6 @@ async def _probe_route(
         any_ok, last_status, last_reason = False, None, None
         t0 = time.perf_counter()
         for pr in custom_list:
-            # Fill {vars} if present
             target_path = path
             if _path_vars(path):
                 filled = _fill_path(path, pr.get("params", {}))
@@ -256,14 +271,17 @@ async def _run_filtered_health() -> Dict[str, Any]:
     source = await _fetch_source_openapi(FILTER_SOURCE_URL)
     base = _resolve_base_url(source)
 
-    # Gather all operations from upstream spec
+    # Build the **filtered** list of operations first (tags + explicit paths only)
     paths: dict = source.get("paths", {}) or {}
     to_probe: List[Tuple[str, str, Dict[str, Any]]] = []
     for pth, item in paths.items():
+        if any(pth.startswith(pref) for pref in PATH_EXCLUDE_PREFIXES):
+            continue
         for method, op in (item or {}).items():
             if method.lower() not in {"get","post","put","patch","delete","head","options"}:
                 continue
-            to_probe.append((method, pth, op or {}))
+            if _op_is_included(pth, op or {}):
+                to_probe.append((method, pth, op or {}))
 
     # Concurrency throttle + fire
     sem = asyncio.Semaphore(ROUTE_PARALLEL_LIMIT)
@@ -291,8 +309,8 @@ async def _run_filtered_health() -> Dict[str, Any]:
 @app.get("/health/filtered")
 async def health_filtered():
     """
-    Route-level HEALTH:
-      • Fetches single upstream OpenAPI
+    Route-level HEALTH (filtered):
+      • Includes only ops whose tags are in INCLUDE_TAGS, plus exact INCLUDE_PATHS
       • Runs explicit PROBES first (auth/payload/expected codes)
       • Falls back to safe GET/HEAD/OPTIONS without required params
       • Returns per-route: up, status_code, latency_ms, reason, skipped_reason
@@ -302,7 +320,7 @@ async def health_filtered():
         return payload
     except Exception as e:
         return JSONResponse(status_code=502, content={"error": "health_filtered_failed", "detail": str(e)})
-# --- Filtered Route Health (single source) END ---
+# --- Filtered Route Health (tags + two explicit paths) END ---
 
 ########################################################################### health end ##################################################################################################################################
 
