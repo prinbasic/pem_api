@@ -93,7 +93,9 @@ PROBES: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
         # send it as QUERY, not JSON:
         "query": {"propertyName": "dlf"},
         # auth header (from env). You can also hardcode for a quick test.
-        "headers": {"x-api-key": os.getenv("ROUTE_HEALTH_API_KEY", "")},
+        "headers": {"x-api-key": os.getenv("ROUTE_HEALTH_API_KEY", ""),
+                    "accept": "application/json",
+                    "Content-Type": "application/json"},
         # treat these as UP (loose mode). Tighten to [200] if you want strict success.
         "expect": [200, 400, 401, 403]
       }
