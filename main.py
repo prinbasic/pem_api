@@ -314,6 +314,7 @@ async def _run_filtered_health() -> Dict[str, Any]:
         "env": os.getenv("api-key"),
     }
 
+
 # ========== ROUTE ==========
 @app.get("/health/filtered")
 async def health_filtered():
