@@ -94,7 +94,7 @@ PROBES: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
         # send it as QUERY, not JSON:
         "query": {"propertyName": "dlf"},
         # auth header (from env). You can also hardcode for a quick test.
-        "headers": {"x-api-key": os.getenv("ROUTE_HEALTH_API_KEY", ""),
+        "headers": {"x-api-key": "home.^,C&ffK]zgv<m,}ms`4x!].fYsr`p|d.XA2KWZpp_}*0}{}TSI",
                     "accept": "application/json",
                     "Content-Type": "application/json"},
         # treat these as UP (loose mode). Tighten to [200] if you want strict success.
@@ -104,6 +104,18 @@ PROBES: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
     #     "/cibil/intell-report": [
     #         {"method": "POST", "json": {"pan": "ABCDE1234F", "dob": "1990-01-01"}, "expect": [200,400,401,403]}
     #     ],
+        "/cibil/consent/send-otp": [{
+            "method": "POST",
+            "json": {
+                    "phone_number": "7759054070"
+                    },
+            "headers": {"x-api-key": "home.^,C&ffK]zgv<m,}ms`4x!].fYsr`p|d.XA2KWZpp_}*0}{}TSI",
+                    "accept": "application/json",
+                    "Content-Type": "application/json"},
+            # treat these as UP (loose mode). Tighten to [200] if you want strict success.
+            "expect": [200, 400, 401, 403]
+
+        }]
     }
 }
 
