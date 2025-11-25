@@ -134,6 +134,7 @@ class RouteProbe:
     skipped: bool = False
     skipped_reason: Optional[str] = None
 
+
 # ========== HELPERS ==========
 def _path_vars(path: str) -> List[str]:
     return re.findall(r"\{([^}]+)\}", path or "")
