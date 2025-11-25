@@ -105,7 +105,9 @@ PROBES: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
       }
         ],
         "/cibil/intell-report": [
-            {"method": "POST", "json": {"pan": "ABCDE1234F", "dob": "1990-01-01"},"headers": {"x-api-key": os.getenv("api-key"),
+            {"method": "POST", "json": {
+                                        "additionalProp1":
+                                            {"pan": "ABCDE1234F", "dob": "1990-01-01"}},"headers": {"x-api-key": os.getenv("api-key"),
                     "accept": "application/json",
                     "Content-Type": "application/json"}, "expect": [200,400,401,403]}
         ],
@@ -221,13 +223,20 @@ def _has_required_params(op: Dict[str, Any]) -> bool:
                 return True
     return False
 
-# ========== PROBING ==========
+# ========== PROBING (REACHABILITY-ONLY) ==========
+
 async def _probe_once(
     client: httpx.AsyncClient,
     method: str,
     url: str,
     probe: Optional[Dict[str, Any]] = None
 ) -> Tuple[bool, Optional[int], str]:
+    """
+    Reachability mode:
+      - Any HTTP response counts as UP (200..599)
+      - Only network/transport errors count as DOWN
+      - Still includes status_code in the reason for visibility
+    """
     try:
         headers = _clean_headers({**PROBE_DEFAULT_HEADERS, **(probe.get("headers", {}) if probe else {})})
         resp = await client.request(
@@ -239,14 +248,10 @@ async def _probe_once(
             timeout=ROUTE_TIMEOUT_SECS,
             follow_redirects=True,
         )
-        if probe and probe.get("expect"):
-            ok = resp.status_code in set(probe["expect"])
-            return ok, resp.status_code, f"expect={probe['expect']}, got={resp.status_code}"
-        if INCLUDE_405_AS_UP and resp.status_code == 405:
-            return True, resp.status_code, "405 treated as UP (route exists)"
-        ok = 200 <= resp.status_code < 400
-        return ok, resp.status_code, f"got={resp.status_code}"
+        # Any response means the route is reachable → UP
+        return True, resp.status_code, f"reachable_status={resp.status_code}"
     except Exception as e:
+        # Connection errors / DNS / timeouts → DOWN
         return False, None, f"error={type(e).__name__}: {e}"
 
 async def _probe_route(
@@ -256,10 +261,15 @@ async def _probe_route(
     path: str,
     op: Dict[str, Any]
 ) -> RouteProbe:
+    """
+    Uses explicit PROBES if present (headers/query/json),
+    otherwise sends a minimal request with default headers.
+    No skipping for method/params — we only care about reachability.
+    """
     upper = method.upper()
     url = _join(base, path)
 
-    # 1) If explicit probes exist for this route, run those (POST/secured/parametrized)
+    # 1) If explicit probes exist for this route, run them (any response = UP)
     base_key = base.rstrip("/")
     base_probes = PROBES.get(base_key) or PROBES.get(base_key + "/") or {}
     custom_list = base_probes.get(path, [])
@@ -278,6 +288,7 @@ async def _probe_route(
             ok, status, reason = await _probe_once(client, pr.get("method", upper), target_url, probe=pr)
             any_ok = any_ok or ok
             last_status, last_reason = status, reason
+
         return RouteProbe(
             method=upper, path=path, url=url,
             up=any_ok, status_code=last_status,
@@ -285,17 +296,18 @@ async def _probe_route(
             reason=last_reason, skipped=False
         )
 
-    # 2) No explicit probe → safe mode (only simple GET/HEAD/OPTIONS without required params)
-    if method.lower() not in SAFE_METHODS:
-        return RouteProbe(upper, path, url, up=False, status_code=None, latency_ms=None, skipped=True, skipped_reason="unsafe_method")
-    if _path_vars(path) or _has_required_params(op):
-        return RouteProbe(upper, path, url, up=False, status_code=None, latency_ms=None, skipped=True, skipped_reason="required_params")
-
+    # 2) No explicit probe → still attempt a minimal request (reachability-only)
     t0 = time.perf_counter()
     ok, code, reason = await _probe_once(client, upper, url, probe=None)
-    return RouteProbe(upper, path, url, up=ok, status_code=code, latency_ms=int((time.perf_counter()-t0)*1000), reason=reason)
-
+    return RouteProbe(
+        method=upper, path=path, url=url,
+        up=ok, status_code=code,
+        latency_ms=int((time.perf_counter() - t0) * 1000),
+        reason=reason, skipped=False
+    )
 # ========== MAIN RUNNER ==========
+
+
 async def _run_filtered_health() -> Dict[str, Any]:
     source = await _fetch_source_openapi(FILTER_SOURCE_URL)
     base = _resolve_base_url(source)
