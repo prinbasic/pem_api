@@ -114,7 +114,7 @@ PROBES: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
         "/cibil/consent/send-otp": [{
             "method": "POST",
             "json": {
-                    "phone_number": "7759054070"
+                    "phone_number": "1234567890"
                     },
             "headers": {"x-api-key": os.getenv("api-key"),
                     "accept": "application/json",
