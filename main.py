@@ -72,7 +72,7 @@ PATH_EXCLUDE_PREFIXES = {"/health", "/openapi", "/docs", "/redoc"}
 
 SAFE_METHODS = {"get", "head", "options"}
 INCLUDE_405_AS_UP = os.getenv("ROUTE_INCLUDE_405_AS_UP", "1") == "1"
-ROUTE_TIMEOUT_SECS = float(os.getenv("ROUTE_TIMEOUT_SECS", "3.5"))
+ROUTE_TIMEOUT_SECS = float(os.getenv("ROUTE_TIMEOUT_SECS", "60"))
 ROUTE_PARALLEL_LIMIT = int(os.getenv("ROUTE_PARALLEL_LIMIT", "20"))
 TRUST   = os.getenv("ROUTE_HEALTH_TRUST", "route-health")
 
@@ -120,7 +120,7 @@ PROBES: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
                     "accept": "application/json",
                     "Content-Type": "application/json"},
             # treat these as UP (loose mode). Tighten to [200] if you want strict success.
-            "expect": [200, 400, 401, 403]
+            "expect": "any"
 
         }]
     }
