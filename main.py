@@ -71,10 +71,11 @@ SAFE_METHODS = {"get", "head", "options"}
 INCLUDE_405_AS_UP = os.getenv("ROUTE_INCLUDE_405_AS_UP", "1") == "1"
 ROUTE_TIMEOUT_SECS = float(os.getenv("ROUTE_TIMEOUT_SECS", "3.5"))
 ROUTE_PARALLEL_LIMIT = int(os.getenv("ROUTE_PARALLEL_LIMIT", "20"))
-
+TRUST   = os.getenv("ROUTE_HEALTH_TRUST", "route-health")
 
 PROBE_DEFAULT_HEADERS: Dict[str, str] = {
     "x-api-key": os.getenv("api-key"),
+    "x-trusted-auth": TRUST,
     # "x-trusted-auth": "route-health"
 }
 
