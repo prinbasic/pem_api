@@ -152,7 +152,7 @@ def initiate_cibil_score(data: cibilRequest):
                         l.home_loan_ltv, l.remarks, l.loan_approval_time, l.processing_time,
                         l.minimum_loan_amount, l.maximum_loan_amount
                     FROM approved_projects ap
-                    JOIN approved_projects_lenders apl ON apl.project_id = ap.id
+                    JOIN approved_projects_lenders apl ON apl.id = ap.id
                     JOIN lenders l ON l.id = apl.lender_id
                     WHERE LOWER(ap.project_name) LIKE LOWER(%s)
                 """, (f"%{property_name}%",))
@@ -1384,56 +1384,43 @@ async def fetch_lenders_apf(propertyName: str, score: int = 750):
     #         conn.close()
 
     
-    # --- 2) APF-APPROVED lenders (schema-qualified, no propertyName) ---
-    # Inputs expected in outer scope:
-    #   - project_id: optional UUID string of approved_projects.id
-    #   - key: optional canonical key like 'm3mmerlin' (matches project_name_canon or canonical_name)
+    # --- 2) APF-APPROVED lenders (PATCH: uses only propertyName) ---
     approved_lenders = []
     conn = None
     try:
+        canonical_property = to_canonical(propertyName)  # e.g. "M3M Merlin" -> "m3mmerlin"
         conn = get_db_connection()
         with conn.cursor() as cur:
-            # Resolve project to use:
-            if project_id:
-                # Validate that the project exists
-                cur.execute("""
-                    SELECT id
-                    FROM public.approved_projects
-                    WHERE id = %s
-                    LIMIT 1
-                """, (project_id,))
-                row = cur.fetchone()
-                proj_id = row[0] if row else None
-            else:
-                # Resolve by canonical key (prefer row with highest mapping_count; tie-break by most recent updated_at)
-                cur.execute("""
-                    WITH candidates AS (
-                    SELECT id, updated_at
-                    FROM public.approved_projects
-                    WHERE project_name_canon = %s
-                        OR btrim(lower(canonical_name)) = %s
-                    ),
-                    counts AS (
-                    SELECT apl.project_id, COUNT(*) AS map_cnt
-                    FROM public.approved_projects_lenders apl
-                    GROUP BY apl.project_id
-                    ),
-                    ranked AS (
-                    SELECT c.id,
-                            COALESCE(cnt.map_cnt, 0) AS map_cnt,
-                            c.updated_at
-                    FROM candidates c
-                    LEFT JOIN counts cnt ON cnt.project_id = c.id
-                    ORDER BY COALESCE(cnt.map_cnt, 0) DESC, c.updated_at DESC
-                    LIMIT 1
-                    )
-                    SELECT id FROM ranked
-                """, (key, key))
-                row = cur.fetchone()
-                proj_id = row[0] if row else None
+            # Pick the best project row for this canonical:
+            # 1) match project_name_canon or canonical_name (normalized)
+            # 2) choose the one with highest mapping_count; tie-break by latest updated_at
+            cur.execute("""
+                WITH candidates AS (
+                SELECT id, updated_at
+                FROM public.approved_projects
+                WHERE project_name_canon = %s
+                    OR btrim(lower(canonical_name)) = %s
+                ),
+                counts AS (
+                SELECT apl.project_id, COUNT(*) AS map_cnt
+                FROM public.approved_projects_lenders apl
+                GROUP BY apl.project_id
+                ),
+                ranked AS (
+                SELECT c.id
+                FROM candidates c
+                LEFT JOIN counts cnt ON cnt.project_id = c.id
+                ORDER BY COALESCE(cnt.map_cnt, 0) DESC, c.updated_at DESC
+                LIMIT 1
+                )
+                SELECT id FROM ranked
+            """, (canonical_property, canonical_property))
+            r = cur.fetchone()
+            proj_id = r[0] if r else None
 
+            rows, col_names = [], []
             if proj_id:
-                # Fetch mapped lenders (only those with a non-empty ROI so they survive cleaning)
+                # Fetch mapped lenders that have ROI populated (so cleaner won't drop them)
                 cur.execute("""
                     SELECT DISTINCT
                         l.id,
@@ -1456,31 +1443,25 @@ async def fetch_lenders_apf(propertyName: str, score: int = 750):
                 """, (proj_id,))
                 rows = cur.fetchall()
                 col_names = [d[0] for d in cur.description]
-            else:
-                rows, col_names = [], []
 
+        # Parse + sort by numeric ROI
         for row in rows:
-            rowd = dict(zip(col_names, row))
-            if isinstance(rowd.get("id"), uuid.UUID):
-                rowd["id"] = str(rowd["id"])
-            # parse ROI for numeric sort later
-            rowd["home_loan_roi_float"] = parse_roi(rowd.get("home_loan_roi"))
-            approved_lenders.append(rowd)
+            rd = dict(zip(col_names, row))
+            if isinstance(rd.get("id"), uuid.UUID):
+                rd["id"] = str(rd["id"])
+            rd["home_loan_roi_float"] = parse_roi(rd.get("home_loan_roi"))
+            approved_lenders.append(rd)
 
-        # Sort APF by ROI ascending (None at end)
-        approved_lenders.sort(key=lambda x: (x["home_loan_roi_float"] is None, x["home_loan_roi_float"]))
+        approved_lenders.sort(
+            key=lambda x: (x["home_loan_roi_float"] is None, x["home_loan_roi_float"])
+        )
 
     except Exception as e:
-        print("❌ Error fetching approved lenders:", e)
+        print(f"❌ Error fetching approved lenders: {e}")
         approved_lenders = []
     finally:
         if conn:
             conn.close()
-
-    # remove temp field before returning/merging later in your function
-    for l in approved_lenders:
-        l.pop("home_loan_roi_float", None)
-
 
 
     # --- 3) MERGE (APF first then CIBIL), dedupe by id and name ---
