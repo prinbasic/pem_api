@@ -1391,75 +1391,29 @@ async def fetch_lenders_apf(propertyName: str, score: int = 750):
     try:
         conn = get_db_connection()
         with conn.cursor() as cur:
-            # 2.1 resolve project
             cur.execute("""
-                SELECT id
-                FROM public.approved_projects
-                WHERE btrim(lower(canonical_name)) = %s
-                LIMIT 1
+                SELECT DISTINCT l.id, l.lender_name, l.lender_type, l.home_loan_roi, l.lap_roi,
+                                l.home_loan_ltv, l.remarks, l.loan_approval_time, l.processing_time,
+                                l.minimum_loan_amount, l.maximum_loan_amount
+                FROM approved_projects ap
+                JOIN approved_projects_lenders apl ON apl.project_id = ap.id
+                JOIN lenders l ON l.id = apl.lender_id
+                WHERE ap.canonical_name = %s
             """, (canonical_property,))
-            proj = cur.fetchone()
-            print(f"[APF] PROJ_MATCH found={bool(proj)} id={proj[0] if proj else None}")
-
-            if not proj:
-                approved_lenders = []
-            else:
-                proj_id = proj[0]
-
-                # 2.2 mapping count
-                cur.execute("""
-                    SELECT COUNT(*) FROM public.approved_projects_lenders WHERE project_id = %s
-                """, (proj_id,))
-                map_count = cur.fetchone()[0]
-                print(f"[APF] MAP_COUNT project_id={proj_id} -> {map_count}")
-
-                # 2.3 fetch lenders
-                cur.execute("""
-                    SELECT DISTINCT
-                        l.id,
-                        l.lender_name,
-                        l.lender_type,
-                        l.home_loan_roi,
-                        l.lap_roi,
-                        l.home_loan_ltv,
-                        l.remarks,
-                        l.loan_approval_time,
-                        l.processing_time,
-                        l.minimum_loan_amount,
-                        l.maximum_loan_amount,
-                        l.minimum_credit_score
-                    FROM public.approved_projects_lenders apl
-                    JOIN public.lenders l ON l.id = apl.lender_id
-                    WHERE apl.project_id = %s
-                    AND l.home_loan_roi IS NOT NULL AND l.home_loan_roi <> ''
-                """, (proj_id,))
-                rows = cur.fetchall()
-                col_names = [desc[0] for desc in cur.description]
-                print(f"[APF] SQL_ROWS={len(rows)} (pre-parse)")
-
-        approved_lenders = []
-        for row in rows if proj else []:
-            rd = dict(zip(col_names, row))
-            if isinstance(rd.get("id"), uuid.UUID):
-                rd["id"] = str(rd["id"])
-            rd["home_loan_roi_float"] = parse_roi(rd.get("home_loan_roi"))
-            approved_lenders.append(rd)
-
-        print(f"[APF] PARSED_ROWS={len(approved_lenders)} "
-            f"names={[r.get('lender_name') for r in approved_lenders[:3]]}")
-
+            rows = cur.fetchall()
+            col_names = [desc[0] for desc in cur.description]
+        for row in rows:
+            row_dict = dict(zip(col_names, row))
+            if isinstance(row_dict.get("id"), uuid.UUID):
+                row_dict["id"] = str(row_dict["id"])
+            row_dict["home_loan_roi_float"] = parse_roi(row_dict.get("home_loan_roi"))
+            approved_lenders.append(row_dict)
         approved_lenders.sort(key=lambda x: (x["home_loan_roi_float"] is None, x["home_loan_roi_float"]))
-
     except Exception as e:
-        print(f"[APF] ERROR {e}")
+        print("❌ Error fetching approved lenders:", e)
     finally:
         if conn:
             conn.close()
-
-    # before returning, right where you build the final payload:
-    print(f"[APF] BEFORE_CLEAN approved={len(approved_lenders)}")
-    approved_clean = _clean_lenders(approved_lenders)
-    print(f"[APF] AFTER_CLEAN approved={len(approved_clean)}")
 
 
     # --- 3) MERGE (APF first then CIBIL), dedupe by id and name ---
