@@ -1383,25 +1383,26 @@ async def fetch_lenders_apf(propertyName: str, score: int = 750):
     #     if conn:
     #         conn.close()
 
-    # --- 2) APF-APPROVED lenders ---
+    # --- 2) APF-APPROVED lenders (FIXED QUERY) ---
     conn = None
     try:
         conn = get_db_connection()
         with conn.cursor() as cur:
             cur.execute("""
                 WITH proj AS (
-                SELECT id
-                FROM approved_projects
-                WHERE btrim(lower(canonical_name)) = %s
+                    SELECT id
+                    FROM approved_projects
+                    WHERE btrim(lower(canonical_name)) = %s
                 )
                 SELECT DISTINCT
-                l.id, l.lender_name, l.lender_type, l.home_loan_roi, l.lap_roi,
-                l.home_loan_ltv, l.remarks, l.loan_approval_time, l.processing_time,
-                l.minimum_loan_amount, l.maximum_loan_amount
+                    l.id, l.lender_name, l.lender_type, l.home_loan_roi, l.lap_roi,
+                    l.home_loan_ltv, l.remarks, l.loan_approval_time, l.processing_time,
+                    l.minimum_loan_amount, l.maximum_loan_amount
                 FROM approved_projects_lenders apl
                 JOIN proj p ON apl.project_id = p.id
-                JOIN lenders l ON l.id = apl.lender_id
-            """, (canonical_property,))  # canonical_property is already lower+stripped by to_canonical()
+                JOIN lenders l ON l.id = apl.lender_id;
+            """, (canonical_property,))
+
             rows = cur.fetchall()
             col_names = [desc[0] for desc in cur.description]
 
@@ -1416,13 +1417,14 @@ async def fetch_lenders_apf(propertyName: str, score: int = 750):
         approved_lenders.sort(key=lambda x: (x["home_loan_roi_float"] is None, x["home_loan_roi_float"]))
 
         if not approved_lenders:
-            print(f"[APF DEBUG] 0 rows for canonical='{canonical_property}'. "
-                f"Check trailing spaces/case in approved_projects.canonical_name.")
+            print(f"[APF DEBUG] Found project but no lenders matched. canonical={canonical_property}")
+
     except Exception as e:
         print("❌ Error fetching approved lenders:", e)
     finally:
         if conn:
             conn.close()
+
 
 
 
