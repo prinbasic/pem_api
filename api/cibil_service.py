@@ -1385,83 +1385,76 @@ async def fetch_lenders_apf(propertyName: str, score: int = 750):
 
     
     # --- 2) APF-APPROVED lenders (PATCH: uses only propertyName) ---
+    # --- 2) APF-APPROVED lenders (single-CTE, identical to your SQL) ---
     approved_lenders = []
     conn = None
     try:
-        canonical_property = to_canonical(propertyName)  # e.g. "M3M Merlin" -> "m3mmerlin"
+        canonical_property = to_canonical(propertyName)  # "M3M Merlin" -> "m3mmerlin"
         conn = get_db_connection()
         with conn.cursor() as cur:
-            # Pick the best project row for this canonical:
-            # 1) match project_name_canon or canonical_name (normalized)
-            # 2) choose the one with highest mapping_count; tie-break by latest updated_at
             cur.execute("""
-                WITH candidates AS (
-                SELECT id, updated_at
+                WITH proj AS (
+                SELECT id
                 FROM public.approved_projects
                 WHERE project_name_canon = %s
                     OR btrim(lower(canonical_name)) = %s
-                ),
-                counts AS (
-                SELECT apl.project_id, COUNT(*) AS map_cnt
-                FROM public.approved_projects_lenders apl
-                GROUP BY apl.project_id
-                ),
-                ranked AS (
-                SELECT c.id
-                FROM candidates c
-                LEFT JOIN counts cnt ON cnt.project_id = c.id
-                ORDER BY COALESCE(cnt.map_cnt, 0) DESC, c.updated_at DESC
+                ORDER BY updated_at DESC
                 LIMIT 1
+                ),
+                m AS (
+                SELECT apl.lender_id
+                FROM public.approved_projects_lenders apl
+                JOIN proj p ON p.id = apl.project_id
+                ),
+                j AS (
+                SELECT l.id, l.lender_name, l.lender_type,
+                        l.home_loan_roi, l.lap_roi, l.home_loan_ltv, l.remarks,
+                        l.loan_approval_time, l.processing_time,
+                        l.minimum_loan_amount, l.maximum_loan_amount, l.minimum_credit_score
+                FROM m
+                JOIN public.lenders l ON l.id = m.lender_id
+                ),
+                incl AS (  -- what API returns (requires ROI)
+                SELECT *
+                FROM j
+                WHERE home_loan_roi IS NOT NULL AND btrim(home_loan_roi) <> ''
                 )
-                SELECT id FROM ranked
+                SELECT
+                (SELECT id FROM proj) AS project_id,
+                (SELECT COUNT(*) FROM m) AS mapping_count,
+                (SELECT COUNT(*) FROM incl) AS lenders_with_roi,
+                json_agg(row_to_json(incl) ORDER BY lender_name) AS returned_lenders
+                FROM incl;
             """, (canonical_property, canonical_property))
-            r = cur.fetchone()
-            proj_id = r[0] if r else None
+            row = cur.fetchone()
 
-            rows, col_names = [], []
-            if proj_id:
-                # Fetch mapped lenders that have ROI populated (so cleaner won't drop them)
-                cur.execute("""
-                    SELECT DISTINCT
-                        l.id,
-                        l.lender_name,
-                        l.lender_type,
-                        l.home_loan_roi,
-                        l.lap_roi,
-                        l.home_loan_ltv,
-                        l.remarks,
-                        l.loan_approval_time,
-                        l.processing_time,
-                        l.minimum_loan_amount,
-                        l.maximum_loan_amount,
-                        l.minimum_credit_score
-                    FROM public.approved_projects_lenders apl
-                    JOIN public.lenders l ON l.id = apl.lender_id
-                    WHERE apl.project_id = %s
-                    AND l.home_loan_roi IS NOT NULL
-                    AND btrim(l.home_loan_roi) <> ''
-                """, (proj_id,))
-                rows = cur.fetchall()
-                col_names = [d[0] for d in cur.description]
+        # Optional: quick visibility to ensure we picked the right project
+        if row:
+            proj_id, map_cnt, with_roi_cnt, lenders_json = row
+            print(f"[APF] PROJ={proj_id} map_cnt={map_cnt} with_roi={with_roi_cnt}")
+            # Parse the JSON array of lenders back into dicts
+            if lenders_json:
+                for ld in lenders_json:
+                    # ensure id is string and add numeric ROI for later sort if needed
+                    if isinstance(ld.get("id"), uuid.UUID):
+                        ld["id"] = str(ld["id"])
+                    approved_lenders.append(ld)
 
-        # Parse + sort by numeric ROI
-        for row in rows:
-            rd = dict(zip(col_names, row))
-            if isinstance(rd.get("id"), uuid.UUID):
-                rd["id"] = str(rd["id"])
-            rd["home_loan_roi_float"] = parse_roi(rd.get("home_loan_roi"))
-            approved_lenders.append(rd)
-
-        approved_lenders.sort(
-            key=lambda x: (x["home_loan_roi_float"] is None, x["home_loan_roi_float"])
-        )
+        # If you still want to sort by numeric ROI:
+        for l in approved_lenders:
+            val = re.search(r'\d+(\.\d+)?', l.get("home_loan_roi") or "")
+            l["_roi_num"] = float(val.group()) if val else None
+        approved_lenders.sort(key=lambda x: (x["_roi_num"] is None, x["_roi_num"]))
+        for l in approved_lenders:
+            l.pop("_roi_num", None)
 
     except Exception as e:
-        print(f"❌ Error fetching approved lenders: {e}")
+        print(f"❌ Error fetching approved lenders (CTE): {e}")
         approved_lenders = []
     finally:
         if conn:
             conn.close()
+
 
 
     # --- 3) MERGE (APF first then CIBIL), dedupe by id and name ---
