@@ -1383,97 +1383,103 @@ async def fetch_lenders_apf(propertyName: str, score: int = 750):
     #     if conn:
     #         conn.close()
 
-    # at the very top of the function (keep as-is if you already have):
-    print(f"[APF] START propertyName='{propertyName}'  score={score}")
-
-    print(f"[APF] START property='{propertyName}'")
-
-    canonical_property = re.sub(r'[^a-zA-Z0-9]', '', propertyName).lower()
-    print(f"[APF] CANON val='{canonical_property}' len={len(canonical_property)} bytes={canonical_property.encode()}")
-
-    conn = get_db_connection()
+    
+    # --- 2) APF-APPROVED lenders (schema-qualified, no propertyName) ---
+    # Inputs expected in outer scope:
+    #   - project_id: optional UUID string of approved_projects.id
+    #   - key: optional canonical key like 'm3mmerlin' (matches project_name_canon or canonical_name)
+    approved_lenders = []
+    conn = None
     try:
+        conn = get_db_connection()
         with conn.cursor() as cur:
-            # Show DB context to catch wrong DB/schema instantly
-            cur.execute("SELECT current_database(), current_schema(), session_user")
-            print("[APF] DB_CTX", cur.fetchone())
-
-            # Try canonical_name = %s (exact)
-            cur.execute("""
-                SELECT id FROM public.approved_projects
-                WHERE canonical_name = %s
-                LIMIT 1
-            """, (canonical_property,))
-            row1 = cur.fetchone()
-            print(f"[APF] RESOLVE canonical_name= ? -> found={bool(row1)} id={row1[0] if row1 else None}")
-
-            # Fallback: tolerant canonical_name (trim/lower)
-            if not row1:
+            # Resolve project to use:
+            if project_id:
+                # Validate that the project exists
                 cur.execute("""
-                    SELECT id FROM public.approved_projects
-                    WHERE btrim(lower(canonical_name)) = %s
+                    SELECT id
+                    FROM public.approved_projects
+                    WHERE id = %s
                     LIMIT 1
-                """, (canonical_property,))
-                row2 = cur.fetchone()
+                """, (project_id,))
+                row = cur.fetchone()
+                proj_id = row[0] if row else None
             else:
-                row2 = None
-            print(f"[APF] RESOLVE btrim(lower(canonical_name))= ? -> found={bool(row2)} id={row2[0] if row2 else None}")
-
-            # Fallback 2: project_name_canon (generated column you trust)
-            if not (row1 or row2):
+                # Resolve by canonical key (prefer row with highest mapping_count; tie-break by most recent updated_at)
                 cur.execute("""
-                    SELECT id FROM public.approved_projects
+                    WITH candidates AS (
+                    SELECT id, updated_at
+                    FROM public.approved_projects
                     WHERE project_name_canon = %s
+                        OR btrim(lower(canonical_name)) = %s
+                    ),
+                    counts AS (
+                    SELECT apl.project_id, COUNT(*) AS map_cnt
+                    FROM public.approved_projects_lenders apl
+                    GROUP BY apl.project_id
+                    ),
+                    ranked AS (
+                    SELECT c.id,
+                            COALESCE(cnt.map_cnt, 0) AS map_cnt,
+                            c.updated_at
+                    FROM candidates c
+                    LEFT JOIN counts cnt ON cnt.project_id = c.id
+                    ORDER BY COALESCE(cnt.map_cnt, 0) DESC, c.updated_at DESC
                     LIMIT 1
-                """, (canonical_property,))
-                row3 = cur.fetchone()
-            else:
-                row3 = None
-            print(f"[APF] RESOLVE project_name_canon= ? -> found={bool(row3)} id={row3[0] if row3 else None}")
+                    )
+                    SELECT id FROM ranked
+                """, (key, key))
+                row = cur.fetchone()
+                proj_id = row[0] if row else None
 
-            proj_id = (row1 or row2 or row3)
-            proj_id = proj_id[0] if proj_id else None
-
-            if not proj_id:
-                print("[APF] EXIT: no project matched in THIS connection.")
-                approved_lenders = []
-            else:
-                cur.execute("SELECT COUNT(*) FROM public.approved_projects_lenders WHERE project_id = %s", (proj_id,))
-                map_count = cur.fetchone()[0]
-                print(f"[APF] MAP_COUNT for project_id={proj_id} -> {map_count}")
-
+            if proj_id:
+                # Fetch mapped lenders (only those with a non-empty ROI so they survive cleaning)
                 cur.execute("""
                     SELECT DISTINCT
-                        l.id, l.lender_name, l.lender_type, l.home_loan_roi, l.lap_roi,
-                        l.home_loan_ltv, l.remarks, l.loan_approval_time, l.processing_time,
-                        l.minimum_loan_amount, l.maximum_loan_amount, l.minimum_credit_score
+                        l.id,
+                        l.lender_name,
+                        l.lender_type,
+                        l.home_loan_roi,
+                        l.lap_roi,
+                        l.home_loan_ltv,
+                        l.remarks,
+                        l.loan_approval_time,
+                        l.processing_time,
+                        l.minimum_loan_amount,
+                        l.maximum_loan_amount,
+                        l.minimum_credit_score
                     FROM public.approved_projects_lenders apl
                     JOIN public.lenders l ON l.id = apl.lender_id
                     WHERE apl.project_id = %s
-                    AND l.home_loan_roi IS NOT NULL AND l.home_loan_roi <> ''
+                    AND l.home_loan_roi IS NOT NULL
+                    AND btrim(l.home_loan_roi) <> ''
                 """, (proj_id,))
                 rows = cur.fetchall()
-                cols = [d[0] for d in cur.description]
-                print(f"[APF] SQL_ROWS={len(rows)}")
+                col_names = [d[0] for d in cur.description]
+            else:
+                rows, col_names = [], []
 
-        # parse
+        for row in rows:
+            rowd = dict(zip(col_names, row))
+            if isinstance(rowd.get("id"), uuid.UUID):
+                rowd["id"] = str(rowd["id"])
+            # parse ROI for numeric sort later
+            rowd["home_loan_roi_float"] = parse_roi(rowd.get("home_loan_roi"))
+            approved_lenders.append(rowd)
+
+        # Sort APF by ROI ascending (None at end)
+        approved_lenders.sort(key=lambda x: (x["home_loan_roi_float"] is None, x["home_loan_roi_float"]))
+
+    except Exception as e:
+        print("❌ Error fetching approved lenders:", e)
         approved_lenders = []
-        for r in (rows if proj_id else []):
-            d = dict(zip(cols, r))
-            if isinstance(d.get("id"), uuid.UUID):
-                d["id"] = str(d["id"])
-            d["home_loan_roi_float"] = parse_roi(d.get("home_loan_roi"))
-            approved_lenders.append(d)
-
-        print(f"[APF] PARSED_ROWS={len(approved_lenders)}")
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
-    print(f"[APF] BEFORE_CLEAN approved={len(approved_lenders)}")
-    approved_clean = _clean_lenders(approved_lenders)
-    print(f"[APF] AFTER_CLEAN approved={len(approved_clean)}")
-
-# use approved_clean in the response
+    # remove temp field before returning/merging later in your function
+    for l in approved_lenders:
+        l.pop("home_loan_roi_float", None)
 
 
 
