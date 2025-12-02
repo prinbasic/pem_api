@@ -1351,23 +1351,61 @@ async def fetch_lenders_apf(propertyName: str, score: int = 750):
         if conn:
             conn.close()
 
+    # # --- 2) APF-APPROVED lenders ---
+    # conn = None
+    # try:
+    #     conn = get_db_connection()
+    #     with conn.cursor() as cur:
+    #         cur.execute("""
+    #             SELECT DISTINCT l.id, l.lender_name, l.lender_type, l.home_loan_roi, l.lap_roi,
+    #                             l.home_loan_ltv, l.remarks, l.loan_approval_time, l.processing_time,
+    #                             l.minimum_loan_amount, l.maximum_loan_amount
+    #             FROM approved_projects ap
+    #             JOIN approved_projects_lenders apl ON apl.project_id = ap.id
+    #             JOIN lenders l ON l.id = apl.lender_id
+    #             WHERE ap.canonical_name = %s
+    #         """, (canonical_property,))
+    #         rows = cur.fetchall()
+    #         col_names = [desc[0] for desc in cur.description]
+
+    #     for row in rows:
+    #         row_dict = dict(zip(col_names, row))
+    #         if isinstance(row_dict.get("id"), uuid.UUID):
+    #             row_dict["id"] = str(row_dict["id"])
+    #         row_dict["home_loan_roi_float"] = parse_roi(row_dict.get("home_loan_roi"))
+    #         approved_lenders.append(row_dict)
+
+    #     approved_lenders.sort(key=lambda x: (x["home_loan_roi_float"] is None, x["home_loan_roi_float"]))
+
+    # except Exception as e:
+    #     print("❌ Error fetching approved lenders:", e)
+    # finally:
+    #     if conn:
+    #         conn.close()
+
     # --- 2) APF-APPROVED lenders ---
     conn = None
     try:
         conn = get_db_connection()
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT DISTINCT l.id, l.lender_name, l.lender_type, l.home_loan_roi, l.lap_roi,
-                                l.home_loan_ltv, l.remarks, l.loan_approval_time, l.processing_time,
-                                l.minimum_loan_amount, l.maximum_loan_amount
-                FROM approved_projects ap
-                JOIN approved_projects_lenders apl ON apl.project_id = ap.id
+                WITH proj AS (
+                SELECT id
+                FROM approved_projects
+                WHERE btrim(lower(canonical_name)) = %s
+                )
+                SELECT DISTINCT
+                l.id, l.lender_name, l.lender_type, l.home_loan_roi, l.lap_roi,
+                l.home_loan_ltv, l.remarks, l.loan_approval_time, l.processing_time,
+                l.minimum_loan_amount, l.maximum_loan_amount
+                FROM approved_projects_lenders apl
+                JOIN proj p ON apl.project_id = p.id
                 JOIN lenders l ON l.id = apl.lender_id
-                WHERE ap.canonical_name = %s
-            """, (canonical_property,))
+            """, (canonical_property,))  # canonical_property is already lower+stripped by to_canonical()
             rows = cur.fetchall()
             col_names = [desc[0] for desc in cur.description]
 
+        approved_lenders = []
         for row in rows:
             row_dict = dict(zip(col_names, row))
             if isinstance(row_dict.get("id"), uuid.UUID):
@@ -1377,11 +1415,16 @@ async def fetch_lenders_apf(propertyName: str, score: int = 750):
 
         approved_lenders.sort(key=lambda x: (x["home_loan_roi_float"] is None, x["home_loan_roi_float"]))
 
+        if not approved_lenders:
+            print(f"[APF DEBUG] 0 rows for canonical='{canonical_property}'. "
+                f"Check trailing spaces/case in approved_projects.canonical_name.")
     except Exception as e:
         print("❌ Error fetching approved lenders:", e)
     finally:
         if conn:
             conn.close()
+
+
 
     # --- 3) MERGE (APF first then CIBIL), dedupe by id and name ---
     merged = []
