@@ -1461,16 +1461,6 @@ async def fetch_lenders_apf(propertyName: str, score: int = 750):
     approved_clean = _clean_lenders(approved_lenders)
     print(f"[APF] AFTER_CLEAN approved={len(approved_clean)}")
 
-# and use approved_clean in the response:
-return {
-    "message": "Lenders fetched successfully",
-    "cibilScore": score,
-    "approvedLenders": approved_clean,
-    "workingLenders": _clean_lenders(working_lenders),
-    "moreLenders": _clean_lenders(more_lenders),
-}
-
-
 
     # --- 3) MERGE (APF first then CIBIL), dedupe by id and name ---
     merged = []
