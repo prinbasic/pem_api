@@ -7,7 +7,7 @@ from typing import Dict
 from models.request_models import LoanFormData
 from api.log_utils import log_user_cibil_data
 from api.signature import get_signature_headers
-from models.request_models import cibilRequest
+from models.request_models import cibilRequest, mandate_cibil
 from datetime import datetime, timezone
 # from routes.utility_routes import calculate_emi
 from db_client import get_db_connection  # make sure this is imported
@@ -34,6 +34,7 @@ GRIDLINES_PAN_URL = os.getenv("GRIDLINES_PAN_URL")
 GRIDLINES_API_KEY = os.getenv("GRIDLINES_API_KEY")
 OTP_BASE_URL = os.getenv("OTP_BASE_URL")
 BUREAU_PROFILE_URL = os.getenv("BUREAU_PROFILE_URL")
+basic_cibil = os.getenv("basic_cibil")
 
 cibil_request_cache = {}
 
@@ -1658,3 +1659,24 @@ async def upsert_changes(conn, table: str, key_col: str, row: dict):
         *values,
     )
     return {"inserted": False, "updated": True, "changed": changed}
+
+
+def mandate_consent_cibilscore(data: mandate_cibil):
+    # body = {
+    #     "MobileNumber": data.MobileNumber,
+    #     "IsCustomerSelfJourney": data.IsCustomerSelfJourney
+    # }
+    # print(body)
+    is_self = "true" if bool(data.IsCustomerSelfJourney) else "false"
+    params = {"MobileNumber": data.MobileNumber, "IsCustomerSelfJourney": is_self}
+    headers = get_signature_headers(basic_cibil, "POST", params)
+    print(headers)
+    response = requests.post(basic_cibil, headers=headers, params=params)
+    print(response.url)
+    api_data = response.json()
+
+    print(api_data)
+
+    return api_data
+
+

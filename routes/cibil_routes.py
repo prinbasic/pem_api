@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Query, HTTPException, Body
 from models.request_models import LoanFormData, cibilRequest
 from api.cibil_service import (
-    initiate_cibil_score,
+    initiate_cibil_score,mandate_consent_cibilscore,
     verify_otp_and_fetch_score,fetch_lenders_apf,
     poll_consent_and_fetch,send_and_verify_pan, send_otp_to_user, resend_otp_to_user, fetch_lenders_and_emi, intell_report_from_json
 )
 from api.log_utils import log_user_cibil_data
-from models.request_models import cibilOTPRequest,PhoneNumberRequest,PANRequest, LoanFormData, IntellReq, updateprofile
+from models.request_models import mandate_cibil ,cibilOTPRequest,PhoneNumberRequest,PANRequest, LoanFormData, IntellReq, updateprofile
 from db_client import get_db_connection
 import httpx
 router = APIRouter()
@@ -20,6 +20,10 @@ OTP_BASE_URL = "https://api.orbit.basichomeloan.com/api_v1"
 @router.post("/initiate-cibil", tags=["credit"])
 def initiate(data: cibilRequest):
     return initiate_cibil_score(data)
+
+@router.post("/latest_initiate-cibil", tags=["credit"])
+def initiate(data: mandate_cibil):
+    return mandate_consent_cibilscore(data)
 
 @router.get("/verify-otp", tags=["credit"])
 def verify(transId: str = Query(...), otp: str = Query(...), pan: str = Query(...)):

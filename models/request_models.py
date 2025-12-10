@@ -275,3 +275,7 @@ class updateprofile(BaseModel):
     email: str
     dateOfBirth: str
 
+
+class mandate_cibil(BaseModel):
+    MobileNumber: str
+    IsCustomerSelfJourney: bool
