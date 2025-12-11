@@ -1689,12 +1689,13 @@ def mandate_consent_cibilscore(data: mandate_cibil):
 
     return api_data
 
-def mandate_verify_otp(data: mandate_verify):
+def mandate_verify_otp(trans_id: str, otp: str):
 
-    params = [
-        ("TransId", data.TransId),
-        ("OTP", data.OTP),
-    ]
+    # params = [
+    #     ("TransId", data.TransId),
+    #     ("OTP", data.OTP),
+    # ]
+    params={"TransId": trans_id, "Otp": otp}
 
     # Build canonical query string
     canonical_query = urlencode(params, doseq=True)
@@ -1707,7 +1708,7 @@ def mandate_verify_otp(data: mandate_verify):
     print("HEADERS:", headers)
 
     # Send request using EXACT same URL
-    response = requests.post(full_url, headers=headers)
+    response = requests.get(full_url, params={"TransId": trans_id, "Otp": otp})
     print("REQUEST URL:", response.request.url)
 
     api_data = response.json()
