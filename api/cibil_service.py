@@ -1661,7 +1661,6 @@ async def upsert_changes(conn, table: str, key_col: str, row: dict):
     )
     return {"inserted": False, "updated": True, "changed": changed}
 
-
 def mandate_consent_cibilscore(data: mandate_cibil):
     # Prepare query params
     is_self = "true" if bool(data.IsCustomerSelfJourney) else "false"
