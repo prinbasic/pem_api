@@ -6,7 +6,7 @@ import io
 from typing import Dict
 from models.request_models import LoanFormData
 from api.log_utils import log_user_cibil_data
-from api.signature import get_signature_headers
+from api.signature1 import get_signature_headers
 from models.request_models import cibilRequest, mandate_cibil
 from datetime import datetime, timezone
 # from routes.utility_routes import calculate_emi
@@ -23,6 +23,7 @@ import os
 from dotenv import load_dotenv
 from typing import Dict, Optional
 from datetime import datetime, timezone, timedelta
+from urllib.parse import urlencode
 
 load_dotenv()
 
@@ -1662,19 +1663,29 @@ async def upsert_changes(conn, table: str, key_col: str, row: dict):
 
 
 def mandate_consent_cibilscore(data: mandate_cibil):
-    # body = {
-    #     "MobileNumber": data.MobileNumber,
-    #     "IsCustomerSelfJourney": data.IsCustomerSelfJourney
-    # }
-    # print(body)
+    # Prepare query params
     is_self = "true" if bool(data.IsCustomerSelfJourney) else "false"
-    params = {"MobileNumber": data.MobileNumber, "IsCustomerSelfJourney": is_self}
-    headers = get_signature_headers(basic_cibil, "POST", params)
-    print(headers)
-    response = requests.post(basic_cibil, headers=headers, params=params)
-    print(response.url)
-    api_data = response.json()
+    params = [
+        ("MobileNumber", data.MobileNumber),
+        ("IsCustomerSelfJourney", is_self),
+    ]
 
+    # Build canonical query string
+    canonical_query = urlencode(params, doseq=True)
+
+    # Full URL to sign
+    full_url = f"{basic_cibil}?{canonical_query}"
+    print("FULL URL (signed):", full_url)
+
+    # Sign using EXACT full URL
+    headers = get_signature_headers(full_url, "POST", '' )
+    print("HEADERS:", headers)
+
+    # Send request using EXACT same URL
+    response = requests.post(full_url, headers=headers)
+    print("REQUEST URL:", response.request.url)
+
+    api_data = response.json()
     print(api_data)
 
     return api_data
