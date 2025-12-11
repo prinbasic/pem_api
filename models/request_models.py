@@ -279,3 +279,7 @@ class updateprofile(BaseModel):
 class mandate_cibil(BaseModel):
     MobileNumber: str
     IsCustomerSelfJourney: bool
+
+class mandate_verify(BaseModel):
+    TransId: str
+    OTP: str

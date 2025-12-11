@@ -7,7 +7,7 @@ from typing import Dict
 from models.request_models import LoanFormData
 from api.log_utils import log_user_cibil_data
 from api.signature1 import get_signature_headers
-from models.request_models import cibilRequest, mandate_cibil
+from models.request_models import cibilRequest, mandate_cibil, mandate_verify
 from datetime import datetime, timezone
 # from routes.utility_routes import calculate_emi
 from db_client import get_db_connection  # make sure this is imported
@@ -1689,4 +1689,28 @@ def mandate_consent_cibilscore(data: mandate_cibil):
 
     return api_data
 
+def mandate_verify(data: mandate_verify):
 
+    params = [
+        ("TransId", data.TransId),
+        ("OTP", data.OTP),
+    ]
+
+    # Build canonical query string
+    canonical_query = urlencode(params, doseq=True)
+
+    # Full URL to sign
+    full_url = f"{basic_cibil}?{canonical_query}"
+    print("FULL URL (signed):", full_url)
+
+    headers = get_signature_headers(full_url, "POST", '' )
+    print("HEADERS:", headers)
+
+    # Send request using EXACT same URL
+    response = requests.post(full_url, headers=headers)
+    print("REQUEST URL:", response.request.url)
+
+    api_data = response.json()
+    print(api_data)
+
+    return api_data

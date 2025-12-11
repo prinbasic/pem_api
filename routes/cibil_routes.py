@@ -3,10 +3,10 @@ from models.request_models import LoanFormData, cibilRequest
 from api.cibil_service import (
     initiate_cibil_score,mandate_consent_cibilscore,
     verify_otp_and_fetch_score,fetch_lenders_apf,
-    poll_consent_and_fetch,send_and_verify_pan, send_otp_to_user, resend_otp_to_user, fetch_lenders_and_emi, intell_report_from_json
+    poll_consent_and_fetch,send_and_verify_pan, send_otp_to_user, resend_otp_to_user, fetch_lenders_and_emi, intell_report_from_json, mandate_verify_otp
 )
 from api.log_utils import log_user_cibil_data
-from models.request_models import mandate_cibil ,cibilOTPRequest,PhoneNumberRequest,PANRequest, LoanFormData, IntellReq, updateprofile
+from models.request_models import mandate_cibil ,cibilOTPRequest,PhoneNumberRequest,PANRequest, LoanFormData, IntellReq, updateprofile, mandate_verify
 from db_client import get_db_connection
 import httpx
 router = APIRouter()
@@ -24,6 +24,10 @@ def initiate(data: cibilRequest):
 @router.post("/latest_initiate-cibil", tags=["credit"])
 def initiate(data: mandate_cibil):
     return mandate_consent_cibilscore(data)
+
+@router.get("/latest_verify", tags=["credit"])
+def verify(data: mandate_verify):
+    return mandate_verify_otp(data)
 
 @router.get("/verify-otp", tags=["credit"])
 def verify(transId: str = Query(...), otp: str = Query(...), pan: str = Query(...)):
