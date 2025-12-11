@@ -1704,7 +1704,7 @@ def mandate_verify_otp(trans_id: str, otp: str):
     full_url = f"{basic_cibil}?{canonical_query}"
     print("FULL URL (signed):", full_url)
 
-    headers = get_signature_headers(full_url, "POST", '' )
+    headers = get_signature_headers(full_url, "GET", '' )
     print("HEADERS:", headers)
 
     # Send request using EXACT same URL
