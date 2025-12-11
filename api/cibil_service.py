@@ -1689,7 +1689,7 @@ def mandate_consent_cibilscore(data: mandate_cibil):
 
     return api_data
 
-def mandate_verify(data: mandate_verify):
+def mandate_verify_otp(data: mandate_verify):
 
     params = [
         ("TransId", data.TransId),
