@@ -1722,7 +1722,7 @@ def mandate_verify_otp(data: mandate_verify):
 
     user_details = {
                     "dob": dob_formatted,
-                    "credit_score": api_data.get("result").get("creditScore"),
+                    "credit_score": api_data.get("result").get("creditScore") or 700,
                     "email": api_data.get("result").get("email"),
                     "gender": api_data.get("result").get("gender"),
                     "pan_number": api_data.get("result").get("pan"),
