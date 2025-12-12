@@ -1669,25 +1669,28 @@ def mandate_consent_cibilscore(data: mandate_cibil):
         ("MobileNumber", data.MobileNumber),
         ("IsCustomerSelfJourney", is_self),
     ]
-
     # Build canonical query string
     canonical_query = urlencode(params, doseq=True)
-
     # Full URL to sign
     full_url = f"{basic_cibil}?{canonical_query}"
     print("FULL URL (signed):", full_url)
-
     # Sign using EXACT full URL
     headers = get_signature_headers(full_url, "POST", '' )
     print("HEADERS:", headers)
-
     # Send request using EXACT same URL
     response = requests.post(full_url, headers=headers)
 
     api_data = response.json()
-    print(api_data)
-
-    return api_data
+    if api_data.get("message") == "Data Fetched Successfully":
+        return {
+                "success": True,
+                "message": "OTP sent successfully",
+                "data": {
+                    "phone_number": "8076298443"
+                }
+            }
+    else:
+        return api_data
 
 def mandate_verify_otp(data: mandate_verify):
 
