@@ -14,6 +14,7 @@ venv/
 # Kubernetes YAML
 *.yaml
 *.yml
+*.json
 
 # OS & Editor
 .DS_Store

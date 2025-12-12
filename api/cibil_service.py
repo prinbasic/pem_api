@@ -7,7 +7,7 @@ from typing import Dict
 from models.request_models import LoanFormData
 from api.log_utils import log_user_cibil_data
 from api.signature1 import get_signature_headers
-from models.request_models import cibilRequest, mandate_cibil, mandate_verify
+from models.request_models import VerifyOtpResponse, cibilRequest, mandate_cibil, mandate_verify
 from datetime import datetime, timezone
 # from routes.utility_routes import calculate_emi
 from db_client import get_db_connection  # make sure this is imported
@@ -36,6 +36,7 @@ GRIDLINES_API_KEY = os.getenv("GRIDLINES_API_KEY")
 OTP_BASE_URL = os.getenv("OTP_BASE_URL")
 BUREAU_PROFILE_URL = os.getenv("BUREAU_PROFILE_URL")
 basic_cibil = os.getenv("basic_cibil")
+basic_otp = os.getenv("basic_otp")
 
 cibil_request_cache = {}
 
@@ -1682,7 +1683,6 @@ def mandate_consent_cibilscore(data: mandate_cibil):
 
     # Send request using EXACT same URL
     response = requests.post(full_url, headers=headers)
-    print("REQUEST URL:", response.request.url)
 
     api_data = response.json()
     print(api_data)
@@ -1691,29 +1691,71 @@ def mandate_consent_cibilscore(data: mandate_cibil):
 
 def mandate_verify_otp(TransId: str, Otp: str):
 
-    # params = [
-    #     ("TransId", data.TransId),
-    #     ("OTP", data.OTP),
-    # ]
     params={"TransId": TransId, "Otp": Otp}
-
+    TransId = TransId
     # Build canonical query string
     canonical_query = urlencode(params, doseq=True)
-    print(canonical_query)
-
     # Full URL to sign
-    full_url = f"{basic_cibil}?{canonical_query}"
-    print("FULL URL (signed):", full_url)
+    full_url = f"{basic_otp}?{canonical_query}"
 
     headers = get_signature_headers(full_url, "GET", '' )
-    print("HEADERS:", headers)
 
     # Send request using EXACT same URL
-    response = requests.get(full_url)
-    print("REQUEST URL:", response.request.url)
-
+    response = requests.get(full_url, headers=headers)
     api_data = response.json()
-    print(api_data)
 
-    return api_data
+    dob = api_data.get("")
+    # DOB normalize → dd-mm-yyyy
+    dob_formatted = ""
+    if dob:
+        try:
+            dob_formatted = datetime.strptime(str(dob), "%Y-%m-%d").strftime("%d-%m-%Y")
+        except ValueError:
+            dob_formatted = str(dob)
 
+
+    user_details = {
+                    "dob": dob_formatted,
+                    "credit_score": api_data.get("result").get("creditScore"),
+                    "email": api_data.get("result").get("email"),
+                    "gender": api_data.get("result").get("gender"),
+                    "pan_number": api_data.get("result").get("pan"),
+                    "pincode": api_data.get("result").get("pincode"),
+                    "name": api_data.get("result").get("firstName") + api_data.get("result").get("lastName"),
+                    "phone": api_data.get("result").get("mobile"),
+                }
+    
+    
+    cibil = api_data.get("result", {}).get("cibilRawReport")
+    equifax = api_data.get("result", {}).get("equiFaxRawReport")
+    if cibil:
+        try:
+            raw = json.loads(cibil)   # parse if it's a JSON string
+        except (TypeError, json.JSONDecodeError):
+            raw = cibil               # fallback to raw value
+    elif equifax:
+        try:
+            raw = json.loads(equifax)   # parse if it's a JSON string
+        except (TypeError, json.JSONDecodeError):
+            raw = equifax               # fallback to raw value
+    else:
+        raw = None
+    
+    if api_data.get("message") == "Data Fetched Successfully":
+        consent = "Y"
+        return VerifyOtpResponse(
+                        consent=consent or "Y",
+                        message="OTP verified",
+                        phone_number=api_data.get("result").get("mobile"),
+                        cibilScore = api_data.get("result").get("creditScore") or 700,
+                        transId=TransId,
+                        raw=raw,
+                        approvedLenders=[],
+                        moreLenders=[],
+                        data=raw,
+                        user_details=user_details,
+                        source=api_data.get("result").get("source") or None,
+                        emi_data=api_data.get("result").get("existingEmis"),
+                        flags={"otp_verified": True},
+                        reason_codes=[]
+                    )
