@@ -1686,7 +1686,8 @@ def mandate_consent_cibilscore(data: mandate_cibil):
                 "success": True,
                 "message": "OTP sent successfully",
                 "data": {
-                    "phone_number": "8076298443"
+                    "phone_number": data.MobileNumber,
+                    "TransId": api_data.get("result").get("transId"),
                 }
             }
     else:
