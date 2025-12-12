@@ -1731,7 +1731,7 @@ def mandate_verify_otp(data: mandate_verify):
                     "gender": api_data.get("result").get("gender"),
                     "pan_number": api_data.get("result").get("pan"),
                     "pincode": api_data.get("result").get("pincode"),
-                    "name": api_data.get("result").get("firstName") + api_data.get("result").get("lastName"),
+                    "name": api_data.get("result").get("firstName") +" " + api_data.get("result").get("lastName"),
                     "phone": api_data.get("result").get("mobile"),
                 }
     if api_data.get("result").get("source") == "TransBank":
