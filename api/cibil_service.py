@@ -1689,10 +1689,16 @@ def mandate_consent_cibilscore(data: mandate_cibil):
 
     return api_data
 
-def mandate_verify_otp(TransId: str, Otp: str):
+def mandate_verify_otp(data: mandate_verify):
 
-    params={"TransId": TransId, "Otp": Otp}
-    TransId = TransId
+    params = [
+        ("TransId",data.TransId),
+        ("Otp", data.Otp),]
+    
+    print(params)
+
+    # params={"TransId": TransId, "Otp": Otp}
+    TransId = data.TransId
     # Build canonical query string
     canonical_query = urlencode(params, doseq=True)
     # Full URL to sign

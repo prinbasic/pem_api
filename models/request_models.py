@@ -282,4 +282,4 @@ class mandate_cibil(BaseModel):
 
 class mandate_verify(BaseModel):
     TransId: str
-    OTP: str
+    Otp: str

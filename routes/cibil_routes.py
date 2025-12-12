@@ -25,9 +25,9 @@ def initiate(data: cibilRequest):
 def initiate(data: mandate_cibil):
     return mandate_consent_cibilscore(data)
 
-@router.get("/latest_verify", tags=["credit"])
-def verify(transId: str = Query(...), otp: str = Query(...)):
-    return mandate_verify_otp(transId, otp)
+@router.post("/latest_verify", tags=["credit"])
+def verify(data: mandate_verify):
+    return mandate_verify_otp(data)
 
 @router.get("/verify-otp", tags=["credit"])
 def verify(transId: str = Query(...), otp: str = Query(...), pan: str = Query(...)):
