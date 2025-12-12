@@ -1723,14 +1723,19 @@ def mandate_verify_otp(data: mandate_verify):
     user_details = {
                     "dob": dob_formatted,
                     "credit_score": api_data.get("result").get("creditScore") or 700,
-                    "email": api_data.get("result").get("email"),
+                    "email": api_data.get("result").get("email") ,
                     "gender": api_data.get("result").get("gender"),
                     "pan_number": api_data.get("result").get("pan"),
                     "pincode": api_data.get("result").get("pincode"),
                     "name": api_data.get("result").get("firstName") + api_data.get("result").get("lastName"),
                     "phone": api_data.get("result").get("mobile"),
                 }
-    
+    if api_data.get("result").get("source") == "TransBank":
+        source = "Cibil"
+    elif api_data.get("result").get("source") == "OnGrid":
+        source = "Equifax"
+    else:
+        source = None
     
     cibil = api_data.get("result", {}).get("cibilRawReport")
     equifax = api_data.get("result", {}).get("equiFaxRawReport")
@@ -1760,8 +1765,10 @@ def mandate_verify_otp(data: mandate_verify):
                         moreLenders=[],
                         data=raw,
                         user_details=user_details,
-                        source=api_data.get("result").get("source") or None,
+                        source=source,
                         emi_data=api_data.get("result").get("existingEmis"),
                         flags={"otp_verified": True},
                         reason_codes=[]
                     )
+    else:
+        return api_data
