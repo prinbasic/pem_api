@@ -1714,14 +1714,14 @@ def mandate_verify_otp(data: mandate_verify):
     response = requests.get(full_url, headers=headers)
     api_data = response.json()
 
-    dob = api_data.get("")
+    print(api_data)
+    dob = api_data.get("result").get("dateOfBirth")
     # DOB normalize → dd-mm-yyyy
-    dob_formatted = ""
-    if dob:
-        try:
-            dob_formatted = datetime.strptime(str(dob), "%Y-%m-%d").strftime("%d-%m-%Y")
-        except ValueError:
-            dob_formatted = str(dob)
+    
+    dob_formatted = (
+        datetime.fromisoformat(dob)
+        .strftime("%d-%m-%Y")
+    )
 
 
     user_details = {
@@ -1776,3 +1776,4 @@ def mandate_verify_otp(data: mandate_verify):
                     )
     else:
         return api_data
+    

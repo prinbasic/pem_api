@@ -51,6 +51,7 @@ ALLOWED_PATHS = { "/health", "/health/ready", "/health/deps",
     "/openapi.json", "/openapi/aggregate.json",
     "/openapi/filtered.json", "/openapi/filtered/list",
     "/docs/filtered", "/redoc/filtered","/health/filtered"}
+
 ALLOWED_PREFIXES = ("/docs", "/redoc", "/docs/aggregate", "/redoc/aggregate", "/combined-docs", "/combined-swagger")
 # List the container Swagger URLs
 SERVICE_URLS = [
