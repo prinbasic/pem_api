@@ -1714,6 +1714,12 @@ def mandate_verify_otp(data: mandate_verify):
     response = requests.get(full_url, headers=headers)
     api_data = response.json()
 
+    if api_data.get("result").get("message") == "Invalid Otp":
+        return "Invalid Otp"
+    
+    else:
+        pass
+
     print(api_data)
     dob = api_data.get("result").get("dateOfBirth")
     # DOB normalize → dd-mm-yyyy
