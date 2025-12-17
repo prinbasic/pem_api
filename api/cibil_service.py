@@ -1713,12 +1713,19 @@ def mandate_verify_otp(data: mandate_verify):
     # Send request using EXACT same URL
     response = requests.get(full_url, headers=headers)
     api_data = response.json()
-
-    if api_data.get("result").get("message") == "Invalid Otp":
-        return "Invalid Otp"
+    print("response", api_data)
+    try :
+        if api_data.get("result").get("message") == "Invalid Otp":
+            return "Invalid Otp"
+    except AttributeError:
+        try:
+            if api_data.get("responseException").get("exceptionMessage") == " Pan Number Not Found":
+                return "data not found"
+        except AttributeError:
+            pass
     
-    else:
-        pass
+    # else:
+    #     pass
 
     print(api_data)
     dob = api_data.get("result").get("dateOfBirth")
