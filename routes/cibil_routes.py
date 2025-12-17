@@ -150,8 +150,8 @@ async def fetch_lenders(propertyName: str):
 
 
 @router.post("/intell-report", tags=["credit"])
-async def intell_report_endpoint(report: dict = Body(...)):
-    return await intell_report_from_json(report)
+async def intell_report_endpoint(pan_number: str):
+    return await intell_report_from_json(pan_number)
 
 
 @router.post("/push_update", tags=["credits"])

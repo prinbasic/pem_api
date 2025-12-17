@@ -263,7 +263,7 @@ class TransBankResponse(BaseModel):
         extra = "allow"
 
 class IntellReq(BaseModel):
-    report: dict   # the JSON object you receive in the body
+    phone_number : str   # the JSON object you receive in the body
 
 class updateprofile(BaseModel):
     firstName: str
@@ -284,3 +284,5 @@ class mandate_cibil(BaseModel):
 class mandate_verify(BaseModel):
     TransId: str
     Otp: str
+    phone_number : str
+

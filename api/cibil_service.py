@@ -9,6 +9,7 @@ from api.log_utils import log_user_cibil_data
 from api.signature1 import get_signature_headers
 from models.request_models import VerifyOtpResponse, cibilRequest, mandate_cibil, mandate_verify
 from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Tuple, Union
 # from routes.utility_routes import calculate_emi
 from db_client import get_db_connection  # make sure this is imported
 import re
@@ -1535,12 +1536,12 @@ async def fetch_lenders_apf(propertyName: str, score: int = 750):
     }
 
 TTL_DAYS = 30
-async def intell_report_from_json(report: Dict) -> dict:
+async def intell_report_from_json(pan_number: str) :
     """Accepts a bureau report as a dict, sends it as a JSON file to Orbit AI, and returns the JSON response."""
-    if not isinstance(report, dict) or not report:
-        raise HTTPException(status_code=400, detail="Body must be a non-empty JSON object")
+    # if not isinstance(report, dict) or not report:
+    #     raise HTTPException(status_code=400, detail="Body must be a non-empty JSON object")
 
-    pan = report.get("pan_number")
+    pan = pan_number
 
     # --- Cache check with 30-day TTL ---
     if pan:
@@ -1699,7 +1700,105 @@ def mandate_verify_otp(data: mandate_verify):
         ("TransId",data.TransId),
         ("Otp", data.Otp),]
     
+    phone_number = data.phone_number
+    
     print(params)
+    debug: Dict[str, Any] = {}
+
+    # ---------- 30-day cache check ----------
+    try:
+            conn = get_db_connection()
+            with conn.cursor() as cur:
+                cur.execute(
+                            """
+                            SELECT
+                                pan, dob, name, phone, location, email, raw_report,
+                                cibil_score, monthly_emi, consent, source, gender
+                            FROM user_cibil_logs
+                            WHERE phone = %s
+                            AND trans_id IS NOT NULL
+                            AND created_at >= (NOW() AT TIME ZONE 'utc') - INTERVAL '30 days'
+                            ORDER BY created_at DESC
+                            LIMIT 1
+                            """,
+                            (phone_number,)
+                        )
+                row = cur.fetchone()
+            conn.close()
+    except Exception as e:
+            print("⚠️ Cache lookup failed:", e)
+            row = None
+
+    if row:
+            (
+                pan, dob, name, phone_db, location, email, raw_report_json,
+                cibil_score, monthly_emi, consent_db, source_db, gender
+            ) = row
+
+            # Parse cached report
+            try:
+                cibil_report = raw_report_json if isinstance(raw_report_json, dict) else json.loads(raw_report_json or "{}")
+            except Exception:
+                cibil_report = {}
+
+            # Decide source only if empty/None
+            source = source_db or ""
+            if source in (None, ""):
+                data = cibil_report.get("data")
+                d = data if isinstance(data, dict) else cibil_report
+                cdata = d.get("cibilData") if d.get("cibilData") is not None else cibil_report.get("cibilData")
+                msg = d.get("message") if d.get("message") is not None else cibil_report.get("message")
+                html = d.get("htmlUrl") if d.get("htmlUrl") is not None else cibil_report.get("htmlUrl")
+
+                if (isinstance(cdata, dict) or cdata is True
+                    or (isinstance(cdata, str) and cdata.strip().lower() == "cibil")
+                    or (isinstance(html, str) and "cibil" in html.lower())):
+                    source = "cibil"
+                elif isinstance(msg, str) and msg.strip() == "Fetched Bureau Profile.":
+                    source = "Equifax"
+                else:
+                    source = ""
+
+            # DOB normalize → dd-mm-yyyy
+            dob_formatted = ""
+            if dob:
+                try:
+                    dob_formatted = datetime.strptime(str(dob), "%Y-%m-%d").strftime("%d-%m-%Y")
+                except ValueError:
+                    dob_formatted = str(dob)
+
+            user_details = {
+                "dob": dob_formatted,
+                "credit_score": cibil_score,
+                "email": email,
+                "gender": gender,
+                "pan_number": pan,
+                "pincode": location,
+                "name": name,
+                "phone": phone_db,
+            }
+
+            # Return the same schema, with flags reflecting cache path
+            return VerifyOtpResponse(
+                consent=consent_db or "Y",
+                message="OTP verified",
+                phone_number=phone_number,
+                cibilScore=cibil_score,
+                transId=TransId,
+                raw=cibil_report,
+                approvedLenders=[],
+                moreLenders=[],
+                data=cibil_report,
+                user_details=user_details,
+                source=source or None,
+                emi_data=float(monthly_emi or 0.0),
+                flags={"otp_verified": True, "from_cache": True},
+                reason_codes=[],
+                stage="cache_hit",
+            )
+###################################################################################live flow ###########################################
+
+
 
     # params={"TransId": TransId, "Otp": Otp}
     TransId = data.TransId
@@ -1734,10 +1833,10 @@ def mandate_verify_otp(data: mandate_verify):
                     )
     except AttributeError:
         try:
-            if api_data.get("responseException").get("exceptionMessage") == " Pan Number Not Found":
+            if api_data.get("result").get("message") == "Otp Expired":
                 return VerifyOtpResponse(
                         consent=None,
-                        message="OTP verified",
+                        message="Otp Expired",
                         phone_number=None,
                         cibilScore = None,
                         transId=TransId,
@@ -1748,14 +1847,32 @@ def mandate_verify_otp(data: mandate_verify):
                         user_details=None,
                         source=None,
                         emi_data= 0.0,
-                        flags={"otp_verified": True, "prefill_ok": False},
+                        flags={"otp_verified": False},
                         reason_codes=[]
-                    )
+                        )
         except AttributeError:
-            pass
-    
-    # else:
-    #     pass
+            try:
+                if api_data.get("responseException").get("exceptionMessage") == " Pan Number Not Found":
+                    return VerifyOtpResponse(
+                            consent=None,
+                            message="OTP verified",
+                            phone_number=None,
+                            cibilScore = None,
+                            transId=TransId,
+                            raw=None,
+                            approvedLenders=[],
+                            moreLenders=[],
+                            data=None,
+                            user_details=None,
+                            source=None,
+                            emi_data= 0.0,
+                            flags={"otp_verified": True, "prefill_ok": False},
+                            reason_codes=[]
+                        )
+            except AttributeError:
+                pass
+
+
 
     print(api_data)
     dob = api_data.get("result").get("dateOfBirth")
@@ -1779,8 +1896,10 @@ def mandate_verify_otp(data: mandate_verify):
                 }
     if api_data.get("result").get("source") == "TransBank":
         source = "Cibil"
+        created_at = api_data.get("result").get("transLastReportDate")
     elif api_data.get("result").get("source") == "OnGrid":
         source = "Equifax"
+        created_at = api_data.get("result").get("ongridLastReportDate")
     else:
         source = None
     
@@ -1801,6 +1920,55 @@ def mandate_verify_otp(data: mandate_verify):
     
     if api_data.get("message") == "Data Fetched Successfully":
         consent = "Y"
+        #############################################################################db logging ########################################################################################################################
+
+        try:
+            conn = get_db_connection()
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO user_cibil_logs (
+                        pan, dob, name, phone, location, email, gender,
+                        raw_report, cibil_score, created_at, monthly_emi, consent, source, trans_id
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (pan)
+                    DO UPDATE SET
+                        dob = EXCLUDED.dob,
+                        name = EXCLUDED.name,
+                        phone = EXCLUDED.phone,
+                        location = EXCLUDED.location,
+                        email = EXCLUDED.email,
+                        gender = EXCLUDED.gender,
+                        raw_report = EXCLUDED.raw_report,
+                        cibil_score = EXCLUDED.cibil_score,
+                        created_at = EXCLUDED.created_at,
+                        monthly_emi = EXCLUDED.monthly_emi,
+                        consent = EXCLUDED.consent,
+                        source = EXCLUDED.source,
+                        trans_id = EXCLUDED.trans_id
+                """, (
+                    api_data.get("result").get("pan"),
+                    datetime.strptime(dob_formatted, "%d-%m-%Y").date(),
+                    api_data.get("result").get("firstName") +" " + api_data.get("result").get("lastName"),
+                    api_data.get("result").get("mobile"),
+                    api_data.get("result").get("pincode"),
+                    api_data.get("result").get("email"),
+                    user_details.get("gender", ''),
+                    json.dumps(raw),
+                    user_details.get("credit_score"),
+                    created_at,
+                    api_data.get("result").get("existingEmis"),
+                    "Y",
+                    source,
+                    TransId
+                ))
+                conn.commit()
+            conn.close()
+            print("data logged")
+        except Exception as log_err:
+            debug["db_log_error"] = str(log_err)[:500]
+            print(log_err)
+
+        ################################################################################################################################################################################################################
         return VerifyOtpResponse(
                         consent=consent or "Y",
                         message="OTP verified",
@@ -1810,12 +1978,12 @@ def mandate_verify_otp(data: mandate_verify):
                         raw=raw,
                         approvedLenders=[],
                         moreLenders=[],
-                        data=raw,
+                        data=api_data,
                         user_details=user_details,
                         source=source,
                         emi_data=api_data.get("result").get("existingEmis"),
                         flags={"otp_verified": True},
-                        reason_codes=[]
+                        reason_codes=[],
                     )
     else:
         return api_data
