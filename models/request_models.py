@@ -263,7 +263,7 @@ class TransBankResponse(BaseModel):
         extra = "allow"
 
 class IntellReq(BaseModel):
-    phone_number : str   # the JSON object you receive in the body
+    pan_number : str   # the JSON object you receive in the body
 
 class updateprofile(BaseModel):
     firstName: str

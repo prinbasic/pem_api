@@ -1542,6 +1542,38 @@ async def intell_report_from_json(pan_number: str) :
     #     raise HTTPException(status_code=400, detail="Body must be a non-empty JSON object")
 
     pan = pan_number
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT raw_report
+                FROM user_cibil_logs
+                WHERE pan = %s
+                AND trans_id IS NOT NULL
+                ORDER BY created_at DESC
+                LIMIT 1
+                """,
+                (pan,),
+            )
+            row = cur.fetchone()
+        conn.close()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="DB lookup failed")
+
+    if not row or not row[0]:
+        raise HTTPException(
+            status_code=400,
+            detail="No completed bureau report found for this PAN"
+        )
+
+    # Normalize raw_report
+    raw_report = row[0]
+    try:
+        report = raw_report if isinstance(raw_report, dict) else json.loads(raw_report)
+    except Exception:
+        raise HTTPException(status_code=500, detail="Invalid raw report stored in DB")
+
 
     # --- Cache check with 30-day TTL ---
     if pan:
@@ -1553,6 +1585,8 @@ async def intell_report_from_json(pan_number: str) :
                     SELECT intell_report, created_at
                     FROM user_cibil_logs
                     WHERE pan = %s
+                    AND trans_id IS NOT NULL
+                    AND created_at >= (NOW() AT TIME ZONE 'utc') - INTERVAL '30 days'
                     ORDER BY created_at DESC
                     LIMIT 1
                     """,
@@ -1622,6 +1656,10 @@ async def intell_report_from_json(pan_number: str) :
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate report: {str(e)}")
     
+
+
+
+
 async def upsert_changes(conn, table: str, key_col: str, row: dict):
     """
     Compare payload with DB by `key_col`. Insert if not exists; else update only changed columns.
@@ -1784,7 +1822,6 @@ def mandate_verify_otp(data: mandate_verify):
                 message="OTP verified",
                 phone_number=phone_number,
                 cibilScore=cibil_score,
-                transId=TransId,
                 raw=cibil_report,
                 approvedLenders=[],
                 moreLenders=[],
