@@ -280,8 +280,6 @@ def initiate_cibil_score(data: cibilRequest):
         "cibilScore": score,
         "transId": trans,
         "raw": report.get("raw") if report else "User-provided score; Equifax skipped",
-        "approvedLenders": approved_lenders,
-        "moreLenders": remaining_lenders,
         "emi_data": emi_data,
         "data": data,
         "intell_response": intell_response
@@ -1907,7 +1905,7 @@ def mandate_verify_otp(data: mandate_verify):
 
     user_details = {
                     "dob": dob_formatted,
-                    "credit_score": api_data.get("result").get("creditScore") or 700,
+                    "credit_score": api_data.get("result").get("creditScore") or None,
                     "email": api_data.get("result").get("email") ,
                     "gender": api_data.get("result").get("gender"),
                     "pan_number": api_data.get("result").get("pan"),
@@ -1994,7 +1992,7 @@ def mandate_verify_otp(data: mandate_verify):
                         consent=consent or "Y",
                         message="OTP verified",
                         phone_number=api_data.get("result").get("mobile"),
-                        cibilScore = api_data.get("result").get("creditScore") or 700,
+                        cibilScore = api_data.get("result").get("creditScore") or None,
                         transId=TransId,
                         user_details=user_details,
                         source=source,

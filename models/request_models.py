@@ -91,10 +91,6 @@ class VerifyOtpResponse(BaseModel):
     phone_number: Optional[str] = None
     cibilScore: Optional[int] = None
     transId: Optional[str] = None
-    raw: Optional[Dict[str, Any]] = None
-    approvedLenders: Optional[List[Dict[str, Any]]] = None
-    moreLenders: Optional[List[Dict[str, Any]]] = None
-    data: Optional[Dict[str, Any]] = None
     user_details: Optional[Dict[str, Any]] = None
     source: Optional[str] = None
 
