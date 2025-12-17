@@ -86,8 +86,8 @@ class VerifyOTPtrans(BaseModel):
 #         orm_mode = True
 
 class VerifyOtpResponse(BaseModel):
-    consent: str
-    message: str
+    consent: Optional[str] = None
+    message: str = None
     phone_number: Optional[str] = None
     cibilScore: Optional[int] = None
     transId: Optional[str] = None
@@ -97,7 +97,8 @@ class VerifyOtpResponse(BaseModel):
     data: Optional[Dict[str, Any]] = None
     user_details: Optional[Dict[str, Any]] = None
     source: Optional[str] = None
-    emi_data: float = 0.0
+
+    emi_data: Optional[float] = 0.0
 
     # ✅ pass-through diagnostics from primePan
     flags: Dict[str, bool] = Field(default_factory=dict)

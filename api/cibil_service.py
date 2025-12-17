@@ -1716,11 +1716,41 @@ def mandate_verify_otp(data: mandate_verify):
     print("response", api_data)
     try :
         if api_data.get("result").get("message") == "Invalid Otp":
-            return "Invalid Otp"
+            return VerifyOtpResponse(
+                        consent=None,
+                        message="OTP not verified",
+                        phone_number=None,
+                        cibilScore = None,
+                        transId=TransId,
+                        raw=None,
+                        approvedLenders=[],
+                        moreLenders=[],
+                        data=None,
+                        user_details=None,
+                        source=None,
+                        emi_data= 0.0,
+                        flags={"otp_verified": False},
+                        reason_codes=[]
+                    )
     except AttributeError:
         try:
             if api_data.get("responseException").get("exceptionMessage") == " Pan Number Not Found":
-                return "data not found"
+                return VerifyOtpResponse(
+                        consent=None,
+                        message="OTP not verified",
+                        phone_number=None,
+                        cibilScore = None,
+                        transId=TransId,
+                        raw=None,
+                        approvedLenders=[],
+                        moreLenders=[],
+                        data=None,
+                        user_details=None,
+                        source=None,
+                        emi_data= 0.0,
+                        flags={"otp_verified": False, "prefill_ok": False},
+                        reason_codes=[]
+                    )
         except AttributeError:
             pass
     
