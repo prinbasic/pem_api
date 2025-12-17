@@ -1737,7 +1737,7 @@ def mandate_verify_otp(data: mandate_verify):
             if api_data.get("responseException").get("exceptionMessage") == " Pan Number Not Found":
                 return VerifyOtpResponse(
                         consent=None,
-                        message="OTP not verified",
+                        message="OTP verified",
                         phone_number=None,
                         cibilScore = None,
                         transId=TransId,
@@ -1748,7 +1748,7 @@ def mandate_verify_otp(data: mandate_verify):
                         user_details=None,
                         source=None,
                         emi_data= 0.0,
-                        flags={"otp_verified": False, "prefill_ok": False},
+                        flags={"otp_verified": True, "prefill_ok": False},
                         reason_codes=[]
                     )
         except AttributeError:
