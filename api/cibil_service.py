@@ -1656,8 +1656,6 @@ async def intell_report_from_json(pan_number: str) :
     
 
 
-
-
 async def upsert_changes(conn, table: str, key_col: str, row: dict):
     """
     Compare payload with DB by `key_col`. Insert if not exists; else update only changed columns.
@@ -1923,19 +1921,81 @@ def mandate_verify_otp(data: mandate_verify):
         source = None
     
     cibil = api_data.get("result", {}).get("cibilRawReport")
+    print(cibil)
     equifax = api_data.get("result", {}).get("equiFaxRawReport")
-    if cibil:
-        try:
-            raw = json.loads(cibil)   # parse if it's a JSON string
-        except (TypeError, json.JSONDecodeError):
-            raw = cibil               # fallback to raw value
-    elif equifax:
-        try:
-            raw = json.loads(equifax)   # parse if it's a JSON string
-        except (TypeError, json.JSONDecodeError):
-            raw = equifax               # fallback to raw value
+    print(equifax)
+    # if cibil.get("data") is not None and cibil.get("data").get("cibilData").get("GetCustomerAssetsResponse").get("ResponseStatus")  == "Success":
+    #     try:
+    #         raw = json.loads(cibil)   # parse if it's a JSON string
+    #     except (TypeError, json.JSONDecodeError) as e:
+    #         print(e)
+    #         try:
+    #             if cibil.get("data").get("message")  == "Fetched Bureau Profile.":
+    #                 raw = cibil
+    #             print(e)
+    #         except:
+    #             pass             # fallback to raw value
+    #         print(e)
+    # elif equifax.get("data").get("message") == "Fetched Bureau Profile.":
+    #     try:
+    #         raw = json.loads(equifax)   # parse if it's a JSON string
+    #     except (TypeError, json.JSONDecodeError):
+    #         print(e)
+    #         raw = equifax               # fallback to raw value
+    # else:
+    #     raw = None
+
+    raw = None
+
+    # ---- CIBIL check ----
+    if (
+        cibil is not None
+        and cibil.get("data") is not None
+        and isinstance(cibil.get("data"), dict)
+        and cibil.get("data", {}).get("cibilData") is not None
+        and isinstance(cibil.get("data", {}).get("cibilData"), dict)
+        and cibil.get("data", {}).get("cibilData", {})
+            .get("GetCustomerAssetsResponse") is not None
+        and cibil.get("data", {}).get("cibilData", {})
+            .get("GetCustomerAssetsResponse", {})
+            .get("ResponseStatus") == "Success"
+    ):
+        raw = cibil
+
+    # ---- Equifax fallback ----
+    elif (
+        equifax is not None
+        and equifax.get("data") is not None
+        and isinstance(equifax.get("data"), dict)
+        and equifax.get("data", {}).get("message") == "Fetched Bureau Profile."
+    ):
+        raw = equifax
+
     else:
         raw = None
+
+    print("raw_data", raw)
+
+    # raw = None
+
+    # if (
+    #     cibil is not None
+    #     and isinstance(cibil, dict)
+    #     and cibil.get("data") is not None
+    #     and cibil.get("data").get("message") == "Fetched Bureau Profile."
+    # ):
+    #     raw = cibil
+
+    # elif (
+    #     equifax is not None
+    #     and isinstance(equifax, dict)
+    #     and equifax.get("data") is not None
+    #     and equifax.get("data").get("message") == "Fetched Bureau Profile"
+    # ):
+    #     raw = equifax
+    # else:
+    #     raw = None
+
     
     if api_data.get("message") == "Data Fetched Successfully":
         consent = "Y"
@@ -1985,7 +2045,7 @@ def mandate_verify_otp(data: mandate_verify):
             print("data logged")
         except Exception as log_err:
             debug["db_log_error"] = str(log_err)[:500]
-            print(log_err)
+            print("db errro", log_err)
 
         ################################################################################################################################################################################################################
         return VerifyOtpResponse(
