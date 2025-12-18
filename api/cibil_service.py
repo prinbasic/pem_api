@@ -1747,7 +1747,7 @@ def mandate_verify_otp(data: mandate_verify):
                             """
                             SELECT
                                 pan, dob, name, phone, location, email, raw_report,
-                                cibil_score, monthly_emi, consent, source, gender
+                                cibil_score, monthly_emi, consent, source, gender, address
                             FROM user_cibil_logs
                             WHERE phone = %s
                             AND trans_id IS NOT NULL
@@ -1766,7 +1766,7 @@ def mandate_verify_otp(data: mandate_verify):
     if row:
             (
                 pan, dob, name, phone_db, location, email, raw_report_json,
-                cibil_score, monthly_emi, consent_db, source_db, gender
+                cibil_score, monthly_emi, consent_db, source_db, gender, address
             ) = row
 
             # Parse cached report
@@ -1801,6 +1801,8 @@ def mandate_verify_otp(data: mandate_verify):
                 except ValueError:
                     dob_formatted = str(dob)
 
+            
+
             user_details = {
                 "dob": dob_formatted,
                 "credit_score": cibil_score,
@@ -1810,6 +1812,7 @@ def mandate_verify_otp(data: mandate_verify):
                 "pincode": location,
                 "name": name,
                 "phone": phone_db,
+                "address": address
             }
 
             # Return the same schema, with flags reflecting cache path
@@ -1841,7 +1844,6 @@ def mandate_verify_otp(data: mandate_verify):
     # Send request using EXACT same URL
     response = requests.get(full_url, headers=headers)
     api_data = response.json()
-    print("response", api_data)
     try :
         if api_data.get("result").get("message") == "Invalid Otp":
             return VerifyOtpResponse(
@@ -1910,6 +1912,7 @@ def mandate_verify_otp(data: mandate_verify):
                     "pincode": api_data.get("result").get("pincode"),
                     "name": api_data.get("result").get("firstName") +" " + api_data.get("result").get("lastName"),
                     "phone": api_data.get("result").get("mobile"),
+                    "address_history": [api_data.get("result").get("address")]
                 }
     if api_data.get("result").get("source") == "TransBank":
         source = "Cibil"
@@ -1921,9 +1924,8 @@ def mandate_verify_otp(data: mandate_verify):
         source = None
     
     cibil = api_data.get("result", {}).get("cibilRawReport")
-    print(cibil)
+
     equifax = api_data.get("result", {}).get("equiFaxRawReport")
-    print(equifax)
     # if cibil.get("data") is not None and cibil.get("data").get("cibilData").get("GetCustomerAssetsResponse").get("ResponseStatus")  == "Success":
     #     try:
     #         raw = json.loads(cibil)   # parse if it's a JSON string
@@ -1974,7 +1976,6 @@ def mandate_verify_otp(data: mandate_verify):
     else:
         raw = None
 
-    print("raw_data", raw)
 
     # raw = None
 
@@ -2007,8 +2008,8 @@ def mandate_verify_otp(data: mandate_verify):
                 cur.execute("""
                     INSERT INTO user_cibil_logs (
                         pan, dob, name, phone, location, email, gender,
-                        raw_report, cibil_score, created_at, monthly_emi, consent, source, trans_id
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        raw_report, cibil_score, created_at, monthly_emi, consent, source, trans_id, address
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (pan)
                     DO UPDATE SET
                         dob = EXCLUDED.dob,
@@ -2023,7 +2024,8 @@ def mandate_verify_otp(data: mandate_verify):
                         monthly_emi = EXCLUDED.monthly_emi,
                         consent = EXCLUDED.consent,
                         source = EXCLUDED.source,
-                        trans_id = EXCLUDED.trans_id
+                        trans_id = EXCLUDED.trans_id,
+                        address = EXCLUDED.address
                 """, (
                     api_data.get("result").get("pan"),
                     datetime.strptime(dob_formatted, "%d-%m-%Y").date(),
@@ -2038,7 +2040,8 @@ def mandate_verify_otp(data: mandate_verify):
                     api_data.get("result").get("existingEmis"),
                     "Y",
                     source,
-                    TransId
+                    TransId,
+                    user_details.get("address")
                 ))
                 conn.commit()
             conn.close()

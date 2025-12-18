@@ -167,6 +167,7 @@ def push_update(payload: updateprofile):
         "cibil_score": int(payload.creditScore),
         "gender": (payload.gender or "").lower() or None,
     }
+    print(params)
 
     # UPDATE only if any value is different; else no-op
     sql = """
