@@ -1912,7 +1912,7 @@ def mandate_verify_otp(data: mandate_verify):
                     "pincode": api_data.get("result").get("pincode"),
                     "name": api_data.get("result").get("firstName") +" " + api_data.get("result").get("lastName"),
                     "phone": api_data.get("result").get("mobile"),
-                    "address_history": [api_data.get("result").get("address")]
+                    "address_history": api_data.get("result").get("address")
                 }
     if api_data.get("result").get("source") == "TransBank":
         source = "Cibil"
