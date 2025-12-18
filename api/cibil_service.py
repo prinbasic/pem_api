@@ -2060,7 +2060,7 @@ def mandate_verify_otp(data: mandate_verify):
                         user_details=user_details,
                         source=source,
                         emi_data=api_data.get("result").get("existingEmis"),
-                        flags={"otp_verified": True},
+                        flags={"otp_verified": True, "prefill_ok": True},
                         reason_codes=[],
                     )
     else:
