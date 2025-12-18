@@ -2041,7 +2041,7 @@ def mandate_verify_otp(data: mandate_verify):
                     "Y",
                     source,
                     TransId,
-                    user_details.get("address")
+                    user_details.get("address_history")
                 ))
                 conn.commit()
             conn.close()
