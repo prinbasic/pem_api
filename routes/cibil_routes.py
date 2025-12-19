@@ -176,12 +176,11 @@ def push_update(payload: updateprofile):
                email       = %(email)s,
                phone       = %(phone)s,
                dob         = %(dob)s,
-               cibil_score = %(cibil_score)s,
                gender      = %(gender)s
          WHERE t.pan = %(pan)s
-           AND ROW(t.name, t.email, t.phone, t.dob, t.cibil_score, t.gender)
+           AND ROW(t.name, t.email, t.phone, t.dob, t.gender)
                IS DISTINCT FROM
-               ROW(%(name)s, %(email)s, %(phone)s, %(dob)s, %(cibil_score)s, %(gender)s)
+               ROW(%(name)s, %(email)s, %(phone)s, %(dob)s, %(gender)s)
          RETURNING t.id, t.pan;
     """
 
