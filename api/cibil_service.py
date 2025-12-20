@@ -1894,13 +1894,18 @@ def mandate_verify_otp(data: mandate_verify):
 
 
     print(api_data)
-    dob = api_data.get("result").get("dateOfBirth")
-    # DOB normalize → dd-mm-yyyy
+
+    try:
+        dob = api_data.get("result").get("dateOfBirth")
+        # DOB normalize → dd-mm-yyyy
+        
+        dob_formatted = (
+            datetime.fromisoformat(dob)
+            .strftime("%d-%m-%Y")
+        )
     
-    dob_formatted = (
-        datetime.fromisoformat(dob)
-        .strftime("%d-%m-%Y")
-    )
+    except:
+        dob_formatted = None
 
 
     user_details = {
