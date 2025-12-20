@@ -1740,95 +1740,95 @@ def mandate_verify_otp(data: mandate_verify):
     debug: Dict[str, Any] = {}
 
     # ---------- 30-day cache check ----------
-    try:
-            conn = get_db_connection()
-            with conn.cursor() as cur:
-                cur.execute(
-                            """
-                            SELECT
-                                pan, dob, name, phone, location, email, raw_report,
-                                cibil_score, monthly_emi, consent, source, gender, address
-                            FROM user_cibil_logs
-                            WHERE phone = %s
-                            AND trans_id IS NOT NULL
-                            AND created_at >= (NOW() AT TIME ZONE 'utc') - INTERVAL '30 days'
-                            ORDER BY created_at DESC
-                            LIMIT 1
-                            """,
-                            (phone_number,)
-                        )
-                row = cur.fetchone()
-            conn.close()
-    except Exception as e:
-            print("⚠️ Cache lookup failed:", e)
-            row = None
+#     try:
+#             conn = get_db_connection()
+#             with conn.cursor() as cur:
+#                 cur.execute(
+#                             """
+#                             SELECT
+#                                 pan, dob, name, phone, location, email, raw_report,
+#                                 cibil_score, monthly_emi, consent, source, gender, address
+#                             FROM user_cibil_logs
+#                             WHERE phone = %s
+#                             AND trans_id IS NOT NULL
+#                             AND created_at >= (NOW() AT TIME ZONE 'utc') - INTERVAL '30 days'
+#                             ORDER BY created_at DESC
+#                             LIMIT 1
+#                             """,
+#                             (phone_number,)
+#                         )
+#                 row = cur.fetchone()
+#             conn.close()
+#     except Exception as e:
+#             print("⚠️ Cache lookup failed:", e)
+#             row = None
 
-    if row:
-            (
-                pan, dob, name, phone_db, location, email, raw_report_json,
-                cibil_score, monthly_emi, consent_db, source_db, gender, address
-            ) = row
+#     if row:
+#             (
+#                 pan, dob, name, phone_db, location, email, raw_report_json,
+#                 cibil_score, monthly_emi, consent_db, source_db, gender, address
+#             ) = row
 
-            # Parse cached report
-            try:
-                cibil_report = raw_report_json if isinstance(raw_report_json, dict) else json.loads(raw_report_json or "{}")
-            except Exception:
-                cibil_report = {}
+#             # Parse cached report
+#             try:
+#                 cibil_report = raw_report_json if isinstance(raw_report_json, dict) else json.loads(raw_report_json or "{}")
+#             except Exception:
+#                 cibil_report = {}
 
-            # Decide source only if empty/None
-            source = source_db or ""
-            if source in (None, ""):
-                data = cibil_report.get("data")
-                d = data if isinstance(data, dict) else cibil_report
-                cdata = d.get("cibilData") if d.get("cibilData") is not None else cibil_report.get("cibilData")
-                msg = d.get("message") if d.get("message") is not None else cibil_report.get("message")
-                html = d.get("htmlUrl") if d.get("htmlUrl") is not None else cibil_report.get("htmlUrl")
+#             # Decide source only if empty/None
+#             source = source_db or ""
+#             if source in (None, ""):
+#                 data = cibil_report.get("data")
+#                 d = data if isinstance(data, dict) else cibil_report
+#                 cdata = d.get("cibilData") if d.get("cibilData") is not None else cibil_report.get("cibilData")
+#                 msg = d.get("message") if d.get("message") is not None else cibil_report.get("message")
+#                 html = d.get("htmlUrl") if d.get("htmlUrl") is not None else cibil_report.get("htmlUrl")
 
-                if (isinstance(cdata, dict) or cdata is True
-                    or (isinstance(cdata, str) and cdata.strip().lower() == "cibil")
-                    or (isinstance(html, str) and "cibil" in html.lower())):
-                    source = "cibil"
-                elif isinstance(msg, str) and msg.strip() == "Fetched Bureau Profile.":
-                    source = "Equifax"
-                else:
-                    source = ""
+#                 if (isinstance(cdata, dict) or cdata is True
+#                     or (isinstance(cdata, str) and cdata.strip().lower() == "cibil")
+#                     or (isinstance(html, str) and "cibil" in html.lower())):
+#                     source = "cibil"
+#                 elif isinstance(msg, str) and msg.strip() == "Fetched Bureau Profile.":
+#                     source = "Equifax"
+#                 else:
+#                     source = ""
 
-            # DOB normalize → dd-mm-yyyy
-            dob_formatted = ""
-            if dob:
-                try:
-                    dob_formatted = datetime.strptime(str(dob), "%Y-%m-%d").strftime("%d-%m-%Y")
-                except ValueError:
-                    dob_formatted = str(dob)
+#             # DOB normalize → dd-mm-yyyy
+#             dob_formatted = ""
+#             if dob:
+#                 try:
+#                     dob_formatted = datetime.strptime(str(dob), "%Y-%m-%d").strftime("%d-%m-%Y")
+#                 except ValueError:
+#                     dob_formatted = str(dob)
 
             
 
-            user_details = {
-                "dob": dob_formatted,
-                "credit_score": cibil_score,
-                "email": email,
-                "gender": gender,
-                "pan_number": pan,
-                "pincode": location,
-                "name": name,
-                "phone": phone_db,
-                "address": address
-            }
+#             user_details = {
+#                 "dob": dob_formatted,
+#                 "credit_score": cibil_score,
+#                 "email": email,
+#                 "gender": gender,
+#                 "pan_number": pan,
+#                 "pincode": location,
+#                 "name": name,
+#                 "phone": phone_db,
+#                 "address": address
+#             }
 
-            # Return the same schema, with flags reflecting cache path
-            return VerifyOtpResponse(
-                consent=consent_db or "Y",
-                message="OTP verified",
-                phone_number=phone_number,
-                cibilScore=cibil_score,
-                user_details=user_details,
-                source=source or None,
-                emi_data=float(monthly_emi or 0.0),
-                flags={"otp_verified": True, "from_cache": True},
-                reason_codes=[],
-                stage="cache_hit",
-            )
-###################################################################################live flow ###########################################
+#             # Return the same schema, with flags reflecting cache path
+#             return VerifyOtpResponse(
+#                 consent=consent_db or "Y",
+#                 message="OTP verified",
+#                 phone_number=phone_number,
+#                 cibilScore=cibil_score,
+#                 user_details=user_details,
+#                 source=source or None,
+#                 emi_data=float(monthly_emi or 0.0),
+#                 flags={"otp_verified": True, "from_cache": True},
+#                 reason_codes=[],
+#                 stage="cache_hit",
+#             )
+# ###################################################################################live flow ###########################################
 
 
 
