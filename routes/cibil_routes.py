@@ -3,7 +3,8 @@ from models.request_models import LoanFormData, cibilRequest
 from api.cibil_service import (
     initiate_cibil_score,mandate_consent_cibilscore,
     verify_otp_and_fetch_score,fetch_lenders_apf,
-    poll_consent_and_fetch,send_and_verify_pan, send_otp_to_user, resend_otp_to_user, fetch_lenders_and_emi, intell_report_from_json, mandate_verify_otp
+    poll_consent_and_fetch,send_and_verify_pan, send_otp_to_user, resend_otp_to_user, fetch_lenders_and_emi, intell_report_from_json, mandate_verify_otp,company,
+    search_company
 )
 from api.log_utils import log_user_cibil_data
 from models.request_models import mandate_cibil ,cibilOTPRequest,PhoneNumberRequest,PANRequest, LoanFormData, IntellReq, updateprofile, mandate_verify
@@ -200,3 +201,11 @@ def push_update(payload: updateprofile):
                 raise HTTPException(status_code=404, detail="PAN not found")
             return {"status": "unchanged", "id": found[0], "pan": found[1]}
 
+
+@router.get("/get_company", tags=["Employment"])
+async def get_company():
+    return company()
+
+@router.get("/CompanyMaster/search/{key}",tags=["Employment"])
+async def company_master_search(key: str):
+    return search_company(key)

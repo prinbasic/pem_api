@@ -38,6 +38,8 @@ OTP_BASE_URL = os.getenv("OTP_BASE_URL")
 BUREAU_PROFILE_URL = os.getenv("BUREAU_PROFILE_URL")
 basic_cibil = os.getenv("basic_cibil")
 basic_otp = os.getenv("basic_otp")
+Company = os.getenv("company")
+COMPANY_MASTER_SEARCH_URL = os.getenv("COMPANY_MASTER_SEARCH_URL")
 
 cibil_request_cache = {}
 
@@ -2071,3 +2073,40 @@ def mandate_verify_otp(data: mandate_verify):
     else:
         return api_data
     
+def company():
+    full_url = Company
+    headers = get_signature_headers(full_url, "GET" )
+
+    response = requests.get(full_url, headers=headers)
+    
+    if response.status_code == 401:
+        raise HTTPException(
+            status_code=401,
+            detail="Unauthorized"
+        )
+
+    if response.status_code == 403:
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden"
+        )
+
+    return response.json()
+
+def search_company(key: str):
+    full_url = f"{COMPANY_MASTER_SEARCH_URL}/{key}"
+
+    headers = get_signature_headers(full_url, "GET")
+    print(headers)
+
+    response = requests.get(full_url, headers=headers)
+
+    # propagate auth errors properly
+    if response.status_code == 401:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    if response.status_code == 403:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+
+    return response.json()

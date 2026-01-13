@@ -50,7 +50,7 @@ app.include_router(trans_routes.router, prefix="/cibil")
 ALLOWED_PATHS = { "/health", "/health/ready", "/health/deps",
     "/openapi.json", "/openapi/aggregate.json",
     "/openapi/filtered.json", "/openapi/filtered/list",
-    "/docs/filtered", "/redoc/filtered","/health/filtered", "/cibil/latest_verify", "/cibil/latest_initiate-cibil"}
+    "/docs/filtered", "/redoc/filtered","/health/filtered"}
 
 ALLOWED_PREFIXES = ("/docs", "/redoc", "/docs/aggregate", "/redoc/aggregate", "/combined-docs", "/combined-swagger")
 # List the container Swagger URLs
