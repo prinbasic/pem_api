@@ -2106,7 +2106,7 @@ def search_company(key: str):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     if response.status_code == 403:
-        raise HTTPException(status_code=403, detail="Forbidden")
+        raise HTTPException(status_code=403, detail="Forbidden by kalyan sir")
 
 
     return response.json()
