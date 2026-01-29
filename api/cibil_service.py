@@ -1332,7 +1332,7 @@ async def fetch_lenders_apf(propertyName: str, score: int = 750):
                        home_loan_ltv, remarks, loan_approval_time, processing_time,
                        minimum_loan_amount, maximum_loan_amount, minimum_credit_score
                 FROM lenders
-                WHERE CAST(LEFT(minimum_credit_score, 3) AS INTEGER) <= %s
+                WHERE WHERE is_disabled IS FALSE AND CAST(LEFT(minimum_credit_score, 3) AS INTEGER) <= %s
                   AND home_loan_roi IS NOT NULL AND home_loan_roi <> ''
             """, (score,))
             rows = cur.fetchall()
@@ -1417,6 +1417,7 @@ async def fetch_lenders_apf(propertyName: str, score: int = 750):
                         l.minimum_loan_amount, l.maximum_loan_amount, l.minimum_credit_score
                 FROM m
                 JOIN public.lenders l ON l.id = m.lender_id
+                        AND l.is_disabled IS FALSE
                 ),
                 incl AS (  -- what API returns (requires ROI)
                 SELECT *
